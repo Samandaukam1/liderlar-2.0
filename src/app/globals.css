@@ -329,6 +329,134 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------ 3D BOOK
+   A book cover on a shelf: slight perspective turn, a spine fold on the left,
+   a stack of page edges on the right and a soft contact shadow underneath. */
+
+.book3d {
+  position: relative;
+  perspective: 1100px;
+  perspective-origin: 62% 46%;
+}
+
+.book3d-shell {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateY(-5deg);
+  transform-origin: 12% 50%;
+  transition: transform 420ms var(--ease-brand);
+  will-change: transform;
+}
+
+.book3d-link:hover .book3d-shell,
+.book3d-link:focus-visible .book3d-shell {
+  transform: rotateY(0deg) translateY(-4px);
+}
+
+.book3d-link:active .book3d-shell {
+  transform: rotateY(0deg) translateY(-1px) scale(0.985);
+}
+
+.book3d-cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 0.28rem 0.7rem 0.7rem 0.28rem;
+  background: var(--color-navy);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.35) inset,
+    0 14px 24px -10px rgb(6 39 65 / 0.55),
+    0 28px 46px -22px rgb(6 39 65 / 0.5);
+}
+
+/* Spine: dark fold, then the thin highlight where the cover bends open. */
+.book3d-spine {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  z-index: 2;
+  width: 11px;
+  border-radius: 0.28rem 0 0 0.28rem;
+  background: linear-gradient(
+    90deg,
+    rgb(2 16 27 / 0.62) 0%,
+    rgb(2 16 27 / 0.4) 34%,
+    rgb(255 255 255 / 0.16) 62%,
+    rgb(2 16 27 / 0.26) 82%,
+    rgb(2 16 27 / 0.05) 100%
+  );
+}
+
+/* Page block peeking out on the right, sitting just behind the cover. */
+.book3d-pages {
+  position: absolute;
+  top: 2.4%;
+  bottom: 2.4%;
+  right: -5px;
+  z-index: -1;
+  width: 8px;
+  border-radius: 0 0.28rem 0.28rem 0;
+  transform: translateZ(-6px);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #fdfefe 0px,
+      #fdfefe 1px,
+      #cfdde5 1px,
+      #cfdde5 2px
+    );
+  box-shadow: 0 8px 16px -8px rgb(6 39 65 / 0.45);
+}
+
+/* Contact shadow on the shelf. Lives outside the preserve-3d shell so it stays
+   flat on the page instead of being sorted into the book's 3D space. */
+.book3d-shadow {
+  position: absolute;
+  left: 6%;
+  right: 2%;
+  bottom: -11px;
+  height: 16px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgb(6 39 65 / 0.34) 0%,
+    rgb(6 39 65 / 0.12) 55%,
+    transparent 100%
+  );
+  filter: blur(5px);
+  transition: opacity 420ms var(--ease-brand);
+}
+
+.book3d-link:hover .book3d-shadow {
+  opacity: 0.72;
+}
+
+/* Sheen across the cover — kept subtle so it never fights the artwork. */
+.book3d-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    104deg,
+    rgb(255 255 255 / 0.16) 0%,
+    rgb(255 255 255 / 0) 26%,
+    rgb(255 255 255 / 0) 74%,
+    rgb(2 16 27 / 0.16) 100%
+  );
+}
+
+@media (min-width: 640px) {
+  .book3d-spine {
+    width: 13px;
+  }
+  .book3d-pages {
+    width: 8px;
+    right: -6px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -339,6 +467,12 @@ body {
     scroll-behavior: auto !important;
   }
 
+  /* Keep the static book geometry, drop the turn-and-lift on interaction. */
+  .book3d-link:hover .book3d-shell,
+  .book3d-link:focus-visible .book3d-shell,
+  .book3d-link:active .book3d-shell {
+    transform: rotateY(-5deg);
+  }
 }
 
 ::selection {

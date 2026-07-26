@@ -77,6 +77,17 @@ export type CandidateAdabiyotXRelationship =
   | "own_work"
   | "read_book";
 
+/**
+ * Only the fields we are willing to surface as UI facts. Everything is optional
+ * because the Admin API may omit `metadata` entirely — a missing value must never
+ * be rendered as a default (no invented price, rating or "free" state).
+ */
+export interface PublicAdabiyotXItemMetadata {
+  isFree?: boolean;
+  rating?: number;
+  category?: string;
+}
+
 export interface PublicCandidateAdabiyotXItem {
   id: string;
   externalId: string;
@@ -89,6 +100,7 @@ export interface PublicCandidateAdabiyotXItem {
   externalUrl: string;
   publishedAt: string | null;
   sortOrder: number;
+  metadata: PublicAdabiyotXItemMetadata;
 }
 
 export type RankingBreakdownRow = {
