@@ -25,6 +25,7 @@ import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
 import { ShareButtons } from "@/components/profile/share-buttons";
 import { ProfileViewTracker } from "@/components/profile/profile-view-tracker";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
+import { CandidateAdabiyotXSection } from "@/components/profile/candidate-adabiyotx-section";
 import { Timeline, type TimelineEntry } from "@/components/ui/timeline";
 import { MediaGallery } from "@/components/ui/media-gallery";
 import { LeaderQuoteCard } from "@/components/cards/leader-quote-card";
@@ -83,6 +84,13 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
   const qrDataUrl = await QRCode.toDataURL(profileUrl, { margin: 1, width: 320 });
   const gradient = gradientFor(candidate.slug);
   const readingTime = readingMinutes(candidate.articles.map((a) => a.content ?? "").join(" "));
+  const ownWorks = candidate.adabiyotXItems.filter(
+    (item) => item.relationshipType === "own_work"
+  );
+  const readBooks = candidate.adabiyotXItems.filter(
+    (item) =>
+      item.relationshipType === "read_book" && item.contentType === "book"
+  );
 
   const profileFacts = [
     ...(candidate.position
@@ -271,7 +279,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
 
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_20rem]">
         {/* ---------------------------------------------------------------- MAIN COLUMN */}
-        <div className="space-y-12">
+        <div className="min-w-0 space-y-12">
           <section id="biografiya" className="scroll-mt-20">
             <div className="flex items-center gap-3">
               <span className="text-[0.62rem] font-bold uppercase tracking-[0.24em] text-liderlar-blue">
@@ -306,6 +314,12 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
               )
             )}
           </section>
+
+          <CandidateAdabiyotXSection title="Ijodiy ishlari" items={ownWorks} />
+          <CandidateAdabiyotXSection
+            title="O‘qigan kitoblari"
+            items={readBooks}
+          />
 
           {(candidate.education.length > 0 || candidate.workExperience.length > 0) && (
             <section className="grid gap-8 sm:grid-cols-2">

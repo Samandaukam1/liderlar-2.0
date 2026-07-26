@@ -2,8 +2,9 @@
 
 O'zbekistonning faol yosh liderlari uchun raqamli ensiklopediya, reyting va
 media platformasining ochiq Next.js ilovasi. `liderlar-web` va
-`liderlar-admin` bir xil Supabase loyihasi va canonical schema'dan
-foydalanadi.
+`liderlar-admin` alohida Supabase loyihalaridan foydalanadi. Web loyiha
+admin ma'lumotlarini bevosita query qilmaydi; integratsion public kontent
+faqat admin panelning server API'lari orqali olinadi.
 
 ## Ishga tushirish
 
@@ -32,18 +33,25 @@ OPENAI_API_KEY=
 OPENAI_MODEL=
 NEXT_PUBLIC_SITE_URL=
 NEXT_PUBLIC_ADMIN_URL=
+LIDERLAR_ADMIN_API_BASE_URL=https://liderlar-2-0-admin.vercel.app
+LIDERLAR_PUBLIC_CONTENT_API_KEY=
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` va `OPENAI_API_KEY` faqat server kodida
-ishlatiladi. Ularni public prefiksli o'zgaruvchiga yoki client component'ga
-joylamang.
+`SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`,
+`LIDERLAR_ADMIN_API_BASE_URL` va ixtiyoriy
+`LIDERLAR_PUBLIC_CONTENT_API_KEY` faqat server kodida ishlatiladi. Ularni
+public prefiksli o'zgaruvchiga yoki client component'ga joylamang.
 
 ## Supabase
 
-Canonical migratsiyalar [supabase/README.md](supabase/README.md) da
-hujjatlangan. Yangi loyiha uchun `0001` dan `0009` gacha tartib bilan, so'ng
-`seed.sql` ishga tushiriladi. Mavjud shared Supabase loyihasida migratsiyalar
-allaqachon qo'llangan bo'lsa, ularni ko'r-ko'rona qayta yaratish shart emas.
+User web Supabase migratsiyalari [supabase/README.md](supabase/README.md) da
+hujjatlangan. Yangi web loyihasi uchun `0001` dan `0009` gacha tartib bilan,
+so'ng `seed.sql` ishga tushiriladi. Admin Supabase schemаsi bu repository
+migratsiyalariga kirmaydi.
+
+Cross-project nomzod integratsiyasi uchun user va admin Supabase'dagi ayni
+nomzodlarda bir xil, immutable `integration_key uuid` bo'lishi shart.
+Projectlarga xos `candidates.id` qiymati integratsion API'larda ishlatilmaydi.
 
 ## Asosiy route'lar
 

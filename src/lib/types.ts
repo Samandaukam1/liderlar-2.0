@@ -66,6 +66,31 @@ export type ArticleCardData = {
   candidate: { slug: string; full_name: string } | null;
 };
 
+export type AdabiyotXContentType =
+  | "book"
+  | "article"
+  | "poem"
+  | "scenario"
+  | "other";
+
+export type CandidateAdabiyotXRelationship =
+  | "own_work"
+  | "read_book";
+
+export interface PublicCandidateAdabiyotXItem {
+  id: string;
+  externalId: string;
+  relationshipType: CandidateAdabiyotXRelationship;
+  contentType: AdabiyotXContentType;
+  title: string;
+  authorName: string | null;
+  description: string | null;
+  coverUrl: string | null;
+  externalUrl: string;
+  publishedAt: string | null;
+  sortOrder: number;
+}
+
 export type RankingBreakdownRow = {
   category: string;
   total_score: number;

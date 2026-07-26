@@ -1,5 +1,6 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
 import type { CandidateCardData } from "@/lib/types";
 
 const CANDIDATE_BASE_SELECT = `
@@ -191,7 +192,7 @@ export async function getRecentCandidates(limit = 8) {
 
 export async function getCandidateBySlug(slug: string) {
   const supabase = await createServerSupabase();
-  const { data, error } = await supabase
+  const candidateRequest = supabase
     .from("candidates")
     .select(
       `${CANDIDATE_CARD_SELECT}, birth_date, created_at`
@@ -200,11 +201,27 @@ export async function getCandidateBySlug(slug: string) {
     .eq("status", "published")
     .is("deleted_at", null)
     .maybeSingle();
+  const integrationKeyRequest = supabase
+    .from("candidates")
+    .select("integration_key")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .maybeSingle();
+  const [{ data, error }, integrationKeyResult] = await Promise.all([
+    candidateRequest,
+    integrationKeyRequest,
+  ]);
   if (error) throw error;
   if (!data) return null;
 
+  const integrationKey =
+    !integrationKeyResult.error &&
+    typeof integrationKeyResult.data?.integration_key === "string"
+      ? integrationKeyResult.data.integration_key
+      : null;
   const admin = createAdminClient();
-  const [education, workExperience, achievements, booksRead, events, socialLinks, media, quotes, articles, views] =
+  const [education, workExperience, achievements, booksRead, events, socialLinks, media, quotes, articles, views, adabiyotXItems] =
     await Promise.all([
       supabase.from("education").select("*").eq("candidate_id", data.id).order("sort_order"),
       supabase.from("work_experiences").select("*").eq("candidate_id", data.id).order("sort_order"),
@@ -237,6 +254,7 @@ export async function getCandidateBySlug(slug: string) {
         .select("id", { count: "exact", head: true })
         .eq("candidate_id", data.id)
         .eq("is_counted", true),
+      getCandidateAdabiyotXItems(integrationKey),
     ]);
 
   const publicMedia = (media.data ?? []).map((item) => ({
@@ -262,6 +280,7 @@ export async function getCandidateBySlug(slug: string) {
     media: publicMedia,
     quotes: quotes.data ?? [],
     articles: articles.data ?? [],
+    adabiyotXItems,
   };
 }
 
