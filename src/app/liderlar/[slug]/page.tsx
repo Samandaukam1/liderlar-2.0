@@ -22,6 +22,7 @@ import { MediaGallery } from "@/components/ui/media-gallery";
 import { LeaderQuoteCard } from "@/components/cards/leader-quote-card";
 import { LeaderCard } from "@/components/cards/leader-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +75,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
   const profileUrl = `${SITE_URL}/liderlar/${candidate.slug}`;
   const qrDataUrl = await QRCode.toDataURL(profileUrl, { margin: 1, width: 320 });
   const gradient = gradientFor(candidate.slug);
+  const readingTime = readingMinutes(candidate.articles.map((a) => a.content ?? "").join(" "));
 
   const timelineEntries: TimelineEntry[] = [
     ...candidate.achievements.map((a) => ({
@@ -142,7 +144,11 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                   <h1 className="font-display text-3xl font-bold text-navy sm:text-4xl">{name}</h1>
                   {candidate.is_verified && <VerifiedBadge />}
                 </div>
-                {candidate.short_bio && <p className="mt-1 text-base text-ink-soft">{candidate.short_bio}</p>}
+                {candidate.short_bio && (
+                  <p className="mt-1 line-clamp-2 max-w-xl text-[0.95rem] leading-relaxed text-ink-soft [text-wrap:pretty] sm:line-clamp-none sm:text-base">
+                    {candidate.short_bio}
+                  </p>
+                )}
                 <p className="mt-0.5 text-sm text-ink-soft">
                   {candidate.region?.name ?? "Hudud ko'rsatilmagan"}
                   {candidate.category && ` · ${candidate.category.name}`}
@@ -166,18 +172,35 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           {candidate.short_bio && (
             <section>
               <h2 className="font-display text-xl font-bold text-navy">Qisqacha ma&apos;lumot</h2>
-              <p className="prose-article mt-3 text-base leading-relaxed text-ink-soft">{candidate.short_bio}</p>
+              <p className="prose-article mt-3 text-base leading-relaxed text-ink-soft [text-wrap:pretty]">
+                {candidate.short_bio}
+              </p>
             </section>
           )}
 
           {candidate.articles.length > 0 && (
-            <section>
-              <h2 className="font-display text-xl font-bold text-navy">Biografik maqola</h2>
-              {candidate.articles.map((article) => (
-                <article key={article.id} className="prose-article mt-4 whitespace-pre-wrap text-[1.05rem] leading-[1.75] text-ink">
-                  {article.content}
-                </article>
-              ))}
+            <section
+              id="maqola"
+              className="-mx-4 border-y border-brand-soft bg-paper px-5 py-8 shadow-card sm:mx-0 sm:rounded-2xl sm:border sm:px-9 sm:py-10"
+            >
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-liderlar-blue">
+                Biografik maqola
+              </span>
+              <h2 className="mt-2 font-display text-[1.7rem] font-bold leading-[1.15] text-navy sm:text-3xl">
+                {name} haqida
+              </h2>
+              <p className="mt-2.5 flex items-center gap-1.5 text-xs text-ink-soft">
+                <BookOpen className="h-3.5 w-3.5 text-liderlar-blue" aria-hidden />
+                {readingTime} daqiqalik o&apos;qish
+              </p>
+
+              <div className="mt-6 space-y-8 border-t border-brand-soft pt-7">
+                {candidate.articles.map((article, idx) => (
+                  <article key={article.id} className={idx > 0 ? "border-t border-brand-soft pt-8" : undefined}>
+                    <ArticleBody content={article.content} dropCap lead />
+                  </article>
+                ))}
+              </div>
             </section>
           )}
 

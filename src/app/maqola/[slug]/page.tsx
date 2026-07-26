@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getArticleBySlug } from "@/lib/data/articles";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Avatar } from "@/components/ui/avatar";
+import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
 import { formatDateUz, splitFullName } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -31,9 +32,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Breadcrumbs items={[{ label: "Ensiklopediya", href: "/liderlar" }, { label: article.title }]} />
 
-      <h1 className="mt-4 font-display text-3xl font-bold text-navy sm:text-4xl">{article.title}</h1>
+      <h1 className="mt-4 font-display text-[1.9rem] font-bold leading-[1.12] text-navy sm:text-4xl">
+        {article.title}
+      </h1>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
         {candidate && (
           <Link href={`/liderlar/${candidate.slug}`} className="flex items-center gap-2">
             <Avatar src={candidate.avatar_url} firstName={firstName} lastName={lastName} size="sm" />
@@ -41,6 +44,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </Link>
         )}
         {article.published_at && <span className="text-sm text-ink-soft">{formatDateUz(article.published_at)}</span>}
+        <span className="text-sm text-ink-soft">{readingMinutes(article.content)} daqiqalik o&apos;qish</span>
       </div>
 
       {article.cover_url && (
@@ -49,8 +53,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         </div>
       )}
 
-      <div className="prose-article mx-auto mt-8 whitespace-pre-wrap text-[1.05rem] leading-[1.75] text-ink">
-        {article.content}
+      <div className="-mx-4 mt-7 border-y border-brand-soft bg-paper px-5 py-8 shadow-card sm:mx-0 sm:rounded-2xl sm:border sm:px-9 sm:py-10">
+        <ArticleBody content={article.content} dropCap lead />
       </div>
     </article>
   );

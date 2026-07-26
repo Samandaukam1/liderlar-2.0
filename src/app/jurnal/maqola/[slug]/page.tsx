@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJournalArticleBySlug } from "@/lib/data/journals";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { ArticleBody } from "@/components/ui/article-body";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -34,7 +35,9 @@ export default async function JournalArticlePage({ params }: { params: Promise<{
         ]}
       />
 
-      <h1 className="mt-4 font-display text-3xl font-bold text-navy sm:text-4xl">{article.title}</h1>
+      <h1 className="mt-4 font-display text-[1.9rem] font-bold leading-[1.12] text-navy sm:text-4xl">
+        {article.title}
+      </h1>
 
       {article.authors?.length > 0 && (
         <p className="mt-3 text-sm text-ink-soft">
@@ -60,8 +63,8 @@ export default async function JournalArticlePage({ params }: { params: Promise<{
         </div>
       )}
 
-      <div className="prose-article mx-auto mt-8 whitespace-pre-wrap text-[1.05rem] leading-[1.75] text-ink">
-        {article.content}
+      <div className="-mx-4 mt-7 border-y border-brand-soft bg-paper px-5 py-8 shadow-card sm:mx-0 sm:rounded-2xl sm:border sm:px-9 sm:py-10">
+        <ArticleBody content={article.content} dropCap lead />
       </div>
     </article>
   );
