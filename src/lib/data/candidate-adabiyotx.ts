@@ -3,6 +3,7 @@ import "server-only";
 import type {
   AdabiyotXContentType,
   CandidateAdabiyotXRelationship,
+  PublicAdabiyotXItemMetadata,
   PublicCandidateAdabiyotXItem,
 } from "@/lib/types";
 
@@ -30,6 +31,29 @@ function contentType(value: unknown): AdabiyotXContentType {
     value === "scenario"
     ? value
     : "other";
+}
+
+/**
+ * Keeps only metadata the card is allowed to present as a fact. Anything absent,
+ * malformed or out of range is dropped so the UI never invents a badge.
+ */
+function normalizeMetadata(value: unknown): PublicAdabiyotXItemMetadata {
+  if (!isRecord(value)) return {};
+
+  const metadata: PublicAdabiyotXItemMetadata = {};
+  if (typeof value.isFree === "boolean") metadata.isFree = value.isFree;
+  if (
+    typeof value.rating === "number" &&
+    Number.isFinite(value.rating) &&
+    value.rating > 0 &&
+    value.rating <= 5
+  ) {
+    metadata.rating = value.rating;
+  }
+  const category = stringOrNull(value.category);
+  if (category) metadata.category = category;
+
+  return metadata;
 }
 
 function payloadItems(payload: unknown): unknown[] {
@@ -75,6 +99,7 @@ function normalizeItem(
     externalUrl: stringOrNull(value.externalUrl) ?? "",
     publishedAt: stringOrNull(value.publishedAt),
     sortOrder,
+    metadata: normalizeMetadata(value.metadata),
   };
 }
 
@@ -101,14 +126,23 @@ export async function getCandidateAdabiyotXItems(
     const optionalApiKey =
       process.env.LIDERLAR_PUBLIC_CONTENT_API_KEY?.trim();
 
+    // No caching: a book linked in the Admin panel has to show up on the next
+    // profile request, even though the rest of the page may be prerendered.
     const response = await fetch(url, {
       headers: optionalApiKey
         ? { "x-liderlar-api-key": optionalApiKey }
         : undefined,
-      next: { revalidate: 60 },
+      cache: "no-store",
+      redirect: "follow",
     });
 
     if (!response.ok) return [];
+
+    // An auth gate in front of the Admin API answers with an HTML login page
+    // instead of JSON. Treat anything non-JSON as "no items" rather than
+    // letting a parse error bubble into the profile page.
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) return [];
 
     const payload: unknown = await response.json();
     return payloadItems(payload)

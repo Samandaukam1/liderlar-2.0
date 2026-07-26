@@ -26,6 +26,7 @@ import { ShareButtons } from "@/components/profile/share-buttons";
 import { ProfileViewTracker } from "@/components/profile/profile-view-tracker";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
 import { CandidateAdabiyotXSection } from "@/components/profile/candidate-adabiyotx-section";
+import { CandidateBooksRow } from "@/components/profile/candidate-books-row";
 import { Timeline, type TimelineEntry } from "@/components/ui/timeline";
 import { MediaGallery } from "@/components/ui/media-gallery";
 import { LeaderQuoteCard } from "@/components/cards/leader-quote-card";
@@ -316,10 +317,26 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           </section>
 
           <CandidateAdabiyotXSection title="Ijodiy ishlari" items={ownWorks} />
-          <CandidateAdabiyotXSection
-            title="O‘qigan kitoblari"
-            items={readBooks}
-          />
+          <CandidateBooksRow title="O‘qigan kitoblari" books={readBooks} />
+
+          {candidate.booksRead.length > 0 && (
+            <section>
+              <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy">
+                <BookOpen className="h-5 w-5 text-liderlar-blue" aria-hidden />
+                {readBooks.length > 0
+                  ? "Boshqa o‘qigan kitoblari"
+                  : "O‘qigan kitoblari"}
+              </h2>
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {candidate.booksRead.map((b) => (
+                  <li key={b.id} className="rounded-md border border-brand-soft bg-paper px-4 py-3 text-sm">
+                    <span className="font-semibold text-navy">{b.title}</span>
+                    {b.subtitle && <span className="text-ink-soft"> — {b.subtitle}</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {(candidate.education.length > 0 || candidate.workExperience.length > 0) && (
             <section className="grid gap-8 sm:grid-cols-2">
@@ -396,22 +413,6 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                   />
                 ))}
               </div>
-            </section>
-          )}
-
-          {candidate.booksRead.length > 0 && (
-            <section>
-              <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy">
-                <BookOpen className="h-5 w-5 text-liderlar-blue" aria-hidden /> O&apos;qigan kitoblari
-              </h2>
-              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                {candidate.booksRead.map((b) => (
-                  <li key={b.id} className="rounded-md border border-brand-soft bg-paper px-4 py-3 text-sm">
-                    <span className="font-semibold text-navy">{b.title}</span>
-                    {b.subtitle && <span className="text-ink-soft"> — {b.subtitle}</span>}
-                  </li>
-                ))}
-              </ul>
             </section>
           )}
 
