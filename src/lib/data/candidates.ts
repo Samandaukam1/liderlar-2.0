@@ -1,7 +1,8 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
-import type { CandidateCardData } from "@/lib/types";
+import { splitPipeValues, stripCandidateMarkers } from "@/lib/candidates/text";
+import type { CandidateCardData, CandidateSectionData } from "@/lib/types";
 
 const CANDIDATE_BASE_SELECT = `
   id, slug, full_name, short_bio, avatar_url, status, is_top100, top100_position,
@@ -195,7 +196,9 @@ export async function getCandidateBySlug(slug: string) {
   const candidateRequest = supabase
     .from("candidates")
     .select(
-      `${CANDIDATE_CARD_SELECT}, birth_date, created_at`
+      `${CANDIDATE_CARD_SELECT}, birth_date, created_at,
+       description_items, birth_year, birth_place, current_location,
+       education_summary, activity_field, languages`
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -221,7 +224,7 @@ export async function getCandidateBySlug(slug: string) {
       ? integrationKeyResult.data.integration_key
       : null;
   const admin = createAdminClient();
-  const [education, workExperience, achievements, booksRead, events, socialLinks, media, quotes, articles, views, adabiyotXItems] =
+  const [education, workExperience, achievements, booksRead, events, socialLinks, media, quotes, articles, sections, views, adabiyotXItems] =
     await Promise.all([
       supabase.from("education").select("*").eq("candidate_id", data.id).order("sort_order"),
       supabase.from("work_experiences").select("*").eq("candidate_id", data.id).order("sort_order"),
@@ -249,6 +252,12 @@ export async function getCandidateBySlug(slug: string) {
         .eq("status", "published")
         .is("deleted_at", null)
         .order("published_at", { ascending: false }),
+      supabase
+        .from("candidate_sections")
+        .select("id, title, content, sort_order")
+        .eq("candidate_id", data.id)
+        .order("sort_order")
+        .order("created_at"),
       admin
         .from("profile_views")
         .select("id", { count: "exact", head: true })
@@ -265,10 +274,28 @@ export async function getCandidateBySlug(slug: string) {
     caption: item.file_name,
   }));
 
+  const normalized = normalizeCandidateRow(data);
+  const birthYearFromDate = data.birth_date ? String(new Date(data.birth_date).getUTCFullYear()) : null;
+  const descriptionItems = splitPipeValues(data.description_items?.length ? data.description_items : normalized.short_bio);
+  const sectionRows: CandidateSectionData[] = (sections.data ?? [])
+    .map((s) => ({
+      id: s.id as string,
+      title: stripCandidateMarkers(s.title as string),
+      content: stripCandidateMarkers(s.content as string),
+    }))
+    .filter((s) => s.title || s.content);
+
   return {
-    ...normalizeCandidateRow(data),
+    ...normalized,
     birth_date: data.birth_date as string | null,
-    birth_year: data.birth_date ? new Date(data.birth_date).getUTCFullYear() : null,
+    description_items: descriptionItems,
+    birth_year_display: stripCandidateMarkers(data.birth_year as string | null) || birthYearFromDate,
+    birth_place: stripCandidateMarkers(data.birth_place as string | null) || null,
+    current_location: stripCandidateMarkers(data.current_location as string | null) || normalized.region?.name || null,
+    education_summary: stripCandidateMarkers(data.education_summary as string | null) || null,
+    activity_field: stripCandidateMarkers(data.activity_field as string | null) || normalized.category?.name || null,
+    languages: splitPipeValues(data.languages as string[] | null),
+    sections: sectionRows,
     cover_url: publicMedia[0]?.url ?? null,
     view_count: views.count ?? 0,
     education: education.data ?? [],

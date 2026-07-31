@@ -14,6 +14,13 @@ export type CandidateCardData = {
   category: { name: string; slug: string; color: string | null } | null;
 };
 
+/** One extended biography section, marker-free and safe to render as plain text. */
+export type CandidateSectionData = {
+  id: string;
+  title: string;
+  content: string;
+};
+
 export type RankingRow = {
   candidate_id: string;
   position: number | null;

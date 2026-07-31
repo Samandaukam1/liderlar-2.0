@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { splitPipeValues } from "@/lib/candidates/text";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -24,7 +25,7 @@ export default async function OpengraphImage({ params }: { params: Promise<{ slu
   const admin = createAdminClient();
   const { data: candidate } = await admin
     .from("candidates")
-    .select("full_name, short_bio, avatar_url, region:regions(name)")
+    .select("full_name, short_bio, description_items, avatar_url, region:regions(name)")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
@@ -32,6 +33,9 @@ export default async function OpengraphImage({ params }: { params: Promise<{ slu
   const name = candidate?.full_name ?? "Liderlar.uz";
   const regionField = candidate?.region as { name: string } | { name: string }[] | null | undefined;
   const region = Array.isArray(regionField) ? regionField[0]?.name : regionField?.name;
+  const description = splitPipeValues(
+    candidate?.description_items?.length ? candidate.description_items : candidate?.short_bio
+  ).join(" · ");
   const [from, to] = pickGradient(slug);
 
   return new ImageResponse(
@@ -50,9 +54,9 @@ export default async function OpengraphImage({ params }: { params: Promise<{ slu
       >
         <div style={{ display: "flex", fontSize: 140, color: "rgba(255,255,255,0.35)", lineHeight: 1 }}>&ldquo;</div>
         <div style={{ display: "flex", fontSize: 72, fontWeight: 700, color: "white", lineHeight: 1.05 }}>{name}</div>
-        {candidate?.short_bio && (
+        {description && (
           <div style={{ display: "flex", fontSize: 32, color: "rgba(255,255,255,0.85)", marginTop: 16 }}>
-            {candidate.short_bio}
+            {description}
           </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 24 }}>

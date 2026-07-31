@@ -46,7 +46,10 @@ export async function generateMetadata({
   if (!candidate) return { title: "Lider topilmadi" };
 
   const name = candidate.full_name;
-  const description = candidate.short_bio ?? `${name} — Liderlar.uz platformasidagi profil.`;
+  const description =
+    candidate.description_items.length > 0
+      ? candidate.description_items.join(" · ")
+      : `${name} — Liderlar.uz platformasidagi profil.`;
   const url = `${SITE_URL}/liderlar/${candidate.slug}`;
 
   return {
@@ -84,7 +87,23 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
   const profileUrl = `${SITE_URL}/liderlar/${candidate.slug}`;
   const qrDataUrl = await QRCode.toDataURL(profileUrl, { margin: 1, width: 320 });
   const gradient = gradientFor(candidate.slug);
-  const readingTime = readingMinutes(candidate.articles.map((a) => a.content ?? "").join(" "));
+  const hasStructuredSections = candidate.sections.length > 0;
+  const readingTime = readingMinutes(
+    hasStructuredSections
+      ? candidate.sections.map((s) => s.content).join(" ")
+      : candidate.articles.map((a) => a.content ?? "").join(" ")
+  );
+  const bioFacts = [
+    { label: "Tug‘ilgan yili", value: candidate.birth_year_display },
+    { label: "Tug‘ilgan joyi", value: candidate.birth_place },
+    { label: "Hozirda yashash hududi", value: candidate.current_location },
+    { label: "Ta’limi", value: candidate.education_summary },
+    { label: "Faoliyat sohasi", value: candidate.activity_field },
+  ].filter((fact): fact is { label: string; value: string } => Boolean(fact.value));
+  const metaDescription =
+    candidate.description_items.length > 0
+      ? candidate.description_items.join(" · ")
+      : (candidate.short_bio ?? undefined);
   const ownWorks = candidate.adabiyotXItems.filter(
     (item) => item.relationshipType === "own_work"
   );
@@ -127,7 +146,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
     name,
     url: profileUrl,
     image: candidate.avatar_url ?? undefined,
-    description: candidate.short_bio ?? undefined,
+    description: metaDescription,
     address: candidate.region ? { "@type": "PostalAddress", addressRegion: candidate.region.name } : undefined,
     sameAs: candidate.socialLinks.map((s) => s.url).filter(Boolean),
   };
@@ -231,6 +250,18 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
               <h1 className="mt-4 font-display text-[2.5rem] font-bold leading-[0.95] tracking-[-0.01em] sm:text-5xl lg:text-right lg:text-[3.2rem]">
                 {name}
               </h1>
+              {candidate.description_items.length > 0 && (
+                <ul className="mt-3 flex flex-wrap gap-1.5 lg:justify-end" aria-label="Qisqa tavsif">
+                  {candidate.description_items.map((item) => (
+                    <li
+                      key={item}
+                      className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[0.72rem] font-semibold text-white/90 backdrop-blur"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-4 h-px w-full bg-white/70" aria-hidden />
               <p className="mt-2.5 text-sm text-white/55 lg:text-right">
                 {candidate.category?.name ?? "Yosh lider"}
@@ -287,7 +318,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                 Biografiya
               </span>
               <span className="h-px flex-1 bg-border-soft" aria-hidden />
-              {candidate.articles.length > 0 && (
+              {(hasStructuredSections || candidate.articles.length > 0) && (
                 <span className="flex items-center gap-1.5 text-[0.68rem] uppercase tracking-[0.14em] text-ink-soft">
                   <BookOpen className="h-3.5 w-3.5 text-liderlar-blue" aria-hidden />
                   {readingTime} daqiqa
@@ -295,13 +326,44 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
               )}
             </div>
 
-            {candidate.short_bio && (
-              <p className="mt-6 max-w-[38rem] font-display text-[1.35rem] leading-[1.5] text-navy [text-wrap:pretty] sm:text-2xl">
-                {candidate.short_bio}
-              </p>
+            {(bioFacts.length > 0 || candidate.languages.length > 0) && (
+              <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+                {bioFacts.map((fact) => (
+                  <div key={fact.label} className="rounded-lg border border-brand-soft bg-paper px-4 py-3">
+                    <dt className="text-[0.68rem] font-bold uppercase tracking-wide text-ink-soft">{fact.label}</dt>
+                    <dd className="mt-1 text-sm font-semibold text-navy">{fact.value}</dd>
+                  </div>
+                ))}
+                {candidate.languages.length > 0 && (
+                  <div className="rounded-lg border border-brand-soft bg-paper px-4 py-3 sm:col-span-2">
+                    <dt className="text-[0.68rem] font-bold uppercase tracking-wide text-ink-soft">Tillar</dt>
+                    <dd className="mt-2 flex flex-wrap gap-1.5">
+                      {candidate.languages.map((lang) => (
+                        <span
+                          key={lang}
+                          className="rounded-full bg-liderlar-blue/8 px-2.5 py-1 text-xs font-semibold text-liderlar-blue"
+                        >
+                          {lang}
+                        </span>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+              </dl>
             )}
 
-            {candidate.articles.length > 0 ? (
+            {hasStructuredSections ? (
+              <div className="mt-8 space-y-9 border-t border-border-soft pt-8">
+                {candidate.sections.map((section, idx) => (
+                  <article key={section.id} className={idx > 0 ? "border-t border-border-soft pt-9" : undefined}>
+                    {section.title && (
+                      <h2 className="font-display text-lg font-bold text-navy sm:text-xl">{section.title}</h2>
+                    )}
+                    <ArticleBody content={section.content} dropCap={idx === 0} lead={idx === 0} className="mx-0 mt-3" />
+                  </article>
+                ))}
+              </div>
+            ) : candidate.articles.length > 0 ? (
               <div className="mt-8 space-y-9 border-t border-border-soft pt-8">
                 {candidate.articles.map((article, idx) => (
                   <article key={article.id} className={idx > 0 ? "border-t border-border-soft pt-9" : undefined}>
@@ -310,7 +372,8 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                 ))}
               </div>
             ) : (
-              !candidate.short_bio && (
+              bioFacts.length === 0 &&
+              candidate.languages.length === 0 && (
                 <EmptyState className="mt-6" title="Biografiya hozircha kiritilmagan" />
               )
             )}
