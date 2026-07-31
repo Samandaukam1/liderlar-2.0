@@ -103,6 +103,10 @@ export function SiteFooter() {
           <p>&copy; {new Date().getFullYear()} {SITE_NAME}. Barcha huquqlar himoyalangan.</p>
           <p>O&apos;zbekiston kelajagini yaratayotgan yoshlar shu yerda jamlangan.</p>
         </div>
+        <div className="mt-4 border-t border-white/10 pt-4 text-center text-[0.7rem] leading-relaxed text-white/40">
+          <p>MUKAMMAL MEDIA GROUP MChJ</p>
+          <p>Tasarrufidagi loyiha</p>
+        </div>
       </div>
     </footer>
   );

@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Send, Quote, ExternalLink } from "lucide-react";
+import { Send, Quote, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { JaxongirAiMedia } from "@/components/ai/jaxongir-ai-media";
 
 type Source = { label: string; href: string };
 type ChatMessage = {
@@ -111,8 +112,8 @@ export function AIChatPanel({ compact = false }: { compact?: boolean }) {
     <div className="flex h-full flex-col bg-paper">
       <div className="bg-gradient-blue px-6 py-6 text-white">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
-            <Sparkles className="h-5 w-5" aria-hidden />
+          <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/15">
+            <JaxongirAiMedia videoClassName="rounded-full" iconClassName="h-5 w-5" />
           </span>
           <div>
             <p className="font-display text-lg font-bold">Jaxongir AI</p>

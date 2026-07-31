@@ -18,7 +18,7 @@ import {
   getCandidateJournalArticles,
   getCandidateRankingBreakdown,
 } from "@/lib/data/profile-extra";
-import { SITE_URL } from "@/lib/constants";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { formatDateUz, gradientFor, formatNumber } from "@/lib/utils";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
@@ -50,7 +50,7 @@ export async function generateMetadata({
     candidate.description_items.length > 0
       ? candidate.description_items.join(" · ")
       : `${name} — Liderlar.uz platformasidagi profil.`;
-  const url = `${SITE_URL}/liderlar/${candidate.slug}`;
+  const url = `${await resolveSiteUrl()}/liderlar/${candidate.slug}`;
 
   return {
     title: name,
@@ -84,7 +84,8 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
   ]);
 
   const name = candidate.full_name;
-  const profileUrl = `${SITE_URL}/liderlar/${candidate.slug}`;
+  const siteUrl = await resolveSiteUrl();
+  const profileUrl = `${siteUrl}/liderlar/${candidate.slug}`;
   const qrDataUrl = await QRCode.toDataURL(profileUrl, { margin: 1, width: 320 });
   const gradient = gradientFor(candidate.slug);
   const hasStructuredSections = candidate.sections.length > 0;
@@ -140,6 +141,31 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
     .filter((e) => e.date)
     .sort((a, b) => (a.date! < b.date! ? 1 : -1));
 
+  const hasBiography = hasStructuredSections || candidate.articles.length > 0 || bioFacts.length > 0 || candidate.languages.length > 0;
+  const tocItems: { id: string; label: string }[] = [
+    ...(hasStructuredSections
+      ? candidate.sections.map((section, idx) => ({
+          id: `bio-section-${section.id}`,
+          label: section.title || `Bo'lim ${idx + 1}`,
+        }))
+      : hasBiography
+        ? [{ id: "biografiya", label: "Biografiya" }]
+        : []),
+    ...(ownWorks.length > 0 ? [{ id: "ijodiy-ishlari", label: "Ijodiy ishlari" }] : []),
+    ...(readBooks.length > 0 ? [{ id: "oqigan-kitoblari", label: "O'qigan kitoblari" }] : []),
+    ...(candidate.booksRead.length > 0
+      ? [{ id: "boshqa-kitoblar", label: readBooks.length > 0 ? "Boshqa o'qigan kitoblari" : "O'qigan kitoblari" }]
+      : []),
+    ...(candidate.education.length > 0 || candidate.workExperience.length > 0
+      ? [{ id: "talim-faoliyat", label: "Ta'lim va ish tajribasi" }]
+      : []),
+    ...(timelineEntries.length > 0 ? [{ id: "faoliyat-yutuqlar", label: "Faoliyat va yutuqlar" }] : []),
+    ...(candidate.quotes.length > 0 ? [{ id: "iqtiboslar", label: "Iqtiboslar" }] : []),
+    ...(podcasts.length > 0 ? [{ id: "podcastlar", label: "Podcastlar" }] : []),
+    ...(journalArticles.length > 0 ? [{ id: "jurnal", label: "Jurnal materiallari" }] : []),
+    ...(candidate.media.length > 0 ? [{ id: "galereya", label: "Rasmlar galereyasi" }] : []),
+  ];
+
   const personJsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -155,7 +181,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Liderlar", item: `${SITE_URL}/liderlar` },
+      { "@type": "ListItem", position: 1, name: "Liderlar", item: `${siteUrl}/liderlar` },
       { "@type": "ListItem", position: 2, name, item: profileUrl },
     ],
   };
@@ -167,14 +193,14 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 
       {/* ---------------------------------------------------------------- HEADER */}
-      <section className="relative isolate overflow-hidden bg-navy-dark text-white">
+      <section className="relative isolate overflow-hidden bg-navy text-white">
         <div aria-hidden className="absolute inset-0">
           {candidate.cover_url ? (
             <Image src={candidate.cover_url} alt="" fill sizes="100vw" className="object-cover opacity-25 grayscale" />
           ) : (
             <div className={`absolute inset-0 opacity-25 ${gradient}`} />
           )}
-          <div className="absolute inset-0 bg-[linear-gradient(115deg,#062741_8%,rgba(11,53,85,0.86)_52%,#062741_96%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(115deg,#0b3555_8%,rgba(19,188,228,0.28)_52%,#0b3555_96%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(65%_55%_at_50%_105%,rgba(19,188,228,0.22),transparent_72%)]" />
         </div>
 
@@ -194,24 +220,6 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                   o&apos;qish
                 </span>
               </a>
-
-              <div className="mt-8 hidden lg:block">
-                <div className="flex items-center gap-3">
-                  <span className="text-[0.62rem] font-bold uppercase tracking-[0.24em] text-liderlar-blue">
-                    Profil
-                  </span>
-                  <span className="h-px w-8 bg-white/30" aria-hidden />
-                </div>
-                <p className="mt-3 text-xs leading-5 text-white/50">
-                  {candidate.region?.name ?? "Hudud ko'rsatilmagan"}
-                  {candidate.category && (
-                    <>
-                      <br />
-                      {candidate.category.name}
-                    </>
-                  )}
-                </p>
-              </div>
             </div>
 
             {/* -------------------------------------------- PORTRAIT */}
@@ -229,7 +237,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                     className="object-cover object-top"
                   />
                 )}
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(6,39,65,0.55)_100%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(11,53,85,0.55)_100%)]" />
               </div>
             </div>
 
@@ -284,6 +292,29 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                   </li>
                 ))}
               </ul>
+
+              {tocItems.length > 0 && (
+                <nav aria-label="Sahifa mundarijasi" className="mt-8 hidden lg:block">
+                  <div className="flex items-center gap-3 lg:justify-end">
+                    <span className="h-px w-8 bg-white/30" aria-hidden />
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.24em] text-liderlar-blue">
+                      Mundarija
+                    </span>
+                  </div>
+                  <ul className="mt-3 max-h-56 space-y-1.5 overflow-y-auto pr-1 lg:text-right">
+                    {tocItems.map((item) => (
+                      <li key={item.id}>
+                        <a
+                          href={`#${item.id}`}
+                          className="text-xs leading-relaxed text-white/60 transition-colors hover:text-liderlar-blue"
+                        >
+                          {item.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
             </div>
           </div>
 
@@ -355,7 +386,11 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
             {hasStructuredSections ? (
               <div className="mt-8 space-y-9 border-t border-border-soft pt-8">
                 {candidate.sections.map((section, idx) => (
-                  <article key={section.id} className={idx > 0 ? "border-t border-border-soft pt-9" : undefined}>
+                  <article
+                    key={section.id}
+                    id={`bio-section-${section.id}`}
+                    className={`scroll-mt-20${idx > 0 ? " border-t border-border-soft pt-9" : ""}`}
+                  >
                     {section.title && (
                       <h2 className="font-display text-lg font-bold text-navy sm:text-xl">{section.title}</h2>
                     )}
@@ -379,11 +414,15 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
             )}
           </section>
 
-          <CandidateAdabiyotXSection title="Ijodiy ishlari" items={ownWorks} />
-          <CandidateBooksRow title="O‘qigan kitoblari" books={readBooks} />
+          <div id="ijodiy-ishlari" className="scroll-mt-20">
+            <CandidateAdabiyotXSection title="Ijodiy ishlari" items={ownWorks} />
+          </div>
+          <div id="oqigan-kitoblari" className="scroll-mt-20">
+            <CandidateBooksRow title="O‘qigan kitoblari" books={readBooks} />
+          </div>
 
           {candidate.booksRead.length > 0 && (
-            <section>
+            <section id="boshqa-kitoblar" className="scroll-mt-20">
               <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy">
                 <BookOpen className="h-5 w-5 text-liderlar-blue" aria-hidden />
                 {readBooks.length > 0
@@ -402,7 +441,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           )}
 
           {(candidate.education.length > 0 || candidate.workExperience.length > 0) && (
-            <section className="grid gap-8 sm:grid-cols-2">
+            <section id="talim-faoliyat" className="scroll-mt-20 grid gap-8 sm:grid-cols-2">
               {candidate.education.length > 0 && (
                 <div>
                   <h2 className="flex items-center gap-2 font-display text-lg font-bold text-navy">
@@ -444,7 +483,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
             </section>
           )}
 
-          <section>
+          <section id="faoliyat-yutuqlar" className="scroll-mt-20">
             <h2 className="font-display text-xl font-bold text-navy">Faoliyat va yutuqlar</h2>
             {timelineEntries.length === 0 ? (
               <EmptyState
@@ -460,7 +499,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           </section>
 
           {candidate.quotes.length > 0 && (
-            <section>
+            <section id="iqtiboslar" className="scroll-mt-20">
               <h2 className="font-display text-xl font-bold text-navy">Iqtiboslar</h2>
               <div className="mt-4 grid gap-5 sm:grid-cols-2">
                 {candidate.quotes.map((q) => (
@@ -480,7 +519,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           )}
 
           {podcasts.length > 0 && (
-            <section>
+            <section id="podcastlar" className="scroll-mt-20">
               <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy">
                 <Radio className="h-5 w-5 text-liderlar-blue" aria-hidden /> Podcastlar
               </h2>
@@ -498,7 +537,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           )}
 
           {journalArticles.length > 0 && (
-            <section>
+            <section id="jurnal" className="scroll-mt-20">
               <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy">
                 <Newspaper className="h-5 w-5 text-liderlar-blue" aria-hidden /> Liderlar Online jurnalidagi materiallar
               </h2>
@@ -516,7 +555,7 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
           )}
 
           {candidate.media.length > 0 && (
-            <section>
+            <section id="galereya" className="scroll-mt-20">
               <h2 className="font-display text-xl font-bold text-navy">Rasmlar galereyasi</h2>
               <div className="mt-4">
                 <MediaGallery

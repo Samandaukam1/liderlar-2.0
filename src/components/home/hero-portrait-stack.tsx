@@ -75,7 +75,7 @@ function OrbitCard({
           <Link
             href={`/liderlar/${candidate.slug}`}
             aria-label={`${candidate.full_name} profilini ko'rish`}
-            className="group relative block h-full overflow-hidden rounded-[1.15rem] border border-white/90 bg-sand shadow-[0_18px_55px_rgba(8,88,126,0.15)] transition-shadow duration-500 hover:shadow-[0_28px_72px_rgba(4,151,198,0.3)]"
+            className="group relative block h-full cursor-pointer overflow-hidden rounded-[1.15rem] border border-white/90 bg-sand shadow-[0_18px_55px_rgba(8,88,126,0.15)] transition-shadow duration-500 hover:shadow-[0_28px_72px_rgba(4,151,198,0.3)]"
           >
             {candidate.avatar_url ? (
               <Image
