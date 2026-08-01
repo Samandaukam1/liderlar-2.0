@@ -350,11 +350,13 @@ body {
 
 .book3d-link:hover .book3d-shell,
 .book3d-link:focus-visible .book3d-shell {
-  transform: rotateY(0deg) translateY(-4px);
+  transform: rotateY(calc(4deg + var(--book-tilt-y, 0deg))) rotateX(var(--book-tilt-x, 0deg))
+    translateY(-4px);
 }
 
 .book3d-link:active .book3d-shell {
-  transform: rotateY(0deg) translateY(-1px) scale(0.985);
+  transform: rotateY(calc(4deg + var(--book-tilt-y, 0deg))) rotateX(var(--book-tilt-x, 0deg))
+    translateY(-1px) scale(0.985);
 }
 
 .book3d-cover {
@@ -425,7 +427,8 @@ body {
     transparent 100%
   );
   filter: blur(5px);
-  transition: opacity 420ms var(--ease-brand);
+  transform: translateX(var(--book-shadow-x, 0px));
+  transition: opacity 420ms var(--ease-brand), transform 420ms var(--ease-brand);
 }
 
 .book3d-link:hover .book3d-shadow {
@@ -472,6 +475,10 @@ body {
   .book3d-link:focus-visible .book3d-shell,
   .book3d-link:active .book3d-shell {
     transform: rotateY(-5deg);
+  }
+
+  .book3d-shadow {
+    transform: none;
   }
 }
 

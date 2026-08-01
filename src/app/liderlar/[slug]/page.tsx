@@ -27,6 +27,7 @@ import { ProfileViewTracker } from "@/components/profile/profile-view-tracker";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
 import { CandidateAdabiyotXSection } from "@/components/profile/candidate-adabiyotx-section";
 import { CandidateBooksRow } from "@/components/profile/candidate-books-row";
+import { CandidateToc } from "@/components/profile/candidate-toc";
 import { Timeline, type TimelineEntry } from "@/components/ui/timeline";
 import { MediaGallery } from "@/components/ui/media-gallery";
 import { LeaderQuoteCard } from "@/components/cards/leader-quote-card";
@@ -118,9 +119,9 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
       ? [{ label: "Reytingdagi o'rni", value: `#${candidate.position}` }]
       : []),
     { label: "Umumiy reyting", value: `${formatNumber(candidate.total_score)} ball` },
-    { label: "Hudud", value: candidate.region?.name ?? "Ko'rsatilmagan" },
     { label: "Sahifa ko'rishlari", value: formatNumber(candidate.view_count) },
   ];
+  const birthPlaceDisplay = candidate.birth_place ?? "Kiritilmagan";
 
   const timelineEntries: TimelineEntry[] = [
     ...candidate.achievements.map((a) => ({
@@ -253,6 +254,10 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                     Tasdiqlangan
                   </span>
                 )}
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[0.68rem] font-semibold text-white backdrop-blur">
+                  <span aria-hidden>📍</span>
+                  {birthPlaceDisplay}
+                </span>
               </div>
 
               <h1 className="mt-4 font-display text-[2.5rem] font-bold leading-[0.95] tracking-[-0.01em] sm:text-5xl lg:text-right lg:text-[3.2rem]">
@@ -292,29 +297,6 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
                   </li>
                 ))}
               </ul>
-
-              {tocItems.length > 0 && (
-                <nav aria-label="Sahifa mundarijasi" className="mt-8 hidden lg:block">
-                  <div className="flex items-center gap-3 lg:justify-end">
-                    <span className="h-px w-8 bg-white/30" aria-hidden />
-                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.24em] text-liderlar-blue">
-                      Mundarija
-                    </span>
-                  </div>
-                  <ul className="mt-3 max-h-56 space-y-1.5 overflow-y-auto pr-1 lg:text-right">
-                    {tocItems.map((item) => (
-                      <li key={item.id}>
-                        <a
-                          href={`#${item.id}`}
-                          className="text-xs leading-relaxed text-white/60 transition-colors hover:text-liderlar-blue"
-                        >
-                          {item.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              )}
             </div>
           </div>
 
@@ -340,7 +322,10 @@ export default async function LeaderProfilePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_20rem]">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[13rem_1fr_20rem]">
+        {/* ---------------------------------------------------------------- TOC */}
+        <CandidateToc items={tocItems} />
+
         {/* ---------------------------------------------------------------- MAIN COLUMN */}
         <div className="min-w-0 space-y-12">
           <section id="biografiya" className="scroll-mt-20">

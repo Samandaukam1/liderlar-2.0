@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Star } from "lucide-react";
 import type { PublicCandidateAdabiyotXItem } from "@/lib/types";
 import { adabiyotXBookHref, isSafeHttpUrl } from "@/lib/adabiyotx";
@@ -10,6 +10,8 @@ export interface RealisticBookCardProps {
   book: PublicCandidateAdabiyotXItem;
   priority?: boolean;
 }
+
+const MAX_TILT_DEG = 4;
 
 function BookBody({
   book,
@@ -21,10 +23,36 @@ function BookBody({
   const [coverFailed, setCoverFailed] = useState(false);
   const coverUrl = isSafeHttpUrl(book.coverUrl) ? book.coverUrl : null;
   const { isFree, rating, category } = book.metadata;
+  const book3dRef = useRef<HTMLDivElement>(null);
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    const node = book3dRef.current;
+    if (!node || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const rect = node.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 .. 0.5
+    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    node.style.setProperty("--book-tilt-y", `${(nx * MAX_TILT_DEG).toFixed(2)}deg`);
+    node.style.setProperty("--book-tilt-x", `${(-ny * MAX_TILT_DEG).toFixed(2)}deg`);
+    node.style.setProperty("--book-shadow-x", `${(nx * 10).toFixed(1)}px`);
+  };
+
+  const handlePointerLeave = () => {
+    const node = book3dRef.current;
+    if (!node) return;
+    node.style.setProperty("--book-tilt-y", "0deg");
+    node.style.setProperty("--book-tilt-x", "0deg");
+    node.style.setProperty("--book-shadow-x", "0px");
+  };
 
   return (
     <>
-      <div className="book3d">
+      <div
+        ref={book3dRef}
+        className="book3d"
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+      >
         <span aria-hidden className="book3d-shadow" />
         <div className="book3d-shell">
           <span aria-hidden className="book3d-pages" />
