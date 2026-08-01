@@ -5,34 +5,58 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Looping 1:1 clip for the Jaxongir AI avatar (web + mobile share this same
- * component). Falls back to the Sparkles icon if the clip hasn't been added
- * at /public/media/jaxongir-ai-loop.(webm|mp4) yet, or fails to load, so the
- * button never breaks while waiting for the asset.
+ * Admin-configurable Jaxongir AI avatar. Renders whichever asset the "AI
+ * Assistant" admin settings point at (image or video), falling back to the
+ * bundled default clip and finally a static icon so the button never breaks
+ * while assets are missing or fail to load.
  */
 export function JaxongirAiMedia({
-  videoClassName,
+  avatarKind = "video",
+  avatarImageUrl,
+  avatarVideoUrl,
+  breathing = true,
+  className,
   iconClassName = "h-6 w-6",
 }: {
-  videoClassName?: string;
+  avatarKind?: "image" | "video";
+  avatarImageUrl?: string | null;
+  avatarVideoUrl?: string | null;
+  breathing?: boolean;
+  className?: string;
   iconClassName?: string;
 }) {
   const [failed, setFailed] = React.useState(false);
 
-  if (failed) return <Sparkles className={iconClassName} aria-hidden />;
+  if (avatarKind === "image" && avatarImageUrl && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded, arbitrary host
+      <img
+        src={avatarImageUrl}
+        alt=""
+        aria-hidden
+        className={cn("h-full w-full object-cover", breathing && "animate-ai-breathe", className)}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
 
-  return (
-    <video
-      className={cn("h-full w-full object-cover", videoClassName)}
-      autoPlay
-      loop
-      muted
-      playsInline
-      aria-hidden
-      onError={() => setFailed(true)}
-    >
-      <source src="/media/jaxongir-ai-loop.webm" type="video/webm" />
-      <source src="/media/jaxongir-ai-loop.mp4" type="video/mp4" />
-    </video>
-  );
+  if (!failed) {
+    return (
+      <video
+        className={cn("h-full w-full object-cover", className)}
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden
+        onError={() => setFailed(true)}
+      >
+        {avatarVideoUrl && <source src={avatarVideoUrl} />}
+        <source src="/media/jaxongir-ai-loop.webm" type="video/webm" />
+        <source src="/media/jaxongir-ai-loop.mp4" type="video/mp4" />
+      </video>
+    );
+  }
+
+  return <Sparkles className={cn(iconClassName, breathing && "animate-ai-breathe")} aria-hidden />;
 }

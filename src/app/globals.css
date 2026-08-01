@@ -460,6 +460,96 @@ body {
   }
 }
 
+/* ------------------------------------------------------------ AI ASSISTANT
+   Floating Jaxongir AI orb: breathing idle state, halo ring, bloom glow,
+   sonar pulse and drifting particles. Colors/speed come from admin-set CSS
+   custom properties (--ai-glow, --ai-border, --ai-speed) on the wrapper. */
+
+@keyframes ai-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.animate-ai-breathe {
+  animation: ai-breathe calc(3.6s / var(--ai-speed, 1)) ease-in-out infinite;
+}
+
+@keyframes ai-halo-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-orb-halo {
+  position: absolute;
+  inset: -6px;
+  z-index: -1;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    var(--ai-glow, #13bce4) 0deg,
+    transparent 110deg,
+    transparent 250deg,
+    var(--ai-glow, #13bce4) 360deg
+  );
+  filter: blur(3px);
+  opacity: 0.75;
+  animation: ai-halo-spin calc(5s / var(--ai-speed, 1)) linear infinite;
+}
+
+@keyframes ai-bloom-pulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.55; }
+  50% { transform: scale(1.18); opacity: 0.9; }
+}
+
+.ai-orb-bloom {
+  position: absolute;
+  inset: -40%;
+  z-index: -2;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--ai-glow, #13bce4) 0%, transparent 70%);
+  filter: blur(14px);
+  animation: ai-bloom-pulse calc(3.2s / var(--ai-speed, 1)) ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ai-pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.55; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+.ai-orb-pulse::before,
+.ai-orb-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  border: 1.5px solid var(--ai-border, #13bce4);
+  animation: ai-pulse-ring calc(2.6s / var(--ai-speed, 1)) ease-out infinite;
+}
+
+.ai-orb-pulse::after {
+  animation-delay: calc(1.3s / var(--ai-speed, 1));
+}
+
+@keyframes ai-particle-float {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translate(var(--ai-particle-x, 0px), -46px) scale(1); opacity: 0; }
+}
+
+.ai-particle {
+  position: absolute;
+  bottom: 40%;
+  left: 50%;
+  z-index: -1;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--ai-glow, #13bce4);
+  animation: ai-particle-float linear infinite;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -479,6 +569,14 @@ body {
 
   .book3d-shadow {
     transform: none;
+  }
+
+  .ai-orb-halo,
+  .ai-orb-bloom,
+  .ai-orb-pulse::before,
+  .ai-orb-pulse::after,
+  .ai-particle {
+    display: none;
   }
 }
 

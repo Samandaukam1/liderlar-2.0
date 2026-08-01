@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Send, Quote, ExternalLink } from "lucide-react";
+import { Send, Quote, ExternalLink, Mic, Volume2, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -16,13 +16,16 @@ type ChatMessage = {
   sources?: Source[];
 };
 
-const SUGGESTED_QUESTIONS = [
+const DEFAULT_QUESTIONS = [
   "Reyting qanday hisoblanadi?",
   "IT yo'nalishidagi liderlarni ko'rsat",
   "Ariza qanday topshiraman?",
   "Yaqin orada qanday podcastlar bor?",
   "Profilimni qanday yaxshilashim mumkin?",
 ];
+
+const DEFAULT_GREETING =
+  "Salom! Men Jaxongir AI — Liderlar.uz bo'yicha savollaringizga bazadagi tasdiqlangan ma'lumotlar asosida javob beraman: nomzodlar, reyting, podcastlar, jurnal va ariza jarayoni haqida so'rashingiz mumkin.";
 
 function parseSseBuffer(buffer: string, onEvent: (event: Record<string, unknown>) => void) {
   const parts = buffer.split("\n\n");
@@ -39,17 +42,97 @@ function parseSseBuffer(buffer: string, onEvent: (event: Record<string, unknown>
   return remainder;
 }
 
-export function AIChatPanel({ compact = false }: { compact?: boolean }) {
+interface SpeechRecognitionResultLike {
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
+}
+interface SpeechRecognitionLike extends EventTarget {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechRecognitionResultLike) => void) | null;
+  onend: (() => void) | null;
+}
+
+export function AIChatPanel({
+  compact = false,
+  assistantName = "Jaxongir AI",
+  greeting = DEFAULT_GREETING,
+  quickQuestions = DEFAULT_QUESTIONS,
+  voiceEnabled = false,
+  avatarKind = "video",
+  avatarImageUrl,
+  avatarVideoUrl,
+}: {
+  compact?: boolean;
+  assistantName?: string;
+  greeting?: string;
+  quickQuestions?: string[];
+  voiceEnabled?: boolean;
+  avatarKind?: "image" | "video";
+  avatarImageUrl?: string | null;
+  avatarVideoUrl?: string | null;
+}) {
   const { push } = useToast();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [autoSpeak, setAutoSpeak] = React.useState(voiceEnabled);
+  const [listening, setListening] = React.useState(false);
   const sessionIdRef = React.useRef<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const recognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+  const speechSupported =
+    typeof window !== "undefined" &&
+    Boolean(
+      (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
+        .SpeechRecognition ??
+        (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition
+    );
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  function speak(text: string) {
+    if (!voiceEnabled || typeof window === "undefined" || !window.speechSynthesis || !text) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "uz-UZ";
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function toggleListening() {
+    if (!speechSupported) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const Ctor = (
+      window as unknown as {
+        SpeechRecognition?: new () => SpeechRecognitionLike;
+        webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+      }
+    ).SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
+    if (!Ctor) return;
+    const recognition = new Ctor();
+    recognition.lang = "uz-UZ";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+    };
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    setListening(true);
+    recognition.start();
+  }
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -61,6 +144,7 @@ export function AIChatPanel({ compact = false }: { compact?: boolean }) {
     setInput("");
     setLoading(true);
 
+    let finalText = "";
     try {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
@@ -89,14 +173,16 @@ export function AIChatPanel({ compact = false }: { compact?: boolean }) {
               prev.map((m) => (m.id === assistantId ? { ...m, sources: event.sources as Source[] } : m))
             );
           } else if (event.type === "delta" && typeof event.text === "string") {
+            finalText += event.text;
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + event.text } : m))
             );
           } else if (event.type === "error") {
-            push({ title: "Jaxongir AI", description: String(event.message ?? "Xatolik"), variant: "error" });
+            push({ title: assistantName, description: String(event.message ?? "Xatolik"), variant: "error" });
           }
         });
       }
+      if (autoSpeak) speak(finalText);
     } catch (err) {
       push({
         title: "Ulanishda xatolik",
@@ -113,12 +199,29 @@ export function AIChatPanel({ compact = false }: { compact?: boolean }) {
       <div className="bg-gradient-blue px-6 py-6 text-white">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/15">
-            <JaxongirAiMedia videoClassName="rounded-full" iconClassName="h-5 w-5" />
+            <JaxongirAiMedia
+              avatarKind={avatarKind}
+              avatarImageUrl={avatarImageUrl}
+              avatarVideoUrl={avatarVideoUrl}
+              className="rounded-full"
+              iconClassName="h-5 w-5"
+            />
           </span>
-          <div>
-            <p className="font-display text-lg font-bold">Jaxongir AI</p>
+          <div className="flex-1">
+            <p className="font-display text-lg font-bold">{assistantName}</p>
             <p className="text-xs text-white/75">Liderlar.uz rasmiy yordamchisi</p>
           </div>
+          {voiceEnabled && (
+            <button
+              type="button"
+              onClick={() => setAutoSpeak((v) => !v)}
+              aria-label={autoSpeak ? "Ovozni o'chirish" : "Ovozni yoqish"}
+              aria-pressed={autoSpeak}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25"
+            >
+              {autoSpeak ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
+            </button>
+          )}
         </div>
       </div>
 
@@ -127,14 +230,10 @@ export function AIChatPanel({ compact = false }: { compact?: boolean }) {
           <div className="space-y-4">
             <div className="rounded-lg border border-brand-soft bg-liderlar-blue/5 p-4">
               <Quote className="mb-2 h-6 w-6 text-liderlar-blue" aria-hidden />
-              <p className="text-sm text-ink-soft">
-                Salom! Men Jaxongir AI — Liderlar.uz bo&apos;yicha savollaringizga bazadagi tasdiqlangan
-                ma&apos;lumotlar asosida javob beraman: nomzodlar, reyting, podcastlar, jurnal va ariza
-                jarayoni haqida so&apos;rashingiz mumkin.
-              </p>
+              <p className="text-sm text-ink-soft">{greeting}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {SUGGESTED_QUESTIONS.map((q, i) => (
+              {quickQuestions.map((q, i) => (
                 <button
                   key={q}
                   onClick={() => send(q)}
@@ -208,6 +307,22 @@ export function AIChatPanel({ compact = false }: { compact?: boolean }) {
           placeholder="Savolingizni yozing..."
           className="h-12 flex-1 rounded-full border border-brand-soft bg-paper px-4 text-sm focus:border-liderlar-blue focus:outline-none focus:ring-2 focus:ring-cyan/30"
         />
+        {voiceEnabled && speechSupported && (
+          <button
+            type="button"
+            onClick={toggleListening}
+            aria-label={listening ? "Ovozli kiritishni to'xtatish" : "Ovozli kiritish"}
+            aria-pressed={listening}
+            className={cn(
+              "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition-colors",
+              listening
+                ? "border-transparent bg-coral text-white animate-pulse"
+                : "border-brand-soft text-liderlar-blue hover:bg-liderlar-blue/8"
+            )}
+          >
+            <Mic className="h-4.5 w-4.5" aria-hidden />
+          </button>
+        )}
         <button
           type="submit"
           disabled={loading || !input.trim()}

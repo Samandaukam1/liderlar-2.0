@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AIFloatingButton } from "@/components/ai/ai-floating-button";
 import { ToastProvider } from "@/components/ui/toast";
+import { getAiAssistantSettings } from "@/lib/data/ai-assistant-settings";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -62,11 +63,12 @@ export const viewport = {
   themeColor: "#13BCE4",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const aiAssistantSettings = await getAiAssistantSettings();
   return (
     <html
       lang="uz"
@@ -79,7 +81,7 @@ export default function RootLayout({
           <main className="flex-1 pb-24 lg:pb-0">{children}</main>
           <SiteFooter />
           <MobileNav />
-          <AIFloatingButton />
+          <AIFloatingButton initialSettings={aiAssistantSettings} />
         </ToastProvider>
       </body>
     </html>
