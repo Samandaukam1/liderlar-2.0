@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/constants";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Camera, Send, PlayCircle } from "lucide-react";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
@@ -46,11 +47,8 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-6 py-14">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2 font-display text-2xl font-semibold text-white">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-blue text-sm font-bold text-white">
-                L
-              </span>
-              {SITE_NAME}
+            <Link href="/" aria-label={SITE_NAME} className="flex items-center">
+              <BrandLogo variant="dark" className="h-auto w-[220px]" />
             </Link>
             <p className="mt-4 max-w-xs text-sm text-white/60">
               O&apos;zbekistonning faol, iqtidorli va yetakchi yoshlarini birlashtiruvchi raqamli

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { PublicCandidateAdabiyotXItem } from "@/lib/types";
 import { CandidateAdabiyotXCard } from "@/components/profile/candidate-adabiyotx-card";
+import { RealisticBookCard } from "@/components/profile/realistic-book-card";
 
 type ScrollState = {
   overflowing: boolean;
@@ -85,13 +86,17 @@ export function CandidateAdabiyotXRow({
         className="no-scrollbar flex max-w-full touch-pan-x snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth px-1 pb-4 pt-1 [-webkit-overflow-scrolling:touch] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-liderlar-blue/70"
         tabIndex={0}
       >
-        {items.map((item) => (
+        {items.map((item, index) => (
           <li
             key={item.id}
             data-adabiyotx-card
-            className="w-[9.75rem] shrink-0 snap-start sm:w-48 lg:w-[13.25rem]"
+            className="flex w-[9.75rem] shrink-0 snap-start sm:w-48 lg:w-[13.25rem]"
           >
-            <CandidateAdabiyotXCard item={item} />
+            {item.contentType === "book" ? (
+              <RealisticBookCard book={item} priority={index === 0} />
+            ) : (
+              <CandidateAdabiyotXCard item={item} />
+            )}
           </li>
         ))}
       </ul>

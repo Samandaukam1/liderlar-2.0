@@ -19,6 +19,7 @@ import { motion } from "framer-motion";
 import { SITE_NAME } from "@/lib/constants";
 import { LinkButton } from "@/components/ui/button";
 import { Dropdown, DropdownItem } from "@/components/ui/dropdown";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { cn } from "@/lib/utils";
 
 const MAIN_NAV = [
@@ -138,11 +139,8 @@ function MenuDropdown({
 export function MobileTopBar() {
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-brand-soft bg-paper/90 px-4 backdrop-blur-xl lg:hidden">
-      <Link href="/" className="relative z-10 flex items-center gap-2 font-display text-xl font-semibold text-navy">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-blue text-sm font-bold text-white shadow-[0_6px_18px_rgba(5,151,198,0.22)]">
-          L
-        </span>
-        {SITE_NAME}
+      <Link href="/" aria-label={SITE_NAME} className="relative z-10 flex shrink-0 items-center">
+        <BrandLogo variant="light" priority className="h-[38px]" />
       </Link>
       <div className="relative z-10 flex items-center gap-1.5">
         <Link
@@ -188,11 +186,8 @@ export function SiteHeader() {
           scrolled ? "h-16" : "h-[4.75rem]"
         )}
       >
-        <Link href="/" className="flex shrink-0 items-center gap-2.5 font-display text-[1.35rem] font-semibold text-navy">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-blue text-sm font-bold text-white shadow-[0_7px_20px_rgba(5,151,198,0.24)]">
-            L
-          </span>
-          {SITE_NAME}
+        <Link href="/" aria-label={SITE_NAME} className="flex shrink-0 items-center">
+          <BrandLogo variant="light" priority className="h-[52px]" />
         </Link>
 
         <nav
