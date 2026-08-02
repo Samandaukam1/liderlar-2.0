@@ -1,7 +1,7 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
-import { splitPipeValues, stripCandidateMarkers } from "@/lib/candidates/text";
+import { splitPipeValues, stripCandidateMarkers, toShortBioItems } from "@/lib/candidates/text";
 import type { CandidateCardData, CandidateSectionData } from "@/lib/types";
 
 const CANDIDATE_BASE_SELECT = `
@@ -276,7 +276,9 @@ export async function getCandidateBySlug(slug: string) {
 
   const normalized = normalizeCandidateRow(data);
   const birthYearFromDate = data.birth_date ? String(new Date(data.birth_date).getUTCFullYear()) : null;
-  const descriptionItems = splitPipeValues(data.description_items?.length ? data.description_items : normalized.short_bio);
+  const descriptionItems = toShortBioItems(
+    data.description_items?.length ? data.description_items : normalized.short_bio,
+  );
   const sectionRows: CandidateSectionData[] = (sections.data ?? [])
     .map((s) => ({
       id: s.id as string,

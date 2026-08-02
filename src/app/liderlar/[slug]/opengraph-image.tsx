@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { splitPipeValues } from "@/lib/candidates/text";
+import { toShortBioItems } from "@/lib/candidates/text";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -33,7 +33,9 @@ export default async function OpengraphImage({ params }: { params: Promise<{ slu
   const name = candidate?.full_name ?? "Liderlar.uz";
   const regionField = candidate?.region as { name: string } | { name: string }[] | null | undefined;
   const region = Array.isArray(regionField) ? regionField[0]?.name : regionField?.name;
-  const description = splitPipeValues(
+  // Same badge limits as the profile page, so a legacy paragraph short_bio
+  // cannot spill across the social card.
+  const description = toShortBioItems(
     candidate?.description_items?.length ? candidate.description_items : candidate?.short_bio
   ).join(" · ");
   const [from, to] = pickGradient(slug);

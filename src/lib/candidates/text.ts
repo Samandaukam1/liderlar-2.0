@@ -35,3 +35,28 @@ export function splitPipeValues(value: string | string[] | null | undefined): st
   }
   return result;
 }
+
+/**
+ * Short-bio badge limits, mirrored from
+ * liderlar-admin/src/lib/candidates/short-bio.ts and kept in sync with it.
+ */
+export const SHORT_BIO_MAX_ITEMS = 5;
+export const SHORT_BIO_MAX_ITEM_LENGTH = 40;
+export const SHORT_BIO_MAX_WORDS = 5;
+
+/**
+ * The badge row above the name. Profiles written before the short bio became a
+ * list still hold a full paragraph in short_bio, which would render as one
+ * enormous pill — those items are dropped here rather than shown.
+ */
+export function toShortBioItems(value: string | string[] | null | undefined): string[] {
+  return splitPipeValues(value)
+    .map((item) => item.replace(/[.;,!?]+$/, "").trim())
+    .filter(
+      (item) =>
+        item.length > 0 &&
+        item.length <= SHORT_BIO_MAX_ITEM_LENGTH &&
+        item.split(/\s+/).filter(Boolean).length <= SHORT_BIO_MAX_WORDS,
+    )
+    .slice(0, SHORT_BIO_MAX_ITEMS);
+}
