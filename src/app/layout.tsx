@@ -6,8 +6,10 @@ import { SiteHeader, MobileTopBar } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AIFloatingButton } from "@/components/ai/ai-floating-button";
+import { CornerVideoPlayer } from "@/components/corner-video/corner-video-player";
 import { ToastProvider } from "@/components/ui/toast";
 import { getAiAssistantSettings } from "@/lib/data/ai-assistant-settings";
+import { getCornerVideoSettings } from "@/lib/data/corner-video-settings";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -68,7 +70,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const aiAssistantSettings = await getAiAssistantSettings();
+  const [aiAssistantSettings, cornerVideoSettings] = await Promise.all([
+    getAiAssistantSettings(),
+    getCornerVideoSettings(),
+  ]);
   return (
     <html
       lang="uz"
@@ -82,6 +87,7 @@ export default async function RootLayout({
           <SiteFooter />
           <MobileNav />
           <AIFloatingButton initialSettings={aiAssistantSettings} />
+          <CornerVideoPlayer initialSettings={cornerVideoSettings} />
         </ToastProvider>
       </body>
     </html>
