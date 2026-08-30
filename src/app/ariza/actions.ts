@@ -11,20 +11,16 @@ export async function submitApplication(input: unknown): Promise<SubmitResult> {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Formada xatolik bor." };
   }
 
-  const { fullName, phone, email, birthYear, regionId, directionId, motivation, portfolioLinks } = parsed.data;
-  const extra = [
-    birthYear ? `Tug'ilgan yil: ${birthYear}` : null,
-    portfolioLinks ? `Portfolio:\n${portfolioLinks}` : null,
-  ].filter(Boolean);
+  const { fullName, phone, telegram, gender, ageRange, promoCode } = parsed.data;
 
   const supabase = await createServerSupabase();
   const { error } = await supabase.from("applications").insert({
     full_name: fullName,
     phone,
-    email: email ?? null,
-    region_id: regionId ?? null,
-    category_id: directionId ?? null,
-    motivation: [motivation, ...extra].join("\n\n"),
+    telegram,
+    gender,
+    age_range: ageRange,
+    promo_code: promoCode || null,
     status: "new",
   });
 
