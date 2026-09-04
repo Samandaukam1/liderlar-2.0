@@ -105,6 +105,16 @@ export function SiteFooter() {
           <p>MUKAMMAL MEDIA GROUP MChJ</p>
           <p>Tasarrufidagi loyiha</p>
         </div>
+        <div className="mt-2 text-center">
+          <a
+            href="https://t.me/jaxongirman"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[0.7rem] text-white/30 transition-colors hover:text-cyan-light"
+          >
+            Jaxongirmans IT TEAMS tomonidan ishlab chiqilgan
+          </a>
+        </div>
       </div>
     </footer>
   );
