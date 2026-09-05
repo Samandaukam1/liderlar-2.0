@@ -46,3 +46,6 @@ next-env.d.ts
 .env.test.local
 liderlar-web-vercel-env-private.txt
 vercel-env-values.txt
+
+# Supabase CLI ishchi fayllari — mashinaga xos, repoga kerak emas.
+supabase/.temp/
