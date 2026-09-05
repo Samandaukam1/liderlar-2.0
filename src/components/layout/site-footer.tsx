@@ -34,7 +34,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Huquqiy",
     links: [
-      { label: "Ommaviy oferta", href: "/oferta" },
+      { label: "Ommaviy oferta", href: "/ommaviy_ofertasi" },
       { label: "Maxfiylik siyosati", href: "/maxfiylik-siyosati" },
       { label: "Foydalanish shartlari", href: "/foydalanish-shartlari" },
     ],

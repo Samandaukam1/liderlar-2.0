@@ -14,7 +14,7 @@ const STATIC_ROUTES = [
   "/top-100",
   "/ariza",
   "/loyiha-haqida",
-  "/oferta",
+  "/ommaviy_ofertasi",
   "/maxfiylik-siyosati",
   "/foydalanish-shartlari",
   "/qidiruv",

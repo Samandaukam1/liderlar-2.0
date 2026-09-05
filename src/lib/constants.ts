@@ -22,7 +22,7 @@ export const PRIMARY_NAV: NavItem[] = [
 export const MORE_NAV: NavItem[] = [
   { label: "Loyiha haqida", href: "/loyiha-haqida" },
   { label: "Ariza topshirish", href: "/ariza" },
-  { label: "Ommaviy oferta", href: "/oferta" },
+  { label: "Ommaviy oferta", href: "/ommaviy_ofertasi" },
   { label: "Maxfiylik siyosati", href: "/maxfiylik-siyosati" },
   { label: "Foydalanish shartlari", href: "/foydalanish-shartlari" },
 ];
