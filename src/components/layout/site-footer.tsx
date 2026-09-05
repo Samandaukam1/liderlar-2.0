@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/constants";
 import { BrandLogo } from "@/components/layout/brand-logo";
@@ -105,14 +106,24 @@ export function SiteFooter() {
           <p>MUKAMMAL MEDIA GROUP MChJ</p>
           <p>Tasarrufidagi loyiha</p>
         </div>
-        <div className="mt-2 text-center">
+        <div className="mt-4 flex justify-center">
           <a
             href="https://t.me/jaxongirman"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[0.7rem] text-white/30 transition-colors hover:text-cyan-light"
+            aria-label="Jaxongirmans IT TEAMS tomonidan ishlab chiqilgan — Telegram"
+            className="inline-block opacity-75 transition-opacity hover:opacity-100"
           >
-            Jaxongirmans IT TEAMS tomonidan ishlab chiqilgan
+            <Image
+              src="/assets/brand/developed-by-jaxongirmans.png"
+              alt="Jaxongirmans IT TEAMS tomonidan ishlab chiqilgan"
+              width={440}
+              height={122}
+              /* On every page's footer and never above the fold, so it waits
+                 rather than competing with the content for the first paint. */
+              loading="lazy"
+              className="h-auto w-[220px]"
+            />
           </a>
         </div>
       </div>
