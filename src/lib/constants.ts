@@ -13,9 +13,22 @@ export const CANONICAL_SITE_URL = "https://liderlar.uz";
  * A Vercel deployment URL is infrastructure, not the site's public address: a
  * preview or production `*.vercel.app` host left in NEXT_PUBLIC_SITE_URL would
  * otherwise end up in canonical tags, OpenGraph, the sitemap, structured data,
- * QR codes and every share link. localhost still passes through — resolveSiteUrl
- * derives the real origin from the request in that case.
+ * QR codes and every share link.
+ *
+ * A localhost value is refused the same way IN A PRODUCTION BUILD, and this is
+ * not hypothetical: liderlar.uz was live and serving
+ * `<loc>http://localhost:3000</loc>` in its sitemap, `Sitemap:
+ * http://localhost:3000/sitemap.xml` in robots.txt and og:url pointing at
+ * localhost, because NEXT_PUBLIC_SITE_URL was still set to the dev value in the
+ * production environment. Fixing the variable alone would leave the same trap
+ * armed for the next deployment, so the code refuses to publish a localhost
+ * public URL at all.
+ *
+ * `next dev` keeps localhost — that is what makes local links work, and
+ * resolveSiteUrl still derives the origin from the request there.
  */
+const IS_PRODUCTION_BUILD = process.env.NODE_ENV === "production";
+
 function publicOrigin(raw: string | undefined): string {
   const value = (raw ?? "").trim().replace(/\/+$/, "");
   if (!value) return CANONICAL_SITE_URL;
@@ -23,6 +36,9 @@ function publicOrigin(raw: string | undefined): string {
   try {
     const url = new URL(withProtocol);
     if (/\.vercel\.app$/i.test(url.hostname)) return CANONICAL_SITE_URL;
+    if (IS_PRODUCTION_BUILD && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) {
+      return CANONICAL_SITE_URL;
+    }
     return `${url.origin}${url.pathname.replace(/\/+$/, "")}`.replace(/\/+$/, "");
   } catch {
     return CANONICAL_SITE_URL;

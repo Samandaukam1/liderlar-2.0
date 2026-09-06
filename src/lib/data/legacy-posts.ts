@@ -94,3 +94,87 @@ export async function getLegacyPostBySlug(rawSlug: string): Promise<LegacyPost |
     .maybeSingle();
   return byId.data ? shape(byId.data as unknown as Row) : null;
 }
+
+/* -------------------------------------------------------------------------- *
+ * Sitemap va qidiruv
+ * -------------------------------------------------------------------------- */
+
+export interface LegacySitemapEntry {
+  legacy_path: string;
+  legacy_created_at: string | null;
+}
+
+/**
+ * Sitemap uchun 1.0 ning CHOP ETILGAN postlari.
+ *
+ * `legacy_status = 'published'` shartida qat'iy: 79 ta draft yozuv 1.0 da ham
+ * ommaga chiqmagan va sitemapga tushmasligi kerak. Admin klient RLS'ni chetlab
+ * o'tgani uchun filtr bu yerda ATAYLAB qo'lda yozilgan — siyosatga ishonib
+ * qolinmaydi.
+ *
+ * Jadval hali yaratilmagan bo'lsa bo'sh ro'yxat qaytadi: sitemap 2.0 qismini
+ * yo'qotmasligi kerak.
+ */
+export async function getPublishedLegacyPostsForSitemap(
+  limit = 5000,
+): Promise<LegacySitemapEntry[]> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("legacy_posts")
+      .select("legacy_path, legacy_created_at")
+      .eq("legacy_status", "published")
+      .is("deleted_at", null)
+      .limit(limit);
+    if (error) {
+      console.error("sitemap: legacy_posts o‘qilmadi —", error.message);
+      return [];
+    }
+    return (data ?? []) as LegacySitemapEntry[];
+  } catch (err) {
+    console.error("sitemap: legacy_posts o‘qilmadi —", err);
+    return [];
+  }
+}
+
+export interface LegacySearchResult {
+  id: string;
+  title: string;
+  summary: string | null;
+  legacy_path: string;
+  cover_image_url: string | null;
+  legacy_created_at: string | null;
+}
+
+/**
+ * Umumiy qidiruvning 1.0 tarmog'i.
+ *
+ * O'z xatosini O'ZI yutadi. globalSearch barcha so'rovlarni `Promise.all` da
+ * yuboradi va sahifa butun natijani bitta `catch` bilan ushlaydi — ya'ni shu
+ * yerdagi bitta xato (jadval hali yo'q, RLS o'zgardi) BUTUN qidiruvni
+ * o'chirib qo'yardi. Arxiv qidiruvi ishlamasligi mumkin; 2.0 qidiruvi esa yo'q.
+ */
+export async function searchLegacyPosts(query: string, limit = 8): Promise<LegacySearchResult[]> {
+  const q = query.trim();
+  if (!q) return [];
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("legacy_posts")
+      .select("id, title, summary, legacy_path, cover_image_url, legacy_created_at")
+      .eq("legacy_status", "published")
+      .is("deleted_at", null)
+      .ilike("title", `%${q.replace(/[%_,()]/g, " ")}%`)
+      .order("legacy_created_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error) {
+      console.error("search: legacy_posts o‘qilmadi —", error.message);
+      return [];
+    }
+    return (data ?? []) as LegacySearchResult[];
+  } catch (err) {
+    console.error("search: legacy_posts o‘qilmadi —", err);
+    return [];
+  }
+}

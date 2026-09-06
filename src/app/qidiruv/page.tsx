@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Users, Newspaper, Radio, BookOpen } from "lucide-react";
+import { Users, Newspaper, Radio, BookOpen, History } from "lucide-react";
 import { globalSearch } from "@/lib/data/search";
 import { HeroSearch } from "@/components/home/hero-search";
 import { LeaderCard } from "@/components/cards/leader-card";
@@ -22,7 +22,11 @@ export default async function SearchPage({
   const results = query ? await globalSearch(query).catch(() => null) : null;
   const hasResults =
     results &&
-    (results.candidates.length || results.articles.length || results.podcasts.length || results.journalArticles.length);
+    (results.candidates.length ||
+      results.articles.length ||
+      results.podcasts.length ||
+      results.journalArticles.length ||
+      results.legacyPosts.length);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -82,6 +86,40 @@ export default async function SearchPage({
                 <Link href={`/podcastlar/${p.slug}`} className="flex items-center justify-between rounded-md border border-brand-soft bg-paper px-4 py-3 hover:border-liderlar-blue">
                   <span className="font-semibold text-navy">{p.title}</span>
                   <span className="text-xs text-ink-soft">{formatDateUz(p.starts_at)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Liderlar 1.0 arxivi — alohida guruh, o'z eski manzillariga olib boradi.
+          candidates natijalari bilan qo'shilmaydi: reyting va TOP-100 o'sha
+          jadvaldan hisoblanadi. */}
+      {results && results.legacyPosts.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-navy">
+            <History className="h-5 w-5 text-liderlar-blue" aria-hidden /> Liderlar 1.0 arxivi
+          </h2>
+          <ul className="space-y-2">
+            {results.legacyPosts.map((post) => (
+              <li key={post.id}>
+                <Link
+                  href={post.legacy_path}
+                  className="flex items-center justify-between gap-3 rounded-md border border-brand-soft bg-paper px-4 py-3 hover:border-liderlar-blue"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-navy">{post.title}</span>
+                    {post.summary && (
+                      <span className="mt-0.5 block truncate text-xs text-ink-soft">{post.summary}</span>
+                    )}
+                  </span>
+                  {/* Manbadagi haqiqiy sana; yo'q bo'lsa hech narsa yozilmaydi. */}
+                  {post.legacy_created_at && (
+                    <span className="shrink-0 text-xs text-ink-soft">
+                      {formatDateUz(post.legacy_created_at)}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

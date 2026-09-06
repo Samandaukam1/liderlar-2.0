@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/constants";
+import { getPublishedLegacyPostsForSitemap } from "@/lib/data/legacy-posts";
 
 const STATIC_ROUTES = [
   "",
@@ -34,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const admin = createAdminClient();
 
-    const [candidates, journals, podcasts, articles] = await Promise.all([
+    const [candidates, journals, podcasts, articles, legacyPosts] = await Promise.all([
       admin.from("candidates").select("slug, updated_at").eq("status", "published").limit(5000),
       admin.from("journals").select("issue_number").eq("status", "published").limit(1000),
       admin
@@ -43,6 +44,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .in("status", ["announced", "live", "recorded", "published"])
         .limit(1000),
       admin.from("articles").select("slug, updated_at").eq("status", "published").limit(5000),
+      // Liderlar 1.0 arxivi — 2.0 bilan YONMA-YON, uning o'rniga emas.
+      getPublishedLegacyPostsForSitemap(),
     ]);
 
     const dynamicEntries: MetadataRoute.Sitemap = [
@@ -67,6 +70,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: a.updated_at ? new Date(a.updated_at) : new Date(),
         changeFrequency: "monthly" as const,
         priority: 0.6,
+      })),
+      // Eski manzillar o'z holicha indekslanadi: ular /liderlar ga
+      // yo'naltirilmaydi, shuning uchun sitemapda ham o'zlari turadi.
+      ...legacyPosts.map((post) => ({
+        url: `${SITE_URL}${post.legacy_path}`,
+        // Manbadagi HAQIQIY sana. Yo'q bo'lsa lastModified umuman
+        // yozilmaydi — import sanasini qo'yish tarixni buzish bo'lardi.
+        ...(post.legacy_created_at
+          ? { lastModified: new Date(post.legacy_created_at) }
+          : {}),
+        changeFrequency: "yearly" as const,
+        priority: 0.5,
       })),
     ];
 
