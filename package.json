@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/candidate-text.test.ts"
+    "test": "node --test tests/candidate-text.test.ts tests/legacy-route.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

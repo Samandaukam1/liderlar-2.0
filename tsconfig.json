@@ -9,6 +9,10 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // Testlar `node --test` bilan to'g'ridan-to'g'ri .ts fayllarni import qiladi
+    // (Node o'zi turlarni olib tashlaydi), shuning uchun kengaytmali import
+    // ruxsat etiladi. noEmit yoqilgan — bu faqat tekshiruvga ta'sir qiladi.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

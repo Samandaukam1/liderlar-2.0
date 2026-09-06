@@ -42,6 +42,16 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      /**
+       * Liderlar 1.0 Tilda'da qurilgan va uning maqola rasmlari hamon o'sha
+       * CDN'da turibdi. Rasmlarni Supabase'ga ko'chirmasdan legacy sahifani
+       * ko'rsatish uchun host shu yerda ochiladi — busiz `next/image` har bir
+       * arxiv maqolasida xato beradi.
+       */
+      {
+        protocol: "https" as const,
+        hostname: "static.tildacdn.com",
+      },
     ],
   },
 };
