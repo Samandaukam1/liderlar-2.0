@@ -3,6 +3,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/constants";
 import { getPublishedLegacyPostsForSitemap } from "@/lib/data/legacy-posts";
 
+/**
+ * Sitemap jonli ma'lumot o'qiydi, shuning uchun u build paytida MUZLAB
+ * QOLMASLIGI kerak.
+ *
+ * Buni production ko'rsatdi: 1991 ta arxiv yozuvi bazaga tushgandan keyin ham
+ * /sitemap.xml eski, import oldidan pishirilgan nusxani berdi va unda birorta
+ * /nomzodlar/ havolasi yo'q edi. Soatlik revalidate — yangi nomzod yoki
+ * arxiv yozuvi qo'shilganda sitemap o'zi yangilanishi uchun yetarli, va har
+ * bir so'rovda 2000+ qatorni qayta o'qimaydi.
+ */
+export const revalidate = 3600;
+
 const STATIC_ROUTES = [
   "",
   "/liderlar",
