@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import {
   LEGACY_PATH_PREFIX,
+  LEGACY_TPOST_PREFIX,
   buildLegacyPath,
   buildLegacySlug,
   extractLegacyPostId,
@@ -22,7 +23,9 @@ const RESOLVER = (() => {
   return LOADER.slice(from, to === -1 ? undefined : to);
 })();
 const CANDIDATES = fs.readFileSync("src/lib/data/candidates.ts", "utf8");
-const LEGACY_PAGE = fs.readFileSync("src/app/nomzodlar/[legacySlug]/page.tsx", "utf8");
+const LEGACY_PAGE = fs.readFileSync("src/components/legacy/legacy-post-page.tsx", "utf8");
+const NOMZODLAR_ROUTE = fs.readFileSync("src/app/nomzodlar/[legacySlug]/page.tsx", "utf8");
+const TPOST_ROUTE = fs.readFileSync("src/app/tpost/[legacySlug]/page.tsx", "utf8");
 const CANDIDATE_PAGE = fs.readFileSync("src/app/liderlar/[slug]/page.tsx", "utf8");
 
 /* ----------------------------- legacy URL shape ---------------------------- */
@@ -248,4 +251,46 @@ test("a production build refuses to publish localhost as the public origin", () 
   assert.equal(read("production", "https://liderlar.uz"), "https://liderlar.uz");
   // Local development keeps localhost, which is what makes dev links work.
   assert.equal(read("development", "http://localhost:3000"), "http://localhost:3000");
+});
+
+/* --------------------------- the /tpost/ prefix --------------------------- */
+
+test("both 1.0 addresses serve the article, and neither redirects", () => {
+  // Tilda gives every post two live paths: the site section (/nomzodlar/…) and
+  // its own (/tpost/…). The word "tpost" appears nowhere in the export, so this
+  // could not be learned from the data — but those links are in search indexes
+  // and on other sites all the same.
+  assert.equal(LEGACY_TPOST_PREFIX, "/tpost");
+  for (const route of [NOMZODLAR_ROUTE, TPOST_ROUTE]) {
+    assert.match(route, /LegacyPostPage/, "both routes render the same page");
+    assert.match(route, /generateLegacyPostMetadata/);
+    assert.ok(!route.includes("redirect("), "neither route redirects");
+    assert.ok(!route.includes("permanentRedirect"));
+  }
+});
+
+test("the two addresses share one canonical, so they do not compete", () => {
+  // Both pages come from one component, and that component always writes the
+  // /nomzodlar/ path as canonical — including on /tpost/.
+  assert.match(LEGACY_PAGE, /canonical: `\$\{SITE_URL\}\$\{post\.legacy_path\}`/);
+  const loader = fs.readFileSync("src/lib/data/legacy-posts.ts", "utf8");
+  assert.match(loader, /legacy_path/);
+  // Only the canonical form is submitted for indexing.
+  const sitemap = fs.readFileSync("src/app/sitemap.ts", "utf8");
+  assert.ok(!sitemap.includes("/tpost"), "the sitemap lists one address per article");
+});
+
+/* ------------------------- sitemap must not truncate ---------------------- */
+
+test("the sitemap reads every published archive row, not just the first page", () => {
+  // `.limit(5000)` was not enough: PostgREST caps a response at its own
+  // max-rows (1000 on Supabase), and production shipped a sitemap with exactly
+  // 1000 archive URLs while the database held 1912.
+  const loader = fs.readFileSync("src/lib/data/legacy-posts.ts", "utf8");
+  // Just this function — searchLegacyPosts below it legitimately uses limit().
+  const from = loader.indexOf("export async function getPublishedLegacyPostsForSitemap");
+  const fn = loader.slice(from, loader.indexOf("export interface LegacySearchResult", from));
+  assert.match(fn, /\.range\(from, from \+ SITEMAP_PAGE - 1\)/, "it pages with range()");
+  assert.match(fn, /if \(rows\.length < SITEMAP_PAGE\) break/, "and stops on a short page");
+  assert.ok(!/\.limit\(/.test(fn), "limit() alone cannot lift the server cap");
 });

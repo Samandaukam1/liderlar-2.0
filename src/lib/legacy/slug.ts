@@ -24,6 +24,22 @@
 export const LEGACY_PATH_PREFIX = "/nomzodlar";
 
 /**
+ * Tilda'ning O'ZINING standart post yo'li.
+ *
+ * Bitta post 1.0 da IKKI manzilda ochilgan: sayt bo'limi (`/nomzodlar/…`) va
+ * Tilda'ning ichki yo'li (`/tpost/…`). Slug bo'lagi ikkalasida ham bir xil.
+ * Eksport faylida `tpost` so'zi umuman uchramaydi, shuning uchun buni
+ * ma'lumotdan bilib bo'lmasdi — u tashqi bilimdan keldi va shu sababli
+ * qo'llab-quvvatlanadi: bunday havolalar ham indeksda, ham tashqi saytlarda
+ * qolgan.
+ *
+ * Kanonik manzil bittada qoladi (`/nomzodlar/…`) — sitemapga faqat u kiradi
+ * va `/tpost/…` sahifasi canonical'da o'shanga ishora qiladi, aks holda bir
+ * maqola qidiruvda o'ziga o'zi raqobat qilardi.
+ */
+export const LEGACY_TPOST_PREFIX = "/tpost";
+
+/**
  * O'zbekcha matnda uchraydigan apostrof shakllari.
  *
  * "O‘G‘LI" → "ogli": Tilda ularni defisga aylantirmay, butunlay TASHLAB

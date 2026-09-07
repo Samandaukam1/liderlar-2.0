@@ -115,23 +115,38 @@ export interface LegacySitemapEntry {
  * Jadval hali yaratilmagan bo'lsa bo'sh ro'yxat qaytadi: sitemap 2.0 qismini
  * yo'qotmasligi kerak.
  */
+/**
+ * SAHIFALAB o'qiladi. `.limit(5000)` yetarli emas: PostgREST javobni o'zining
+ * `max-rows` chegarasida (Supabase'da 1000) kesadi va `limit` uni ko'tarmaydi.
+ * Production shuni ko'rsatdi — bazada 1912 ta chop etilgan arxiv yozuvi
+ * bo'lsa ham sitemapga faqat 1000 tasi tushdi.
+ */
+const SITEMAP_PAGE = 1000;
+
 export async function getPublishedLegacyPostsForSitemap(
-  limit = 5000,
+  max = 50_000,
 ): Promise<LegacySitemapEntry[]> {
   const { createAdminClient } = await import("@/lib/supabase/admin");
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("legacy_posts")
-      .select("legacy_path, legacy_created_at")
-      .eq("legacy_status", "published")
-      .is("deleted_at", null)
-      .limit(limit);
-    if (error) {
-      console.error("sitemap: legacy_posts o‘qilmadi —", error.message);
-      return [];
+    const all: LegacySitemapEntry[] = [];
+    for (let from = 0; from < max; from += SITEMAP_PAGE) {
+      const { data, error } = await admin
+        .from("legacy_posts")
+        .select("legacy_path, legacy_created_at")
+        .eq("legacy_status", "published")
+        .is("deleted_at", null)
+        .order("legacy_created_at", { ascending: false, nullsFirst: false })
+        .range(from, from + SITEMAP_PAGE - 1);
+      if (error) {
+        console.error("sitemap: legacy_posts o‘qilmadi —", error.message);
+        return all;
+      }
+      const rows = (data ?? []) as LegacySitemapEntry[];
+      all.push(...rows);
+      if (rows.length < SITEMAP_PAGE) break;
     }
-    return (data ?? []) as LegacySitemapEntry[];
+    return all;
   } catch (err) {
     console.error("sitemap: legacy_posts o‘qilmadi —", err);
     return [];
