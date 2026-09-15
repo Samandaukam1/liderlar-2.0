@@ -10,7 +10,7 @@ import {
   applicationSchema,
   type ApplicationFormValues,
 } from "@/lib/validation/application";
-import { Input, Checkbox } from "@/components/ui/input";
+import { Input, Checkbox, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
@@ -34,7 +34,13 @@ function ChoiceChip({
   );
 }
 
-export function ApplicationForm() {
+/** Formaga bazadan beriladigan hudud. */
+export interface RegionOption {
+  id: string;
+  name: string;
+}
+
+export function ApplicationForm({ regions }: { regions: readonly RegionOption[] }) {
   const { push } = useToast();
   const [submitted, setSubmitted] = React.useState(false);
   const {
@@ -133,6 +139,34 @@ export function ApplicationForm() {
             ))}
           </div>
           <FieldError message={errors.gender?.message} />
+        </div>
+
+        {/*
+          HUDUD — MAJBURIY.
+
+          Jins va yosh kabi "chip" emas, ro'yxat: 14 ta variant
+          chiplar bilan bir necha qatorga yoyilib, telefonda yarim
+          ekranni egallardi va tanlash qiyinlashardi.
+
+          Birinchi variant BO'SH va u qiymat bermaydi — brauzer
+          o'zi birinchisini tanlab qo'yib, "Toshkent shahri" ni
+          jimgina standart qilib qo'ymasin.
+        */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-navy" htmlFor="regionId">
+            Hududingiz *
+          </label>
+          <Select id="regionId" {...register("regionId")} defaultValue="">
+            <option value="" disabled>
+              Hududingizni tanlang
+            </option>
+            {regions.map((region) => (
+              <option key={region.id} value={region.id}>
+                {region.name}
+              </option>
+            ))}
+          </Select>
+          <FieldError message={errors.regionId?.message} />
         </div>
 
         <div>

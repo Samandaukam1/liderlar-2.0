@@ -69,6 +69,20 @@ export const applicationSchema = z.object({
     ),
   gender: z.enum(["male", "female"], { error: "Jinsingizni tanlang" }),
   ageRange: z.enum(AGE_RANGES, { error: "Yosh oralig'ini tanlang" }),
+  /*
+   * HUDUD — MAJBURIY.
+   *
+   * Qiymat `regions` jadvalidagi qator identifikatori, matn emas.
+   * Sababi: hudud nomi o'zgarishi mumkin ("Farg'ona" -> "Farg'ona
+   * viloyati"), identifikator esa o'zgarmaydi — va katalog
+   * filtrlari hamda nomzodga aylantirish oqimi allaqachon shu
+   * ustunga tayanadi. Matn saqlansak, ikkita ro'yxat paydo bo'lardi.
+   *
+   * Ro'yxat formaga bazadan beriladi, kodda qotib qolmaydi: admin
+   * hududni qo'shsa yoki nomini o'zgartirsa, forma deploy'siz
+   * yangilanadi.
+   */
+  regionId: z.uuid({ error: "Hududingizni tanlang" }),
   promoCode: z
     .string()
     .optional()

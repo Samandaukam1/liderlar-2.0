@@ -11,7 +11,7 @@ export async function submitApplication(input: unknown): Promise<SubmitResult> {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Formada xatolik bor." };
   }
 
-  const { fullName, phone, telegram, gender, ageRange, promoCode } = parsed.data;
+  const { fullName, phone, telegram, gender, ageRange, regionId, promoCode } = parsed.data;
 
   const supabase = await createServerSupabase();
   const { error } = await supabase.from("applications").insert({
@@ -20,6 +20,7 @@ export async function submitApplication(input: unknown): Promise<SubmitResult> {
     telegram,
     gender,
     age_range: ageRange,
+    region_id: regionId,
     promo_code: promoCode || null,
     status: "new",
   });

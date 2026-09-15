@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { fullName, phone, telegram, gender, ageRange, promoCode } = parsed.data;
+  const { fullName, phone, telegram, gender, ageRange, regionId, promoCode } = parsed.data;
 
   const admin = createAdminClient();
   const { error } = await admin.from("applications").insert({
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     telegram,
     gender,
     age_range: ageRange,
+    region_id: regionId,
     promo_code: promoCode || null,
     status: "new",
   });
