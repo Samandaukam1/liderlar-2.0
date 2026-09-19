@@ -26,6 +26,25 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/oferta", destination: "/ommaviy_ofertasi", permanent: true }];
   },
+  /**
+   * `/favicon.ico` — STATIK FAYL EMAS.
+   *
+   * Google va boshqa krauler'lar sahifadagi `<link rel="icon">`
+   * teglarini emas, saytning ildizidagi `/favicon.ico` ni so'raydi.
+   * Metadata to'g'ri bo'lgani bilan o'sha manzilda Next'ning
+   * standart fayli turgani uchun qidiruv natijasida Vercel
+   * uchburchagi ko'rinib turardi.
+   *
+   * `beforeFiles` SHART: oddiy rewrite `public/` dagi fayldan KEYIN
+   * ishlaydi va statik fayl baribir yutib ketardi.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: "/favicon.ico", destination: "/api/favicon" }],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   images: {
     remotePatterns: [
       ...(supabaseHostname

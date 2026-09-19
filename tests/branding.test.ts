@@ -107,7 +107,39 @@ test("favicon.ico app segmentida TURMAYDI", () => {
    * paydo bo'ladi — qaysi biri g'olib chiqishi brauzerga bog'liq.
    */
   assert.ok(!existsSync("src/app/favicon.ico"), "app segmentidan olib tashlangan bo‘lsin");
-  assert.ok(existsSync("public/favicon.ico"), "zaxira sifatida public/ da qolsin");
+});
+
+test("/favicon.ico STATIK FAYL emas — brendingdan beriladi", () => {
+  /*
+   * Google va boshqa krauler'lar `<link rel="icon">` teglarini
+   * emas, ildizdagi `/favicon.ico` ni so'raydi. Metadata to'g'ri
+   * bo'lgani bilan o'sha manzilda Next'ning standart fayli
+   * turgani uchun qidiruv natijasida Vercel uchburchagi
+   * ko'rinib turardi.
+   */
+  assert.ok(!existsSync("public/favicon.ico"), "statik fayl /favicon.ico ni egallamasin");
+  assert.ok(existsSync("public/favicon-default.ico"), "zaxira boshqa nomda qolsin");
+  assert.ok(existsSync("src/app/api/favicon/route.ts"));
+
+  const config = readFileSync("next.config.ts", "utf8");
+  // `beforeFiles` SHART: oddiy rewrite public/ dagi fayldan KEYIN
+  // ishlaydi va statik fayl baribir yutib ketardi.
+  assert.match(config, /beforeFiles:\s*\[\{ source: "\/favicon\.ico", destination: "\/api\/favicon" \}\]/);
+});
+
+test("zaxira yo‘nalishi CHEKSIZ AYLANMA emas", () => {
+  // `/favicon.ico` route'ga qayta yozilgani uchun o'sha nomga
+  // yo'naltirish o'z-o'ziga qaytarardi.
+  const route = readFileSync("src/app/api/favicon/route.ts", "utf8");
+  assert.ok(route.includes("/favicon-default.ico"));
+  assert.ok(!/redirect\([^)]*"\/favicon\.ico"/.test(route));
+});
+
+test("zaxira manzili so‘rovdan olinadi, kodda qotmaydi", () => {
+  // Aks holda preview deploy'lar ham productionga yo'naltirardi.
+  const route = readFileSync("src/app/api/favicon/route.ts", "utf8");
+  assert.match(route, /new URL\("\/favicon-default\.ico", request\.url\)/);
+  assert.ok(!route.includes('"https://liderlar.uz"'));
 });
 
 test("metadata DINAMIK — admin o‘zgarishi deploy’siz ko‘rinadi", () => {
