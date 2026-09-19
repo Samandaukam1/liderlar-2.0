@@ -132,6 +132,20 @@ test("xato natijasi KESHLANMAYDI", () => {
   assert.ok(!catchBlock.includes("cached ="), "xatoda kesh yozilmasin");
 });
 
+test("COOKIE'SIZ klient — statik renderda ham ishlaydi", () => {
+  /*
+   * Loyihaning odatiy `createClient()` i `cookies()` ni o'qiydi va u
+   * statik render paytida mavjud emas: chaqiruv xato beradi va
+   * brending bo'sh qaytadi.
+   *
+   * Amalda shunday ko'rindi — dinamik sahifalarda favicon to'g'ri,
+   * BOSH SAHIFADA standart belgi qotib qolgan edi.
+   */
+  assert.ok(!branding.includes("@/lib/supabase/server"), "cookie'li klient ishlatilmasin");
+  assert.match(branding, /from "@supabase\/supabase-js"/);
+  assert.match(branding, /persistSession: false/);
+});
+
 test("har so‘rovda baza so‘rovi QILINMAYDI", () => {
   // `generateMetadata` har sahifada ishlaydi.
   assert.match(branding, /CACHE_MS/);

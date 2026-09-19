@@ -1,4 +1,4 @@
-import { createClient as createServerSupabase } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import {
   BRANDING_ICON_KEYS,
   BRANDING_VERSION_KEY,
@@ -11,7 +11,27 @@ import {
  * Brendingni bazadan o'qish.
  *
  * Qoidalar SOF modulda (`branding-config.ts`); bu yerda faqat I/O.
+ *
+ * COOKIE'SIZ KLIENT ATAYLAB.
+ *
+ * Loyihaning odatiy `createClient()` i `cookies()` ni o'qiydi va u
+ * STATIK render paytida mavjud emas — chaqiruv xato beradi va
+ * brending bo'sh qaytadi. Amalda bu shunday ko'rindi: dinamik
+ * sahifalarda favicon to'g'ri, BOSH SAHIFADA esa standart belgi
+ * qotib qolgan edi.
+ *
+ * Brending ommaviy ma'lumot (`site_settings` da "site settings are
+ * public" siyosati bor), ya'ni foydalanuvchi sessiyasi umuman
+ * kerak emas. Anon kalitli oddiy klient build paytida ham,
+ * so'rovda ham bir xil ishlaydi.
  */
+function brandingClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } },
+  );
+}
 
 /**
  * Qisqa muddatli kesh.
@@ -28,8 +48,7 @@ export async function getSiteBranding(): Promise<SiteBranding> {
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
 
   try {
-    const supabase = await createServerSupabase();
-    const { data } = await supabase
+    const { data } = await brandingClient()
       .from("site_settings")
       .select("key, value")
       .in("key", [...Object.values(BRANDING_ICON_KEYS), BRANDING_VERSION_KEY]);
