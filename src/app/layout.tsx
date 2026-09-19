@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildIconsMetadata, getSiteBranding } from "@/lib/branding";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -25,8 +26,24 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-export const metadata: Metadata = {
+/**
+ * Metadata DINAMIK, chunki favicon ADMIN PANELDAN keladi.
+ *
+ * Statik `metadata` bo'lganda admin yuklagan yangi logo faqat
+ * keyingi deploy'dan keyin ko'rinardi.
+ *
+ * ESLATMA: `src/app/favicon.ico` ATAYLAB `public/` ga ko'chirildi.
+ * U app segmentida tursa, Next avtomatik `<link rel="icon">` qo'shadi
+ * va bizning ikonkalarimiz bilan IKKITA raqobatchi teg paydo bo'lardi
+ * — qaysi biri g'olib chiqishi brauzerga bog'liq bo'lib qolardi.
+ * Endi manba bitta, `public/favicon.ico` esa `/favicon.ico` ni
+ * to'g'ridan-to'g'ri so'ragan eski klientlar uchun zaxira.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getSiteBranding();
+  return {
   metadataBase: new URL(SITE_URL),
+  icons: buildIconsMetadata(branding),
   title: {
     default: `${SITE_NAME} — O‘zbekiston yetakchi yoshlari ensiklopediyasi`,
     template: `%s — ${SITE_NAME}`,
@@ -59,7 +76,8 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-};
+  };
+}
 
 export const viewport = {
   themeColor: "#13BCE4",
