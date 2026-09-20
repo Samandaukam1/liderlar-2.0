@@ -10,6 +10,8 @@ import { LinkButton } from "@/components/ui/button";
 import { EditRequestButton } from "@/components/kabinet/edit-request-button";
 import { formatDateUz } from "@/lib/utils";
 import { signOut } from "@/app/kabinet/actions";
+import { MehrPanel, CertificatesPanel } from "@/components/kabinet/mehr-panel";
+import { loadMemberMehrData } from "@/lib/mehr/member-data";
 
 export const metadata: Metadata = {
   title: "Shaxsiy kabinet",
@@ -68,6 +70,16 @@ export default async function KabinetPage() {
     .or(`recipient_id.eq.${user.id},recipient_id.is.null`)
     .order("created_at", { ascending: false })
     .limit(8);
+
+  /*
+   * MEHR ma'lumoti NOMZODGA EMAS, PROFILGA bog'langan.
+   *
+   * Ezgulik ishi qilish uchun ensiklopediyada nashr qilingan
+   * bo'lish shart emas: hisobi bor har bir a'zo qatnashadi.
+   * Shuning uchun bu yuklash `candidate` bor-yo'qligidan
+   * qat'i nazar bajariladi.
+   */
+  const mehr = await loadMemberMehrData(user.id);
   const overallScore = rankingRows.find((row) => row.category === "overall")?.total_score ?? 0;
 
   return (
@@ -124,6 +136,10 @@ export default async function KabinetPage() {
               />
             )}
           </section>
+
+          <MehrPanel data={mehr} />
+
+          <CertificatesPanel data={mehr} />
 
           <section className="rounded-xl border border-brand-soft bg-paper p-6 shadow-card">
             <div className="flex items-center gap-2">
