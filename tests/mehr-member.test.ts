@@ -382,10 +382,19 @@ test("mijoz komponentlari server-only moduldan import qilmaydi", () => {
     const code = readFileSync(file, "utf8");
     if (!/^["']use client["']/m.test(code)) continue;
 
-    for (const mod of serverOnly) {
-      assert.ok(
-        !code.includes(`from "${mod}"`),
-        `${file} — "use client" bo'la turib ${mod} dan import qilyapti`,
+    /*
+     * `import type { … }` BUTUNLAY O'CHADI — TypeScript uni
+     * kompilyatsiyada olib tashlaydi va bundler ko'rmaydi.
+     * Xavfli bo'lgani — QIYMAT importi.
+     */
+    for (const statement of code.match(/^import\s+[\s\S]*?from\s+["'][^"']+["'];/gm) ?? []) {
+      if (/^import\s+type\s/.test(statement)) continue;
+
+      const mod = statement.match(/from\s+["']([^"']+)["']/)?.[1];
+      if (!mod || !serverOnly.has(mod)) continue;
+
+      assert.fail(
+        `${file} — "use client" bo'la turib ${mod} dan QIYMAT import qilyapti:\n  ${statement}`,
       );
     }
   }
