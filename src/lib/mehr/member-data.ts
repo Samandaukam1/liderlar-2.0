@@ -1,5 +1,18 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type {
+  MehrActivitySummary,
+  MemberMehrData,
+} from "./member-types";
+
+/*
+ * Tiplar va yorliqlar SOF modulda (`member-types.ts`).
+ *
+ * Bu fayl `server-only` — mijoz komponenti undan hatto tipni
+ * import qilsa ham, bundler butun modulni brauzer paketiga
+ * tortadi va build yiqiladi.
+ */
+export * from "./member-types";
 
 /**
  * A'zoning MEHR ma'lumotlari — shaxsiy kabinet uchun.
@@ -12,53 +25,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * USTUNLAR ATMA-ATI sanaladi: `select("*")` tadbir qatoridagi
  * tekshiruv koordinatalarini ham olib kelardi.
  */
-
-export interface MehrPointRow {
-  category: string;
-  points: number;
-}
-
-export interface MehrLedgerEntry {
-  points: number;
-  category: string;
-  note: string | null;
-  createdAt: string;
-  activityTitle: string | null;
-}
-
-export interface MehrCertificate {
-  code: string;
-  role: string | null;
-  status: "active" | "revoked";
-  issuedAt: string;
-  activityTitle: string | null;
-  activitySlug: string | null;
-}
-
-export interface MehrActivitySummary {
-  id: string;
-  title: string;
-  status: string;
-  slug: string | null;
-  role: string;
-  startsAt: string | null;
-  isOrganizer: boolean;
-}
-
-export interface MemberMehrData {
-  totalPoints: number;
-  byCategory: MehrPointRow[];
-  ledger: MehrLedgerEntry[];
-  certificates: MehrCertificate[];
-  activities: MehrActivitySummary[];
-  organizedCount: number;
-  participatedCount: number;
-  pendingCount: number;
-  approvedCount: number;
-  /** Umumiy reytingdagi o'rni. Ball bo'lmasa — null, "0-o'rin" emas. */
-  rank: number | null;
-  telegramLinked: boolean;
-}
 
 export async function loadMemberMehrData(profileId: string): Promise<MemberMehrData> {
   const db = createAdminClient();
@@ -87,7 +53,10 @@ export async function loadMemberMehrData(profileId: string): Promise<MemberMehrD
 
     db
       .from("mehr_participants")
-      .select("role, activity_id, mehr_activities(id, title, status, slug, starts_at)")
+      .select(
+        "role, activity_id, " +
+          "mehr_activities(id, title, status, slug, starts_at, cover_image_url)",
+      )
       .eq("profile_id", profileId)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -112,20 +81,56 @@ export async function loadMemberMehrData(profileId: string): Promise<MemberMehrD
       status: string;
       slug: string | null;
       starts_at: string | null;
+      cover_image_url: string | null;
     } | null;
   }[];
 
+  const organizedIds = participationRows
+    .filter((r) => r.mehr_activities && r.role === "organizer")
+    .map((r) => r.mehr_activities!.id);
+
+  /*
+   * Rasm soni FAQAT o'zi tashkil qilgan tadbirlar uchun
+   * so'raladi: u boshqa birovning tadbiriga dalil yubora
+   * olmaydi va bu son unga kerak emas.
+   */
+  const photoCounts = new Map<string, number>();
+  if (organizedIds.length > 0) {
+    const { data: media } = await db
+      .from("mehr_media")
+      .select("activity_id")
+      .in("activity_id", organizedIds);
+
+    for (const m of (media ?? []) as { activity_id: string }[]) {
+      photoCounts.set(m.activity_id, (photoCounts.get(m.activity_id) ?? 0) + 1);
+    }
+  }
+
   const activities: MehrActivitySummary[] = participationRows
     .filter((r) => r.mehr_activities)
-    .map((r) => ({
-      id: r.mehr_activities!.id,
-      title: r.mehr_activities!.title,
-      status: r.mehr_activities!.status,
-      slug: r.mehr_activities!.slug,
-      startsAt: r.mehr_activities!.starts_at,
-      role: r.role,
-      isOrganizer: r.role === "organizer" || r.role === "co_organizer",
-    }));
+    .map((r) => {
+      const a = r.mehr_activities!;
+      const isOrganizer = r.role === "organizer" || r.role === "co_organizer";
+
+      return {
+        id: a.id,
+        title: a.title,
+        status: a.status,
+        slug: a.slug,
+        startsAt: a.starts_at,
+        role: r.role,
+        isOrganizer,
+        hasCover: Boolean(a.cover_image_url),
+        photoCount: photoCounts.get(a.id) ?? 0,
+        /*
+         * Dalilni FAQAT tashkilotchi va faqat qoralama/tuzatish
+         * holatida yuboradi. Server ham shuni tekshiradi — bu
+         * yerdagisi tugmani ko'rsatish uchun.
+         */
+        canSubmitEvidence:
+          r.role === "organizer" && (a.status === "draft" || a.status === "changes_requested"),
+      };
+    });
 
   const titleById = new Map(activities.map((a) => [a.id, a.title]));
 
@@ -192,25 +197,3 @@ export async function loadMemberMehrData(profileId: string): Promise<MemberMehrD
     telegramLinked: Boolean(telegram.data),
   };
 }
-
-export const MEHR_CATEGORY_LABEL: Readonly<Record<string, string>> = {
-  ijtimoiy_tasir: "Ijtimoiy ta'sir",
-  yetakchilik: "Yetakchilik",
-  intellektual: "Intellektual faoliyat",
-  yutuqlar: "Yutuqlar",
-  jamiyatga_hissa: "Jamiyatga hissa",
-};
-
-export const MEHR_ROLE_LABEL: Readonly<Record<string, string>> = {
-  participant: "Ishtirokchi",
-  co_organizer: "Hamkor tashkilotchi",
-  organizer: "Tashkilotchi",
-};
-
-export const MEHR_STATUS_LABEL: Readonly<Record<string, string>> = {
-  draft: "Qoralama",
-  submitted: "Tekshiruvda",
-  changes_requested: "Tuzatish so'ralgan",
-  approved: "Tasdiqlangan",
-  rejected: "Rad etilgan",
-};

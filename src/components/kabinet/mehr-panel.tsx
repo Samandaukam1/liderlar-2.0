@@ -4,10 +4,10 @@ import { formatDateUz } from "@/lib/utils";
 import {
   MEHR_CATEGORY_LABEL,
   MEHR_ROLE_LABEL,
-  MEHR_STATUS_LABEL,
   type MemberMehrData,
-} from "@/lib/mehr/member-data";
+} from "@/lib/mehr/member-types";
 import { TelegramLinkButton } from "./telegram-link-button";
+import { ActivityRow } from "./activity-row";
 
 /**
  * Kabinetdagi MEHR 365+ bo'limi.
@@ -76,22 +76,8 @@ export function MehrPanel({ data }: { data: MemberMehrData }) {
                 Ezgulik ishlarim
               </h3>
               <ul className="mt-2 space-y-2">
-                {data.activities.slice(0, 6).map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand-soft px-4 py-3 text-sm"
-                  >
-                    <span className="min-w-0">
-                      <span className="font-semibold text-navy">{a.title}</span>
-                      <span className="ml-2 text-xs text-ink-soft">
-                        {MEHR_ROLE_LABEL[a.role] ?? a.role}
-                      </span>
-                    </span>
-                    <span className="text-xs font-semibold text-ink-soft">
-                      {MEHR_STATUS_LABEL[a.status] ?? a.status}
-                      {a.startsAt ? ` · ${formatDateUz(a.startsAt)}` : ""}
-                    </span>
-                  </li>
+                {data.activities.slice(0, 8).map((a) => (
+                  <ActivityRow key={a.id} activity={a} />
                 ))}
               </ul>
             </div>

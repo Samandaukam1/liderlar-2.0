@@ -10,6 +10,12 @@ import {
 } from "../src/lib/mehr/link-token.ts";
 import { normalizeCode } from "../src/lib/mehr/certificate-code.ts";
 import { periodKeyFor } from "../src/lib/mehr/period.ts";
+import {
+  checkEvidence,
+  checkEvidenceFile,
+  canSubmit,
+  evidencePath,
+} from "../src/lib/mehr/submission-rules.ts";
 
 const NOW = new Date("2026-09-20T10:00:00Z");
 
@@ -239,4 +245,163 @@ test("bog'lash havolasi seansdan chiqadi, so'rovdan emas", () => {
   assert.match(fn, /createTelegramLink\(\): Promise/);
   assert.match(fn, /supabase\.auth\.getUser\(\)/);
   assert.match(fn, /profile_id: user\.id/);
+});
+
+// ---------------------------------------------------------------
+// DALIL YUBORISH QOIDALARI (§10)
+// ---------------------------------------------------------------
+
+const FULL_EVIDENCE = {
+  title: "Qishki yordam aksiyasi",
+  description: "40 nafar oilaga issiq kiyim va oziq-ovqat tarqatildi.",
+  purpose: "Kam ta'minlangan oilalarni qish oldidan qo'llab-quvvatlash.",
+  beneficiaryCount: 40,
+  hasCover: true,
+  photoCount: 6,
+  startsAt: "2026-09-18T09:00:00Z",
+};
+
+test("to'liq dalil yuboriladi", () => {
+  assert.equal(checkEvidence(FULL_EVIDENCE).ok, true);
+});
+
+test("dalilsiz tadbir yuborilmaydi va nima yetishmagani aytiladi", () => {
+  const result = checkEvidence({ ...FULL_EVIDENCE, photoCount: 0, hasCover: false });
+
+  assert.equal(result.ok, false);
+  assert.ok(result.missing.some((m) => m.includes("dalil")));
+  assert.ok(result.missing.some((m) => m.includes("Muqova")));
+});
+
+test("yolg'iz qilingan ezgulik ham qabul qilinadi", () => {
+  /*
+   * Ishtirokchi soni umuman tekshirilmaydi: tashkilotchining
+   * o'zi yagona ishtirokchi bo'lishi rad etish sababi emas.
+   */
+  assert.equal(checkEvidence(FULL_EVIDENCE).ok, true);
+  assert.ok(!checkEvidence({ ...FULL_EVIDENCE, photoCount: 1 }).missing.includes("Ishtirokchi"));
+});
+
+test("nafi tekkanlar 0 bo'lishi mumkin, lekin bo'sh bo'lmaydi", () => {
+  assert.equal(checkEvidence({ ...FULL_EVIDENCE, beneficiaryCount: 0 }).ok, true);
+  assert.equal(checkEvidence({ ...FULL_EVIDENCE, beneficiaryCount: null }).ok, false);
+});
+
+test("faqat qoralama va tuzatish so'ralgan tadbir yuboriladi", () => {
+  assert.equal(canSubmit("draft"), true);
+  assert.equal(canSubmit("changes_requested"), true);
+
+  // Tasdiqlangan tadbirni qayta yuborish ball va sertifikatni
+  // ostidan siljitardi.
+  assert.equal(canSubmit("approved"), false);
+  assert.equal(canSubmit("submitted"), false);
+  assert.equal(canSubmit("rejected"), false);
+});
+
+test("faqat rasm qabul qilinadi", () => {
+  assert.equal(checkEvidenceFile({ name: "a.jpg", size: 1000, type: "image/jpeg" }).ok, true);
+  assert.equal(checkEvidenceFile({ name: "a.png", size: 1000, type: "image/png" }).ok, true);
+
+  const pdf = checkEvidenceFile({ name: "hujjat.pdf", size: 1000, type: "application/pdf" });
+  assert.equal(pdf.ok, false);
+  assert.ok(pdf.ok === false && pdf.error.includes("hujjat.pdf"));
+});
+
+test("juda katta fayl rad etiladi va sabab aniq", () => {
+  const big = checkEvidenceFile({ name: "katta.jpg", size: 50 * 1024 * 1024, type: "image/jpeg" });
+
+  assert.equal(big.ok, false);
+  assert.ok(big.ok === false && big.error.includes("MB"));
+});
+
+test("fayl nomi foydalanuvchidan OLINMAYDI", () => {
+  /*
+   * Nomda bo'shliq, kirill harf, `../` yoki juda uzun satr
+   * bo'lishi mumkin. Tasodifiy qism esa manzilni taxmin qilib
+   * bo'lmas qiladi — bucket ommaviy bo'lgani uchun bu muhim.
+   */
+  const path = evidencePath("11111111-1111-4111-8111-111111111111", "abc-123", "image/jpeg");
+
+  assert.equal(path, "11111111-1111-4111-8111-111111111111/abc-123.jpg");
+  assert.ok(!path.includes(".."));
+});
+
+test("kengaytma MIME turidan olinadi, nomdan emas", () => {
+  assert.ok(evidencePath("a", "b", "image/png").endsWith(".png"));
+  assert.ok(evidencePath("a", "b", "image/webp").endsWith(".webp"));
+  assert.ok(evidencePath("a", "b", "image/jpeg").endsWith(".jpg"));
+});
+
+test("dalil API'si tashkilotchini SO'ROVDAN olmaydi", () => {
+  /*
+   * `organizerProfileId` sxemada bo'lsa, istalgan odam boshqa
+   * a'zoning tadbirini yuborardi.
+   */
+  const code = src("src/app/api/mehr/evidence/route.ts");
+
+  assert.ok(!/organizerProfileId/.test(code), "tashkilotchi so'rovdan olinyapti");
+  assert.match(code, /supabase\.auth\.getUser\(\)/);
+
+  // Egalik va holat SHARTNING ICHIDA — chetlab o'tib bo'lmaydi.
+  assert.match(code, /\.eq\("organizer_profile_id", user\.id\)/);
+  assert.match(code, /\.in\("status", \["draft", "changes_requested"\]\)/);
+});
+
+// ---------------------------------------------------------------
+// MIJOZ/SERVER CHEGARASI
+// ---------------------------------------------------------------
+
+test("mijoz komponentlari server-only moduldan import qilmaydi", () => {
+  /*
+   * `import "server-only"` bo'lgan modulni "use client"
+   * faylidan hatto TIP uchun import qilish ham build'ni
+   * yiqitadi: bundler butun modulni brauzer paketiga tortadi.
+   *
+   * Bu xatoni tsc KO'RMAYDI — u faqat build'da chiqadi.
+   * Shuning uchun test.
+   */
+  const serverOnly = new Set<string>();
+  for (const file of [
+    "src/lib/mehr/member-data.ts",
+    "src/lib/mehr/certificate-verify.ts",
+    "src/lib/mehr/public-stats.ts",
+  ]) {
+    if (/^import "server-only"/m.test(readFileSync(file, "utf8"))) {
+      serverOnly.add(file.replace(/^src\//, "@/").replace(/\.ts$/, ""));
+    }
+  }
+
+  assert.ok(serverOnly.size > 0, "server-only modul topilmadi");
+
+  for (const file of [
+    "src/components/kabinet/activity-row.tsx",
+    "src/components/kabinet/mehr-panel.tsx",
+    "src/components/kabinet/evidence-form.tsx",
+    "src/components/kabinet/telegram-link-button.tsx",
+  ]) {
+    const code = readFileSync(file, "utf8");
+    if (!/^["']use client["']/m.test(code)) continue;
+
+    for (const mod of serverOnly) {
+      assert.ok(
+        !code.includes(`from "${mod}"`),
+        `${file} — "use client" bo'la turib ${mod} dan import qilyapti`,
+      );
+    }
+  }
+});
+
+test("tiplar moduli server-only EMAS", () => {
+  /*
+   * Ikkala tomon ham ishlatadi, shuning uchun toza qolishi kerak.
+   *
+   * Izohlar OLIB TASHLANADI: modul o'zining nega alohida
+   * ekanini tushuntirganda "server-only" so'zini yozadi va
+   * test o'z izohiga tushib qolardi. Qidirilayotgani — matn
+   * emas, DIREKTIVA.
+   */
+  const code = src("src/lib/mehr/member-types.ts");
+
+  assert.ok(!/import\s+["']server-only["']/.test(code), "server-only direktivasi bor");
+  assert.ok(!/from\s+["']@\/lib\/supabase/.test(code), "tiplar modulida baza mijozi bor");
 });
