@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/candidate-text.test.ts tests/legacy-route.test.ts tests/application-region.test.ts tests/public-region-map.test.ts tests/branding.test.ts tests/mehr-member.test.ts tests/account-activation.test.ts"
+    "test": "node --test tests/candidate-text.test.ts tests/legacy-route.test.ts tests/application-region.test.ts tests/public-region-map.test.ts tests/branding.test.ts tests/mehr-member.test.ts tests/account-activation.test.ts tests/mehr-public.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

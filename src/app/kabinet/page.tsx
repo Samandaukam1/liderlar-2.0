@@ -12,6 +12,7 @@ import { formatDateUz } from "@/lib/utils";
 import { signOut } from "@/app/kabinet/actions";
 import { MehrPanel, CertificatesPanel } from "@/components/kabinet/mehr-panel";
 import { loadMemberMehrData } from "@/lib/mehr/member-data";
+import { getMehrFlags } from "@/lib/mehr/flags";
 
 export const metadata: Metadata = {
   title: "Shaxsiy kabinet",
@@ -79,7 +80,17 @@ export default async function KabinetPage() {
    * Shuning uchun bu yuklash `candidate` bor-yo'qligidan
    * qat'i nazar bajariladi.
    */
-  const mehr = await loadMemberMehrData(user.id);
+  const [mehr, mehrFlags] = await Promise.all([
+    loadMemberMehrData(user.id),
+    getMehrFlags(),
+  ]);
+
+  /*
+   * Bot havolasi sozlamadan quriladi — kodda qotirilmaydi.
+   * Bot nomi o'zgarsa, havola ham o'zi o'zgaradi.
+   */
+  const botUsername = process.env.NEXT_PUBLIC_MEMBER_BOT_USERNAME?.replace(/^@/, "").trim();
+  const botUrl = botUsername ? `https://t.me/${botUsername}` : null;
   const overallScore = rankingRows.find((row) => row.category === "overall")?.total_score ?? 0;
 
   return (
@@ -137,7 +148,11 @@ export default async function KabinetPage() {
             )}
           </section>
 
-          <MehrPanel data={mehr} />
+          <MehrPanel
+            data={mehr}
+            canCreateActivity={mehrFlags.activityCreationEnabled}
+            botUrl={botUrl}
+          />
 
           <CertificatesPanel data={mehr} />
 

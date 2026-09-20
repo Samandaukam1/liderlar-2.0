@@ -7,7 +7,14 @@
  * reyting "yo'qolgandek" ko'rinardi.
  */
 
-export type RankingPeriod = "all" | "year" | "month";
+/*
+ * Tip `public-types.ts` da — u mijoz tomonida ham ishlatiladi.
+ * Bu yerda qayta e'lon qilsak, ikkita bir xil nomli, lekin
+ * texnik jihatdan boshqa tip paydo bo'lardi.
+ */
+import type { RankingPeriod } from "./public-types";
+
+export type { RankingPeriod };
 
 /** Toshkent UTC+5, yozgi vaqtga o'tmaydi. */
 const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000;

@@ -26,6 +26,12 @@ const MAIN_NAV = [
   { label: "Bosh sahifa", href: "/" },
   { label: "Liderlar", href: "/liderlar" },
   { label: "Reyting", href: "/reyting" },
+  /*
+   * MEHR 365+ — ensiklopediya ICHIDAGI bo'lim, alohida sayt
+   * emas. Shuning uchun u asosiy menyuda, tashqi havola
+   * sifatida emas: manzil ham liderlar.uz ostida qoladi.
+   */
+  { label: "MEHR 365+", href: "/mehr365" },
 ];
 
 type MenuEntry = {

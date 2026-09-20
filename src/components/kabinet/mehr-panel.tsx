@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Heart, Award, TrendingUp } from "lucide-react";
+import { Heart, Award, TrendingUp, ArrowRight, Plus } from "lucide-react";
 import { formatDateUz } from "@/lib/utils";
 import {
   MEHR_CATEGORY_LABEL,
@@ -15,7 +15,16 @@ import { ActivityRow } from "./activity-row";
  * HAR BIR SON BAZADAN. Hech qayerda "namuna" qiymat yo'q:
  * ma'lumot bo'lmasa, raqam emas, keyingi qadam ko'rsatiladi.
  */
-export function MehrPanel({ data }: { data: MemberMehrData }) {
+export function MehrPanel({
+  data,
+  canCreateActivity,
+  botUrl,
+}: {
+  data: MemberMehrData;
+  /** `mehr.activity_creation_enabled` — serverda tekshirilgan. */
+  canCreateActivity: boolean;
+  botUrl: string | null;
+}) {
   const hasAnything = data.totalPoints > 0 || data.activities.length > 0;
 
   return (
@@ -24,6 +33,18 @@ export function MehrPanel({ data }: { data: MemberMehrData }) {
         <div className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-liderlar-blue" aria-hidden />
           <h2 className="font-display text-lg font-bold text-navy">MEHR 365+</h2>
+          {/*
+            Ommaviy bo'limga havola — foydalanuvchi o'z
+            ballarini boshqalarniki bilan solishtira olsin va
+            MEHR nima ekanini ko'rsin.
+          */}
+          <Link
+            href="/mehr365"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-liderlar-blue hover:underline"
+          >
+            Bo&apos;limga o&apos;tish
+            <ArrowRight className="h-3 w-3" aria-hidden />
+          </Link>
         </div>
         <TelegramLinkButton linked={data.telegramLinked} />
       </div>
@@ -80,6 +101,40 @@ export function MehrPanel({ data }: { data: MemberMehrData }) {
                   <ActivityRow key={a.id} activity={a} />
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/*
+            TADBIR OCHISH — FAQAT BAYROQ OCHIQ VA TELEGRAM
+            BOG'LANGAN BO'LSA.
+
+            Buzuq tugma ko'rsatish yo'q tugmadan yomonroq:
+            bosilganda foydalanuvchi xato oladi va mahsulotni
+            ishlamaydi deb biladi.
+          */}
+          {canCreateActivity && (
+            <div className="mt-6 rounded-lg border border-liderlar-blue/30 bg-liderlar-blue/5 p-4">
+              <p className="text-sm font-semibold text-navy">Ezgulik ishini boshlash</p>
+              <p className="mt-1 text-xs text-ink-soft">
+                Tadbir Telegram ilovasi ichida ochiladi: u yerda QR chiqadi va
+                ishtirokchilar qayd etiladi.
+              </p>
+
+              {data.telegramLinked && botUrl ? (
+                <a
+                  href={botUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-md bg-liderlar-blue px-4 text-sm font-semibold text-white transition hover:bg-electric-blue"
+                >
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  Botda ochish
+                </a>
+              ) : (
+                <p className="mt-2 text-xs font-semibold text-amber-700">
+                  Buning uchun avval Telegram hisobingizni bog&apos;lang.
+                </p>
+              )}
             </div>
           )}
 

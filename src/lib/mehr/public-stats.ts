@@ -1,6 +1,22 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { periodKeyFor, type RankingPeriod } from "./period";
+import { periodKeyFor } from "./period";
+import type {
+  MehrPublicStats,
+  PublicActivityCard,
+  PublicActivityDetail,
+  TopVolunteer,
+  RankingPeriod,
+} from "./public-types";
+
+/*
+ * Tiplar SOF modulda (`public-types.ts`).
+ *
+ * Bu fayl `server-only` — mijoz komponenti undan tipni
+ * import qilsa, bundler butun modulni brauzer paketiga
+ * tortadi va build yiqiladi.
+ */
+export * from "./public-types";
 
 /**
  * MEHR 365+ ommaviy ko'rsatkichlari (§16).
@@ -17,38 +33,6 @@ import { periodKeyFor, type RankingPeriod } from "./period";
  * qaytadi va sahifa "hozircha ma'lumot yo'q" deydi. Soxta
  * ko'rsatkich butun tizimning ishonchini yo'qotadi.
  */
-
-export interface MehrPublicStats {
-  volunteers: number;
-  approvedActivities: number;
-  certificates: number;
-  totalPoints: number;
-}
-
-export interface PublicActivityCard {
-  id: string;
-  slug: string | null;
-  title: string;
-  coverImageUrl: string | null;
-  regionName: string | null;
-  categoryName: string | null;
-  organizerName: string | null;
-  startsAt: string | null;
-  approvedAt: string | null;
-  beneficiaryCount: number | null;
-  participantCount: number;
-}
-
-export interface TopVolunteer {
-  profileId: string;
-  fullName: string | null;
-  avatarUrl: string | null;
-  regionName: string | null;
-  /** Ensiklopediya profili bo'lsa — havola uchun. */
-  candidateSlug: string | null;
-  points: number;
-  activityCount: number;
-}
 
 export async function loadMehrPublicStats(): Promise<MehrPublicStats | null> {
   const db = createAdminClient();
@@ -251,4 +235,238 @@ export async function loadTopVolunteers(
       activityCount: activityCounts.get(r.profile_id) ?? 0,
     };
   });
+}
+
+/* ------------------------------------------------------------------
+ * SAHIFALANGAN RO'YXATLAR VA BATAFSIL SAHIFA
+ * ------------------------------------------------------------------ */
+
+export interface PagedActivities {
+  items: PublicActivityCard[];
+  total: number;
+}
+
+/**
+ * Tasdiqlangan ezgulik ishlari — sahifalab.
+ *
+ * Minglab yozuvni brauzerga yuborish mumkin emas (§43), shuning
+ * uchun sanoq va kesim serverda bajariladi.
+ */
+export async function loadApprovedActivitiesPage(options: {
+  page?: number;
+  perPage?: number;
+  regionId?: string | null;
+  categoryId?: string | null;
+} = {}): Promise<PagedActivities> {
+  const db = createAdminClient();
+  const perPage = Math.min(Math.max(options.perPage ?? 12, 1), 48);
+  const page = Math.max(options.page ?? 1, 1);
+  const from = (page - 1) * perPage;
+
+  let query = db
+    .from("mehr_activities")
+    .select(
+      // Koordinata va tekshiruv maydonlari ATAYLAB yo'q.
+      "id, slug, title, cover_image_url, starts_at, approved_at, beneficiary_count, " +
+        "profiles(full_name), regions(name), mehr_categories(name)",
+      { count: "exact" },
+    )
+    .eq("status", "approved");
+
+  if (options.regionId) query = query.eq("region_id", options.regionId);
+  if (options.categoryId) query = query.eq("category_id", options.categoryId);
+
+  const { data, count, error } = await query
+    .order("approved_at", { ascending: false })
+    .range(from, from + perPage - 1);
+
+  if (error) {
+    console.error("MEHR_ACTIVITIES_PAGE_FAILED", { code: error.code, message: error.message });
+    return { items: [], total: 0 };
+  }
+
+  const rows = (data ?? []) as unknown as ActivityRow[];
+  return { items: await withParticipantCounts(rows), total: count ?? 0 };
+}
+
+interface ActivityRow {
+  id: string;
+  slug: string | null;
+  title: string;
+  cover_image_url: string | null;
+  starts_at: string | null;
+  approved_at: string | null;
+  beneficiary_count: number | null;
+  profiles: { full_name?: string } | null;
+  regions: { name?: string } | null;
+  mehr_categories: { name?: string } | null;
+}
+
+async function withParticipantCounts(rows: ActivityRow[]): Promise<PublicActivityCard[]> {
+  if (rows.length === 0) return [];
+
+  const db = createAdminClient();
+  const { data } = await db
+    .from("mehr_participants")
+    .select("activity_id")
+    .in("activity_id", rows.map((r) => r.id))
+    .eq("status", "checked_in");
+
+  const counts = new Map<string, number>();
+  for (const p of (data ?? []) as { activity_id: string }[]) {
+    counts.set(p.activity_id, (counts.get(p.activity_id) ?? 0) + 1);
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    coverImageUrl: r.cover_image_url,
+    regionName: r.regions?.name ?? null,
+    categoryName: r.mehr_categories?.name ?? null,
+    organizerName: r.profiles?.full_name ?? null,
+    startsAt: r.starts_at,
+    approvedAt: r.approved_at,
+    beneficiaryCount: r.beneficiary_count,
+    participantCount: counts.get(r.id) ?? 0,
+  }));
+}
+
+/**
+ * Bitta ezgulik ishi — ommaviy ko'rinish.
+ *
+ * FAQAT 'approved'. Qoralama yoki rad etilgan ish slug bilan
+ * so'ralganda ham topilmaydi: shart so'rovning ichida turadi
+ * va uni chetlab o'tib bo'lmaydi.
+ */
+export async function loadPublicActivity(
+  slugOrId: string,
+): Promise<PublicActivityDetail | null> {
+  const db = createAdminClient();
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+
+  const { data, error } = await db
+    .from("mehr_activities")
+    .select(
+      "id, slug, title, cover_image_url, starts_at, approved_at, beneficiary_count, " +
+        "purpose, description, result_summary, location_name, organizer_profile_id, " +
+        "profiles(full_name, avatar_url), regions(name), mehr_categories(name)",
+    )
+    .eq("status", "approved")
+    .eq(isUuid ? "id" : "slug", slugOrId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("MEHR_ACTIVITY_DETAIL_FAILED", { code: error.code, message: error.message });
+    return null;
+  }
+  if (!data) return null;
+
+  const row = data as unknown as ActivityRow & {
+    purpose: string | null;
+    description: string | null;
+    result_summary: string | null;
+    location_name: string | null;
+    organizer_profile_id: string;
+    profiles: { full_name?: string; avatar_url?: string | null } | null;
+  };
+
+  const [mediaRes, participantsRes, organizerRes] = await Promise.all([
+    db
+      .from("mehr_media")
+      .select("url, caption")
+      .eq("activity_id", row.id)
+      .eq("kind", "photo")
+      .order("sort_order"),
+
+    db
+      .from("mehr_participants")
+      .select("profile_id, role, profiles(full_name, avatar_url)")
+      .eq("activity_id", row.id)
+      .eq("status", "checked_in")
+      .limit(60),
+
+    db
+      .from("candidates")
+      .select("user_id, slug")
+      .eq("user_id", row.organizer_profile_id)
+      .eq("status", "published")
+      .is("deleted_at", null)
+      .maybeSingle(),
+  ]);
+
+  const participantRows = (participantsRes.data ?? []) as unknown as {
+    profile_id: string;
+    role: string;
+    profiles: { full_name?: string; avatar_url?: string | null } | null;
+  }[];
+
+  /*
+   * Ishtirokchining ensiklopediya havolasi FAQAT nashr
+   * qilingan profil uchun. Aks holda havola 404 bo'lardi.
+   */
+  const candidateSlugs = new Map<string, string>();
+  if (participantRows.length > 0) {
+    const { data: cands } = await db
+      .from("candidates")
+      .select("user_id, slug")
+      .in("user_id", participantRows.map((p) => p.profile_id))
+      .eq("status", "published")
+      .is("deleted_at", null);
+
+    for (const c of (cands ?? []) as { user_id: string; slug: string }[]) {
+      candidateSlugs.set(c.user_id, c.slug);
+    }
+  }
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    coverImageUrl: row.cover_image_url,
+    regionName: row.regions?.name ?? null,
+    categoryName: row.mehr_categories?.name ?? null,
+    organizerName: row.profiles?.full_name ?? null,
+    organizerAvatarUrl: row.profiles?.avatar_url ?? null,
+    organizerSlug: (organizerRes.data?.slug as string | undefined) ?? null,
+    startsAt: row.starts_at,
+    approvedAt: row.approved_at,
+    beneficiaryCount: row.beneficiary_count,
+    participantCount: participantRows.length,
+    purpose: row.purpose,
+    description: row.description,
+    resultSummary: row.result_summary,
+    // Joy NOMI ommaviy, koordinata esa umuman so'ralmaydi.
+    locationName: row.location_name,
+    media: ((mediaRes.data ?? []) as { url: string; caption: string | null }[]).map((m) => ({
+      url: m.url,
+      caption: m.caption,
+    })),
+    participants: participantRows.map((p) => ({
+      profileId: p.profile_id,
+      fullName: p.profiles?.full_name ?? null,
+      avatarUrl: p.profiles?.avatar_url ?? null,
+      candidateSlug: candidateSlugs.get(p.profile_id) ?? null,
+      role: p.role,
+    })),
+  };
+}
+
+/** Sitemap uchun: tasdiqlangan ishlarning slug'lari. */
+export async function loadPublicActivitySlugs(): Promise<{ slug: string; updatedAt: string }[]> {
+  const db = createAdminClient();
+
+  const { data } = await db
+    .from("mehr_activities")
+    .select("slug, approved_at")
+    .eq("status", "approved")
+    .not("slug", "is", null)
+    .order("approved_at", { ascending: false })
+    .limit(1000);
+
+  return ((data ?? []) as { slug: string; approved_at: string | null }[]).map((r) => ({
+    slug: r.slug,
+    updatedAt: r.approved_at ?? new Date().toISOString(),
+  }));
 }

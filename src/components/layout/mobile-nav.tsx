@@ -7,12 +7,12 @@ import {
   BookOpenText,
   CircleHelp,
   Compass,
+  HeartHandshake,
   Home,
   Medal,
   Menu,
   Mic2,
   Quote,
-  Radio,
   Search,
   Sparkles,
   Trophy,
@@ -24,11 +24,17 @@ import { cn } from "@/lib/utils";
 import { Drawer } from "@/components/ui/drawer";
 import { LinkButton } from "@/components/ui/button";
 
+/*
+ * Pastki panelda joy cheklangan — to'rttadan ortiq element
+ * matnlarni siqib, o'qib bo'lmas holga keltiradi. MEHR
+ * podkast o'rniga emas, uning yoniga qo'yildi va Podcast
+ * yon menyuda qoladi.
+ */
 const ITEMS = [
   { href: "/", label: "Bosh", icon: Home },
   { href: "/liderlar", label: "Liderlar", icon: Users },
+  { href: "/mehr365", label: "MEHR", icon: HeartHandshake },
   { href: "/reyting", label: "Reyting", icon: Trophy },
-  { href: "/podcastlar", label: "Podcast", icon: Radio },
 ];
 
 type DrawerLink = {

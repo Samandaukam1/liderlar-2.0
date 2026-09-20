@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/constants";
 import { getPublishedLegacyPostsForSitemap } from "@/lib/data/legacy-posts";
+import { loadPublicActivitySlugs } from "@/lib/mehr/public-stats";
+import { isMehrPublicEnabled } from "@/lib/mehr/flags";
 
 /**
  * Sitemap jonli ma'lumot o'qiydi, shuning uchun u build paytida MUZLAB
@@ -34,10 +36,33 @@ const STATIC_ROUTES = [
   "/kirish",
   "/royxatdan-otish",
   "/ai",
+  /*
+   * MEHR 365+ ommaviy sahifalari.
+   *
+   * `/mehr365/sertifikat/...` va `/akkaunt/faollashtirish/...`
+   * ATAYLAB YO'Q: birinchisi shaxsga oid, ikkinchisi esa bir
+   * martalik kalit saqlaydi. Ularni sitemapga qo'shish
+   * tokenlarni qidiruv tizimlariga berish bilan barobar.
+   */
+  "/mehr365",
+  "/mehr365/ezgulik-ishlari",
+  "/mehr365/volontyorlar",
+  "/mehr365/reyting",
+  "/mehr365/haqida",
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((path) => ({
+  /*
+   * Bayroq o'chiq bo'lsa, MEHR sahifalari statik ro'yxatdan
+   * ham chiqariladi: ular hozircha "yopiq" holatni
+   * ko'rsatadi va uni indekslash foydasiz.
+   */
+  const mehrOpen = await isMehrPublicEnabled();
+  const routes = mehrOpen
+    ? STATIC_ROUTES
+    : STATIC_ROUTES.filter((path) => !path.startsWith("/mehr365"));
+
+  const staticEntries: MetadataRoute.Sitemap = routes.map((path) => ({
     url: `${SITE_URL}${path}`,
     lastModified: new Date(),
     changeFrequency: path === "" ? "daily" : "weekly",
@@ -47,7 +72,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const admin = createAdminClient();
 
-    const [candidates, journals, podcasts, articles, legacyPosts] = await Promise.all([
+    const [candidates, journals, podcasts, articles, legacyPosts, mehrActivities] = await Promise.all([
       admin.from("candidates").select("slug, updated_at").eq("status", "published").limit(5000),
       admin.from("journals").select("issue_number").eq("status", "published").limit(1000),
       admin
@@ -58,9 +83,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       admin.from("articles").select("slug, updated_at").eq("status", "published").limit(5000),
       // Liderlar 1.0 arxivi — 2.0 bilan YONMA-YON, uning o'rniga emas.
       getPublishedLegacyPostsForSitemap(),
+      mehrOpen ? loadPublicActivitySlugs() : Promise.resolve([]),
     ]);
 
     const dynamicEntries: MetadataRoute.Sitemap = [
+      ...mehrActivities.map((a) => ({
+        url: `${SITE_URL}/mehr365/ezgulik-ishlari/${a.slug}`,
+        lastModified: new Date(a.updatedAt),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
       ...(candidates.data ?? []).map((c) => ({
         url: `${SITE_URL}/liderlar/${c.slug}`,
         lastModified: c.updated_at ? new Date(c.updated_at) : new Date(),
