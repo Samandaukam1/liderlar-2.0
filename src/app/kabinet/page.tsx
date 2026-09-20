@@ -13,6 +13,10 @@ import { signOut } from "@/app/kabinet/actions";
 import { MehrPanel, CertificatesPanel } from "@/components/kabinet/mehr-panel";
 import { loadMemberMehrData } from "@/lib/mehr/member-data";
 import { getMehrFlags } from "@/lib/mehr/flags";
+import { loadProfileStats } from "@/lib/analytics/profile-stats";
+import { ProfileStatsPanel } from "@/components/kabinet/profile-stats-panel";
+import { MonthlyLinksPanel } from "@/components/kabinet/monthly-links-panel";
+import { loadMonthlyLinks } from "@/lib/monthly/link-data";
 
 export const metadata: Metadata = {
   title: "Shaxsiy kabinet",
@@ -80,9 +84,18 @@ export default async function KabinetPage() {
    * Shuning uchun bu yuklash `candidate` bor-yo'qligidan
    * qat'i nazar bajariladi.
    */
-  const [mehr, mehrFlags] = await Promise.all([
+  const [mehr, mehrFlags, profileStats, monthlyLinks] = await Promise.all([
     loadMemberMehrData(user.id),
     getMehrFlags(),
+    /*
+     * Ko'rsatkichlar NOMZODGA bog'langan, foydalanuvchiga
+     * emas: ular nomzod sahifasiga tegishli. Hisobi bor,
+     * lekin nomzod profili yo'q odamda bu bo'lim umuman
+     * ko'rinmaydi.
+     */
+    candidate ? loadProfileStats(candidate.id) : Promise.resolve(null),
+    // Oylik havolalar ham NOMZODGA bog'langan.
+    candidate ? loadMonthlyLinks(candidate.id) : Promise.resolve([]),
   ]);
 
   /*
@@ -147,6 +160,10 @@ export default async function KabinetPage() {
               />
             )}
           </section>
+
+          {profileStats && <ProfileStatsPanel stats={profileStats} />}
+
+          {candidate && <MonthlyLinksPanel rows={monthlyLinks} />}
 
           <MehrPanel
             data={mehr}

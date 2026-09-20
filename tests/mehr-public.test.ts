@@ -306,3 +306,36 @@ test("harakat sozlamasi render paytida o'qiladi", () => {
   // Server surati: harakat yo'q deb hisoblanadi.
   assert.match(code, /function getServerSnapshot\(\): boolean \{\s*return false;/);
 });
+
+test("logotip kaliti ikkala ilovada BIR XIL", (t) => {
+  /*
+   * Admin shu kalitga yozadi, web shu kalitdan o'qiydi. Mos
+   * kelmasa, yuklangan logotip saytda jimgina ko'rinmay
+   * qolardi — va buni topish qiyin bo'lardi, chunki xato
+   * hech qayerda chiqmaydi.
+   */
+  const adminPath = "../liderlar-admin/src/lib/mehr/logo-service.ts";
+  if (!existsSync(adminPath)) {
+    t.skip("admin repo yonma-yon emas");
+    return;
+  }
+
+  const webKey = src("src/lib/mehr/settings.ts").match(
+    /MEHR_LOGO_SETTING_KEY = "([^"]+)"/,
+  )?.[1];
+  const adminKey = readFileSync(adminPath, "utf8").match(
+    /MEHR_LOGO_SETTING_KEY = "([^"]+)"/,
+  )?.[1];
+
+  assert.equal(webKey, "mehr.logo_url");
+  assert.equal(adminKey, webKey, "admin va web kalitlari mos emas");
+});
+
+test("logotip manzili faqat HTTPS bo'lsa qabul qilinadi", () => {
+  /*
+   * Sozlamaga qo'lda `javascript:` yoki `data:` yozib
+   * qo'yilsa, u to'g'ridan-to'g'ri `<img src>` ga tushardi.
+   */
+  const code = src("src/lib/mehr/settings.ts");
+  assert.match(code, /protocol === "https:"/);
+});

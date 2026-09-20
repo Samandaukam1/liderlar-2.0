@@ -10,6 +10,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * "taxmin qilib" chizmaydi.
  */
 
+/*
+ * Kalit admin ilovasidagi `logo-service.ts` bilan AYNAN bir
+ * xil bo'lishi kerak: admin shu kalitga yozadi, web shu
+ * kalitdan o'qiydi. Mos kelmasa, yuklangan logotip saytda
+ * jimgina ko'rinmay qolardi.
+ */
 export const MEHR_LOGO_SETTING_KEY = "mehr.logo_url";
 
 export async function getMehrLogoUrl(): Promise<string | null> {
@@ -18,7 +24,7 @@ export async function getMehrLogoUrl(): Promise<string | null> {
   const { data, error } = await db
     .from("site_settings")
     .select("value")
-    .eq(MEHR_LOGO_SETTING_KEY.includes(".") ? "key" : "key", MEHR_LOGO_SETTING_KEY)
+    .eq("key", MEHR_LOGO_SETTING_KEY)
     .maybeSingle();
 
   if (error) return null;

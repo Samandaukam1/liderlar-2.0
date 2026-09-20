@@ -4,6 +4,22 @@ import { redirect } from "next/navigation";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { issueLinkToken, telegramDeepLink } from "@/lib/mehr/link-token";
+import { randomBytes, createHash } from "node:crypto";
+import { SITE_URL } from "@/lib/constants";
+
+/*
+ * Token formati admin ilovasidagi `tokens.ts` bilan AYNAN bir
+ * xil: 32 tasodifiy bayt base64url, bazada sha256 hex hash.
+ * Mos kelmasa, chiqarilgan havola `/yangilash/[token]` da
+ * tanilmay qolardi.
+ */
+function generateRawToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+function hashRawToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
 
 export async function signOut() {
   const supabase = await createServerSupabase();
@@ -113,4 +129,84 @@ export async function createTelegramLink(): Promise<TelegramLinkResult> {
   if (!deepLink) return { ok: false, error: "Bot hali sozlanmagan." };
 
   return { ok: true, deepLink, expiresAt: issued.expiresAt };
+}
+
+/* ------------------------------------------------------------------
+ * OYLIK HAVOLALAR
+ * ------------------------------------------------------------------ */
+
+export type MonthlyLinkResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string };
+
+/**
+ * O'sha davr uchun ishlaydigan havolani chiqaradi.
+ *
+ * HAR CHAQIRUVDA YANGI XOM TOKEN.
+ *
+ * Bazada faqat hash saqlanadi — bu ataylab, shunda bazaga
+ * kirish huquqiga ega odam ham havolani ishlata olmaydi.
+ * Demak "saqlangan havolani ko'rsatish" mumkin emas va har
+ * ochishda yangisi chiqariladi.
+ *
+ * Yon foyda: ekran suratida yoki nusxa buferida qolgan eski
+ * havola shu zahoti ishlamay qoladi.
+ *
+ * NOMZOD SO'ROVDAN OLINMAYDI — u seansdagi foydalanuvchining
+ * nomzodi. Aks holda istalgan odam boshqa birovning
+ * havolasini chiqarib olardi.
+ */
+export async function openMonthlyLink(period: string): Promise<MonthlyLinkResult> {
+  if (!/^\d{4}-\d{2}$/.test(period)) {
+    return { ok: false, error: "Davr noto'g'ri." };
+  }
+
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Tizimga kirmagansiz." };
+
+  const admin = createAdminClient();
+
+  const { data: candidate } = await admin
+    .from("candidates")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!candidate) return { ok: false, error: "Nomzod profili topilmadi." };
+
+  const raw = generateRawToken();
+  const nowIso = new Date().toISOString();
+
+  /*
+   * SHARTLI UPDATE: faqat amaldagi, muddati o'tmagan yozuv.
+   * Avval o'qib keyin yozsak, shu orada admin uni bekor
+   * qilgan bo'lsa ham havola berilardi.
+   */
+  const { data, error } = await admin
+    .from("monthly_update_tokens")
+    .update({ token_hash: hashRawToken(raw), opened_at: nowIso })
+    .eq("candidate_id", candidate.id)
+    .eq("period_key", period)
+    .eq("status", "active")
+    .gt("expires_at", nowIso)
+    .select("period_key")
+    .maybeSingle();
+
+  if (error) {
+    console.error("MONTHLY_LINK_OPEN_FAILED", { code: error.code, message: error.message });
+    return { ok: false, error: "Havolani ochib bo'lmadi." };
+  }
+
+  if (!data) {
+    return {
+      ok: false,
+      error: "Bu havola endi amal qilmaydi. Keyingi oy yangisi tayyorlanadi.",
+    };
+  }
+
+  return { ok: true, url: `${SITE_URL}/yangilash/${raw}` };
 }
