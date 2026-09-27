@@ -12,7 +12,24 @@ export type Gender = (typeof GENDER_OPTIONS)[number]["value"];
 const NAME_PATTERN = /^[A-Z][A-Z'’ʻ‘`-]*(?: [A-Z][A-Z'’ʻ‘`-]*)+$/;
 const USERNAME_PATTERN = /^@[A-Za-z0-9_]{5,32}$/;
 const PHONE_PATTERN = /^\+\d{9,15}$/;
-const PROMO_PATTERN = /^$|^[A-Z0-9-]{2,32}$/;
+/**
+ * PROMO KOD UZUNLIGI — YAGONA CHEKLOV.
+ *
+ * ILGARI bu yerda `^[A-Z0-9-]{2,32}$` turardi va u haqiqiy
+ * kodlarni rad etardi: ostki chiziqli, nuqtali, kirill harfli
+ * yoki bitta belgidan iborat kod formadan o'tmasdi. Nomzod
+ * koordinator bergan kodni AYNAN ko'chiradi — uni "noto'g'ri"
+ * deb qaytarish nomzodni ham, koordinatorni ham yo'qotadi.
+ *
+ * SOLISHTIRISH BUNDAN BUZILMAYDI: admin tomonda kod ikkala
+ * tarafdan ham normallashtiriladi (bo'shliq, tire, ostki chiziq
+ * va nuqta olib tashlanadi, bosh harfga o'tkaziladi), ya'ni
+ * "ALI-2026", "ali_2026" va "ALI 2026" bitta kodga tushadi.
+ *
+ * Uzunlik chegarasi qoladi: bu maydon baza ustuniga yoziladi va
+ * cheksiz matn qabul qilish uchun sabab yo'q.
+ */
+const PROMO_MAX_LENGTH = 64;
 
 /** Ism-familiya bosh harflarda va ortiqcha bo'shliqsiz saqlanadi. */
 export function normalizeFullName(value: string): string {
@@ -87,7 +104,7 @@ export const applicationSchema = z.object({
     .string()
     .optional()
     .transform((value) => normalizePromoCode(value ?? ""))
-    .pipe(z.string().regex(PROMO_PATTERN, "Promo kod faqat harf, raqam va tiredan iborat bo'ladi")),
+    .pipe(z.string().max(PROMO_MAX_LENGTH, "Promo kod juda uzun")),
   consent: z.literal(true, { error: "Davom etish uchun rozilikni tasdiqlang" }),
 });
 
