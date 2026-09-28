@@ -2,8 +2,12 @@
 
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { applicationSchema } from "@/lib/validation/application";
+import { checkPromoCodeUsable } from "@/lib/promo/expiry-check";
 
-export type SubmitResult = { ok: true } | { ok: false; error: string };
+export type SubmitResult =
+  | { ok: true }
+  /** `field` berilsa, xabar aynan shu maydonda ko'rsatiladi. */
+  | { ok: false; error: string; field?: "promoCode" };
 
 export async function submitApplication(input: unknown): Promise<SubmitResult> {
   const parsed = applicationSchema.safeParse(input);
@@ -12,6 +16,10 @@ export async function submitApplication(input: unknown): Promise<SubmitResult> {
   }
 
   const { fullName, phone, telegram, gender, ageRange, regionId, promoCode } = parsed.data;
+
+  // Ikkala yuborish yo'li ham bir xil tekshiruvdan o'tadi.
+  const promoCheck = await checkPromoCodeUsable(promoCode);
+  if (promoCheck.error) return { ok: false, error: promoCheck.error, field: "promoCode" };
 
   const supabase = await createServerSupabase();
   const { error } = await supabase.from("applications").insert({

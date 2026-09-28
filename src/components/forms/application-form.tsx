@@ -46,6 +46,7 @@ export function ApplicationForm({ regions }: { regions: readonly RegionOption[] 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
@@ -61,9 +62,23 @@ export function ApplicationForm({ regions }: { regions: readonly RegionOption[] 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      const result = (await response.json()) as { ok?: boolean; error?: string };
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        field?: "promoCode";
+      };
       if (response.ok && result.ok) {
         setSubmitted(true);
+      } else if (result.field && result.error) {
+        /*
+         * XABAR AYNAN O'SHA MAYDONDA.
+         *
+         * Umumiy oyna "xatolik bor" deydi va nomzod nima
+         * noto'g'ri ekanini formadan qidirishga majbur bo'ladi.
+         * Muddati tugagan promo kod uchun bu ayniqsa yomon:
+         * qolgan hamma maydon to'g'ri to'ldirilgan.
+         */
+        setError(result.field, { type: "server", message: result.error });
       } else {
         push({ title: "Xatolik", description: result.error ?? "Qayta urinib ko'ring.", variant: "error" });
       }

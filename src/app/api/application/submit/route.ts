@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { applicationSchema } from "@/lib/validation/application";
+import { checkPromoCodeUsable } from "@/lib/promo/expiry-check";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,20 @@ export async function POST(request: NextRequest) {
   }
 
   const { fullName, phone, telegram, gender, ageRange, regionId, promoCode } = parsed.data;
+
+  /*
+   * MUDDATI TUGAGAN PROMO KOD — ARIZA QABUL QILINMAYDI.
+   *
+   * Tekshiruv sxemada emas, shu yerda: sxema brauzerda ham
+   * ishlaydi va u bazani ko'rmaydi. `field` qaytariladi, shunda
+   * forma xabarni AYNAN promo kod maydoniga qo'yadi — umumiy
+   * "xatolik" oynasi nomzodni nima noto'g'ri ekanini qidirishga
+   * majbur qilardi.
+   */
+  const promoCheck = await checkPromoCodeUsable(promoCode);
+  if (promoCheck.error) {
+    return Response.json({ error: promoCheck.error, field: "promoCode" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
   const { error } = await admin.from("applications").insert({
