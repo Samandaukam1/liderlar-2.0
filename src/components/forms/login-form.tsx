@@ -44,8 +44,13 @@ export function LoginForm() {
   async function onSubmit(values: LoginInput) {
     const result = await signIn(values);
     if (result.ok) {
-      router.push(safeNext(searchParams.get("next")));
-      router.refresh();
+      /*
+       * BITTA NAVIGATSIYA. Avval `push` dan keyin `refresh` ham chaqirilardi
+       * va kabinet IKKI MARTA render qilinardi (login vaqtining katta qismi).
+       * Server amali cookie'ni o'rnatib bo'lgan — `replace` yangi sessiya
+       * bilan so'raydi.
+       */
+      router.replace(safeNext(searchParams.get("next")));
     } else {
       push({ title: "Kirishda xatolik", description: result.error, variant: "error" });
     }

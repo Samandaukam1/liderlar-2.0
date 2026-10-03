@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSignedIn } from "./use-signed-in";
 import {
   BookOpenText,
   ChevronDown,
@@ -170,6 +171,7 @@ export function MobileTopBar() {
 
 export function SiteHeader({ onlineEnabled = false }: { onlineEnabled?: boolean }) {
   const pathname = usePathname();
+  const signedIn = useSignedIn();
 
   /*
    * LIDERLAR ONLINE MENYUDA FLAG OSTIDA.
@@ -253,8 +255,8 @@ export function SiteHeader({ onlineEnabled = false }: { onlineEnabled?: boolean 
             <Sparkles className="h-4 w-4 text-liderlar-blue" aria-hidden />
             <span className="hidden xl:inline">Jaxongir AI</span>
           </LinkButton>
-          <LinkButton href="/kirish" variant="secondary" size="sm" className="px-4">
-            Kirish
+          <LinkButton href={signedIn ? "/kabinet" : "/kirish"} variant="secondary" size="sm" className="px-4">
+            {signedIn ? "Kabinet" : "Kirish"}
           </LinkButton>
           <LinkButton href="/ariza" variant="primary" size="sm" className="px-4">
             Ariza topshirish

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSignedIn } from "./use-signed-in";
 import {
   BookOpenText,
   CircleHelp,
@@ -77,6 +78,7 @@ function pathMatches(pathname: string, href: string) {
 
 export function MobileNav() {
   const pathname = usePathname();
+  const signedIn = useSignedIn();
   const [open, setOpen] = React.useState(false);
   const directRouteActive = ITEMS.some((item) => pathMatches(pathname, item.href));
 
@@ -197,8 +199,13 @@ export function MobileNav() {
         </div>
 
         <div className="mt-6 flex gap-2 border-t border-brand-soft pt-5">
-          <LinkButton href="/kirish" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
-            Kirish
+          <LinkButton
+            href={signedIn ? "/kabinet" : "/kirish"}
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setOpen(false)}
+          >
+            {signedIn ? "Kabinet" : "Kirish"}
           </LinkButton>
           <LinkButton href="/ariza" variant="primary" className="flex-1" onClick={() => setOpen(false)}>
             Ariza topshirish

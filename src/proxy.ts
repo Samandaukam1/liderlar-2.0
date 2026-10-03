@@ -31,9 +31,13 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  /*
+   * `getClaims()` — JWT imzosini mahalliy tekshiradi (Auth serverga
+   * tarmoq so'rovi yo'q) va kerak bo'lsa sessiyani yangilaydi. Avval
+   * `getUser()` har navigatsiyada Auth serverga borardi.
+   */
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims?.sub ? { id: claims.claims.sub } : null;
 
   const { pathname } = request.nextUrl;
   const isProtected = pathname.startsWith("/kabinet");

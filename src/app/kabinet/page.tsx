@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LogOut, Sparkles, Bell, FileClock, UserCircle } from "lucide-react";
-import { createClient as createServerSupabase } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StatusBadge } from "@/components/ui/badge";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
@@ -26,85 +26,83 @@ export const metadata: Metadata = {
 };
 
 export default async function KabinetPage() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return null; // layout already redirects; satisfies type narrowing
 
   const admin = createAdminClient();
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-  const { data: candidate } = await admin
-    .from("candidates")
-    .select("id, slug, status, full_name")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .maybeSingle();
 
-  let rankingRows: {
+  /*
+   * IKKI TO'LQIN, KETMA-KET ZANJIR EMAS.
+   *
+   * Avval ~10 ta so'rov birin-ketin kutilardi (har biri bazagacha
+   * borib-kelish) va login vaqtining asosiy qismi shu edi. Endi:
+   *   1-to'lqin: nomzodga bog'liq bo'lmaganlar + nomzodning o'zi;
+   *   2-to'lqin: nomzod id siga bog'liqlar.
+   * Profil va nomzod id si SERVERDA tekshirilgan sessiyadan olinadi.
+   */
+  const [{ data: profile }, { data: candidate }, { data: notifications }, mehr, mehrFlags] =
+    await Promise.all([
+      admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+      admin
+        .from("candidates")
+        .select("id, slug, status, full_name")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle(),
+      admin
+        .from("notifications")
+        .select("id, title, body, read_at, created_at, link")
+        .or(`recipient_id.eq.${user.id},recipient_id.is.null`)
+        .order("created_at", { ascending: false })
+        .limit(8),
+      /*
+       * MEHR ma'lumoti NOMZODGA EMAS, PROFILGA bog'langan: hisobi bor
+       * har bir a'zo qatnashadi.
+       */
+      loadMemberMehrData(user.id),
+      getMehrFlags(),
+    ]);
+
+  const [rankingRes, updatesRes, profileStats, monthlyLinks, referral] = await Promise.all([
+    candidate
+      ? admin
+          .from("ranking_scores")
+          .select("category, total_score, position, previous_position")
+          .eq("candidate_id", candidate.id)
+          .eq("is_current", true)
+      : Promise.resolve({ data: [] as never[] }),
+    candidate
+      ? admin
+          .from("monthly_updates")
+          .select("id, status, submitted_at, created_at")
+          .eq("candidate_id", candidate.id)
+          .order("created_at", { ascending: false })
+          .limit(10)
+      : Promise.resolve({ data: [] as never[] }),
+    // Ko'rsatkichlar va oylik havolalar NOMZODGA bog'langan.
+    candidate ? loadProfileStats(candidate.id) : Promise.resolve(null),
+    candidate ? loadMonthlyLinks(candidate.id) : Promise.resolve([]),
+    // Tavsiya kodi PROFILGA bog'langan (§75): har bir akkauntda bo'ladi.
+    loadReferralSummary(user.id, profile?.full_name ?? null),
+  ]);
+
+  const rankingRows: {
     category: string;
     total_score: number;
     position: number | null;
     previous_position: number | null;
-  }[] = [];
-  let monthlyUpdates: {
+  }[] = ((rankingRes.data ?? []) as {
+    category: string;
+    total_score: number | string;
+    position: number | null;
+    previous_position: number | null;
+  }[]).map((row) => ({ ...row, total_score: Number(row.total_score) }));
+  const monthlyUpdates = (updatesRes.data ?? []) as {
     id: string;
     status: string;
     submitted_at: string | null;
     created_at: string;
-  }[] = [];
-
-  if (candidate) {
-    const { data } = await admin
-      .from("ranking_scores")
-      .select("category, total_score, position, previous_position")
-      .eq("candidate_id", candidate.id)
-      .eq("is_current", true);
-    rankingRows = (data ?? []).map((row) => ({ ...row, total_score: Number(row.total_score) }));
-
-    const { data: updates } = await admin
-      .from("monthly_updates")
-      .select("id, status, submitted_at, created_at")
-      .eq("candidate_id", candidate.id)
-      .order("created_at", { ascending: false })
-      .limit(10);
-    monthlyUpdates = updates ?? [];
-  }
-
-  const { data: notifications } = await admin
-    .from("notifications")
-    .select("id, title, body, read_at, created_at, link")
-    .or(`recipient_id.eq.${user.id},recipient_id.is.null`)
-    .order("created_at", { ascending: false })
-    .limit(8);
-
-  /*
-   * MEHR ma'lumoti NOMZODGA EMAS, PROFILGA bog'langan.
-   *
-   * Ezgulik ishi qilish uchun ensiklopediyada nashr qilingan
-   * bo'lish shart emas: hisobi bor har bir a'zo qatnashadi.
-   * Shuning uchun bu yuklash `candidate` bor-yo'qligidan
-   * qat'i nazar bajariladi.
-   */
-  const [mehr, mehrFlags, profileStats, monthlyLinks, referral] = await Promise.all([
-    loadMemberMehrData(user.id),
-    getMehrFlags(),
-    /*
-     * Ko'rsatkichlar NOMZODGA bog'langan, foydalanuvchiga
-     * emas: ular nomzod sahifasiga tegishli. Hisobi bor,
-     * lekin nomzod profili yo'q odamda bu bo'lim umuman
-     * ko'rinmaydi.
-     */
-    candidate ? loadProfileStats(candidate.id) : Promise.resolve(null),
-    // Oylik havolalar ham NOMZODGA bog'langan.
-    candidate ? loadMonthlyLinks(candidate.id) : Promise.resolve([]),
-    /*
-     * Tavsiya kodi PROFILGA bog'langan, nomzodga emas: §75 bo'yicha
-     * kod har bir akkauntda bo'ladi — ensiklopediyada nashr qilingan
-     * bo'lish shart emas.
-     */
-    loadReferralSummary(user.id, profile?.full_name ?? null),
-  ]);
+  }[];
 
   /*
    * Bot havolasi sozlamadan quriladi — kodda qotirilmaydi.
