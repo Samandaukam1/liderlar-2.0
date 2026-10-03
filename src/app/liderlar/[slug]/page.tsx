@@ -29,6 +29,8 @@ import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
 import { ShareButtons } from "@/components/profile/share-buttons";
 import { ProfileViewTracker } from "@/components/profile/profile-view-tracker";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
+import { ProfilePromoCode } from "@/components/profile/profile-promo-code";
+import { getPublicReferralCode } from "@/lib/referral/public-code";
 import { CandidateAdabiyotXSection } from "@/components/profile/candidate-adabiyotx-section";
 import { CandidateBooksRow } from "@/components/profile/candidate-books-row";
 import { CandidateToc } from "@/components/profile/candidate-toc";
@@ -122,11 +124,12 @@ export default async function LeaderProfilePage({
     );
   }
 
-  const [podcasts, journalArticles, rankingBreakdown, similar] = await Promise.all([
+  const [podcasts, journalArticles, rankingBreakdown, similar, promoCode] = await Promise.all([
     getCandidatePodcasts(candidate.id).catch(() => []),
     getCandidateJournalArticles(candidate.id).catch(() => []),
     getCandidateRankingBreakdown(candidate.id).catch(() => []),
     getSimilarCandidates(candidate.id, candidate.category?.slug ?? null).catch(() => []),
+    getPublicReferralCode(candidate.id).catch(() => null),
   ]);
 
   const name = candidate.full_name;
@@ -159,11 +162,28 @@ export default async function LeaderProfilePage({
       item.relationshipType === "read_book" && item.contentType === "book"
   );
 
+  /*
+   * REYTING — HALOL HOLAT, JIMGINA "0" EMAS.
+   *
+   *   · o'rin bor va ball > 0  -> "N-o'rin" (yagona reyting dvigateli:
+   *     `recalculate_rankings`, teng ballda candidate_id tartibi);
+   *   · ball 0                 -> "hali shakllanmagan" (nollar orasidagi
+   *     tartib raqami hech narsani anglatmaydi);
+   *   · qator hali yo'q        -> "hisoblanmoqda" (yangi nashr qilingan
+   *     nomzod keyingi soatlik hisobda paydo bo'ladi).
+   * Ball kasr bo'lishi mumkin (ko'rishlardan): 0,07 "0" bo'lib ko'rinmasin.
+   */
+  const scoreText = new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 2 }).format(candidate.total_score);
+  const rankingFact =
+    candidate.position === null
+      ? { label: "Reytingdagi o'rni", value: "hisoblanmoqda" }
+      : candidate.total_score > 0
+        ? { label: "Umumiy reytingda", value: `${formatNumber(candidate.position)}-o'rin` }
+        : { label: "Reytingdagi o'rni", value: "hali shakllanmagan" };
+
   const profileFacts = [
-    ...(candidate.position
-      ? [{ label: "Reytingdagi o'rni", value: `#${candidate.position}` }]
-      : []),
-    { label: "Umumiy reyting", value: `${formatNumber(candidate.total_score)} ball` },
+    rankingFact,
+    { label: "Umumiy reyting", value: `${scoreText} ball` },
     { label: "Sahifa ko'rishlari", value: formatNumber(candidate.view_count) },
   ];
   const birthPlaceDisplay = candidate.birth_place ?? "Kiritilmagan";
@@ -254,8 +274,9 @@ export default async function LeaderProfilePage({
           <Breadcrumbs tone="light" items={[{ label: "Liderlar", href: "/liderlar" }, { label: name }]} />
 
           <div className="mt-9 flex flex-1 flex-col gap-10 lg:mt-6 lg:grid lg:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,21rem)] lg:items-end lg:gap-12">
-            {/* -------------------------------------------- READ CTA (bottom-left) */}
-            <div className="order-3 lg:order-1 lg:pb-6">
+            {/* -------------------------------------------- PROMO (top-left) + READ CTA (bottom-left) */}
+            <div className="order-3 flex flex-col gap-8 lg:order-1 lg:self-stretch lg:justify-between lg:pb-6">
+              {promoCode ? <ProfilePromoCode code={promoCode} name={name} /> : <span aria-hidden />}
               <a href="#biografiya" className="group inline-flex items-center gap-3 text-left">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/30 text-white transition-colors group-hover:border-liderlar-blue group-hover:bg-liderlar-blue/20">
                   <ArrowDown className="h-4 w-4" aria-hidden />
