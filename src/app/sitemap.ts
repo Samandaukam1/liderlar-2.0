@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOnlineSlugs } from "@/lib/data/liderlar-online";
+import { isFeatureEnabled } from "@/lib/vip/entitlement-service";
 import { SITE_URL } from "@/lib/constants";
 import { getPublishedLegacyPostsForSitemap } from "@/lib/data/legacy-posts";
 import { loadPublicActivitySlugs } from "@/lib/mehr/public-stats";
@@ -72,7 +74,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const admin = createAdminClient();
 
-    const [candidates, journals, podcasts, articles, legacyPosts, mehrActivities] = await Promise.all([
+    const [candidates, journals, podcasts, articles, legacyPosts, mehrActivities, onlineArticles] =
+      await Promise.all([
       admin.from("candidates").select("slug, updated_at").eq("status", "published").limit(5000),
       admin.from("journals").select("issue_number").eq("status", "published").limit(1000),
       admin
@@ -84,9 +87,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Liderlar 1.0 arxivi — 2.0 bilan YONMA-YON, uning o'rniga emas.
       getPublishedLegacyPostsForSitemap(),
       mehrOpen ? loadPublicActivitySlugs() : Promise.resolve([]),
+      /*
+       * LIDERLAR ONLINE — FLAG OSTIDA.
+       *
+       * Bo'lim o'chiq bo'lsa, sahifalar 404 qaytaradi. Ularni
+       * sitemap'ga qo'shish qidiruv tizimini mavjud bo'lmagan
+       * manzillarga yuborardi.
+       */
+      (await isFeatureEnabled("liderlar_online.enabled").catch(() => false))
+        ? getOnlineSlugs()
+        : Promise.resolve([]),
     ]);
 
     const dynamicEntries: MetadataRoute.Sitemap = [
+      ...onlineArticles.map((a) => ({
+        url: `${SITE_URL}/liderlar-online/${a.slug}`,
+        lastModified: new Date(a.publishedAt),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      })),
       ...mehrActivities.map((a) => ({
         url: `${SITE_URL}/mehr365/ezgulik-ishlari/${a.slug}`,
         lastModified: new Date(a.updatedAt),

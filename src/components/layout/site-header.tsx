@@ -168,8 +168,23 @@ export function MobileTopBar() {
   );
 }
 
-export function SiteHeader() {
+export function SiteHeader({ onlineEnabled = false }: { onlineEnabled?: boolean }) {
   const pathname = usePathname();
+
+  /*
+   * LIDERLAR ONLINE MENYUDA FLAG OSTIDA.
+   *
+   * Qiymat SERVERDAN prop sifatida keladi: bu komponent mijoz
+   * tomonida ishlaydi va flagni o'zi o'qiy olmaydi. Flagni mijozga
+   * ochib qo'yish ham to'g'ri bo'lmasdi — u server qaroriga tayanadi.
+   *
+   * Bo'lim o'chiq bo'lsa, havola KO'RSATILMAYDI: sahifaning o'zi
+   * 404 qaytaradi va ishlamaydigan havolani menyuda qoldirish
+   * foydalanuvchini chalg'itardi.
+   */
+  const mainNav = onlineEnabled
+    ? [...MAIN_NAV, { label: "Liderlar Online", href: "/liderlar-online" }]
+    : MAIN_NAV;
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -200,7 +215,7 @@ export function SiteHeader() {
           aria-label="Asosiy menyu"
           className="flex items-center gap-0.5 rounded-full border border-brand-soft bg-linen/45 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
         >
-          {MAIN_NAV.map((item) => {
+          {mainNav.map((item) => {
             const active = pathMatches(pathname, item.href);
             return (
               <Link

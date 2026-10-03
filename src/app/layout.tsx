@@ -4,6 +4,7 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { SiteHeader, MobileTopBar } from "@/components/layout/site-header";
+import { isFeatureEnabled } from "@/lib/vip/entitlement-service";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AIFloatingButton } from "@/components/ai/ai-floating-button";
@@ -88,6 +89,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  /*
+   * LIDERLAR ONLINE FLAGI.
+   *
+   * Layout'da o'qiladi, chunki menyu har sahifada ko'rinadi. Flag
+   * xizmati 30 soniya keshlaydi, ya'ni bu har so'rovda yangi
+   * so'rov qilmaydi.
+   */
+  const onlineEnabled = await isFeatureEnabled("liderlar_online.enabled").catch(() => false);
+
   const [aiAssistantSettings, cornerVideoSettings] = await Promise.all([
     getAiAssistantSettings(),
     getCornerVideoSettings(),
@@ -99,7 +109,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-ice text-ink">
         <ToastProvider>
-          <SiteHeader />
+          <SiteHeader onlineEnabled={onlineEnabled} />
           <MobileTopBar />
           <main className="flex-1 pb-24 lg:pb-0">{children}</main>
           <SiteFooter />

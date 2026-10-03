@@ -32,9 +32,23 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-navy">Email</label>
-        <Input {...register("email")} type="email" placeholder="email@example.com" autoComplete="email" />
-        {errors.email && <p className="mt-1 text-xs text-coral">{errors.email.message}</p>}
+        <label className="mb-1.5 block text-sm font-medium text-navy">Login yoki email</label>
+        {/*
+          `type="text"` — ATAYLAB. `type="email"` bo'lsa, brauzer
+          "asadbekazamov" ni yuborishdan oldin o'zi rad etardi va
+          loginli foydalanuvchi tizimga umuman kira olmasdi.
+        */}
+        <Input
+          {...register("identifier")}
+          type="text"
+          placeholder="asadbekazamov"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+        />
+        {errors.identifier && (
+          <p className="mt-1 text-xs text-coral">{errors.identifier.message}</p>
+        )}
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-navy">Parol</label>

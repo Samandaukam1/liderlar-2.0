@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, BookOpen } from "lucide-react";
+import { Lock, Download, BookOpen } from "lucide-react";
 import { getJournalBySlug } from "@/lib/data/journals";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { LinkButton } from "@/components/ui/button";
 import { formatDateUz, gradientFor } from "@/lib/utils";
+import { can, isFeatureEnabled } from "@/lib/vip/entitlement-service";
+import { ACCESS_TEXT, journalAccess } from "@/lib/journal/access";
 
 type JournalArticleItem = {
   id: string;
@@ -35,6 +37,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function JournalIssuePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const journal = await getJournalBySlug(slug).catch(() => null);
+
+  /*
+   * KIRISH HOLATI — PARALLEL O'QILADI.
+   *
+   * Flag va huquq bir-biriga bog'liq emas; ketma-ket kutish
+   * sahifani sekinlashtirardi.
+   */
+  const [gatingEnabled, hasEntitlement] = await Promise.all([
+    isFeatureEnabled("vip.magazine_enabled").catch(() => false),
+    can("magazine.subscription").catch(() => false),
+  ]);
+  const pdfAccess = journalAccess({ gatingEnabled, hasEntitlement });
   if (!journal) notFound();
 
   const gradient = gradientFor(journal.slug);
@@ -62,11 +76,34 @@ export default async function JournalIssuePage({ params }: { params: Promise<{ s
           {journal.published_at && <p className="mt-1 text-sm text-ink-soft">{formatDateUz(journal.published_at)}</p>}
           {journal.description && <p className="prose-article mt-4 leading-relaxed text-ink-soft">{journal.description}</p>}
           <div className="mt-6 flex flex-wrap gap-3">
-            {journal.pdf_url && (
-              <LinkButton href={journal.pdf_url} target="_blank" rel="noopener noreferrer">
+            {/*
+              PDF HAVOLASI MARSHRUT ORQALI (§33).
+
+              Avval imzolangan havola shu yerda, HTML ichida edi —
+              ya'ni huquqi yo'q odam sahifa manbasidan uni olib,
+              PDF'ni yuklab olishi mumkin edi. Endi havola FAQAT
+              tekshiruvdan keyin, marshrutda yasaladi.
+
+              Huquq yo'q bo'lsa, tugma o'rniga obuna taklifi
+              ko'rsatiladi — tugmani yashirish odamni "PDF yo'q"
+              degan xulosaga olib kelardi.
+            */}
+            {journal.pdf_url && pdfAccess !== "locked" && (
+              <LinkButton
+                href={`/api/jurnal/${journal.issue_number}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Download className="h-4 w-4" aria-hidden />
                 PDF yuklab olish
               </LinkButton>
+            )}
+
+            {journal.pdf_url && pdfAccess === "locked" && (
+              <span className="inline-flex items-center gap-2 rounded-md border border-brand-soft bg-paper px-4 py-2 text-sm text-ink-soft">
+                <Lock className="h-4 w-4" aria-hidden />
+                {ACCESS_TEXT.locked}
+              </span>
             )}
           </div>
         </div>

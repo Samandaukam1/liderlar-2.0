@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import {
   activateWithNewAccount,
   activateWithExistingAccount,
+  checkUsernameAction,
   type ActivateResult,
 } from "../actions";
 
@@ -14,7 +15,9 @@ import {
  *
  * IKKI YO'L:
  *
- *   1. Hisobi YO'Q — email va parol qo'yadi, yangi hisob ochiladi.
+ *   1. Hisobi YO'Q — LOGIN va parol tanlaydi, hisob ochiladi.
+ *      Email so'ralmaydi: nomzodda u bo'lmasligi mumkin va uni
+ *      majburlash faollashtirishni to'xtatib qo'yardi.
  *   2. Hisobi BOR — tizimga kirgan holda havolani ochadi va
  *      mavjud hisobi bog'lanadi. Ikkinchi hisob YARATILMAYDI.
  *
@@ -33,11 +36,48 @@ export function ActivationForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+
+  /*
+   * LOGIN BO'SHLIGI — JONLI, LEKIN HAR HARFDA EMAS.
+   *
+   * Har bosilgan tugma uchun so'rov yuborish serverni ham
+   * yuklaydi, loginlarni tergib ko'rish uchun qulay vosita ham
+   * bo'lardi. Shuning uchun yozish to'xtagandan keyin tekshiriladi.
+   */
+  const [availability, setAvailability] = useState<
+    { state: "idle" | "checking" } | { state: "free" } | { state: "taken"; error: string }
+  >({ state: "idle" });
+  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestCheck = useRef(0);
+
+  function onUsernameChange(value: string) {
+    setUsername(value);
+    setAvailability({ state: "idle" });
+    if (checkTimer.current) clearTimeout(checkTimer.current);
+
+    const trimmed = value.trim();
+    if (trimmed.length < 4) return;
+
+    checkTimer.current = setTimeout(() => {
+      const ticket = ++latestCheck.current;
+      setAvailability({ state: "checking" });
+      void checkUsernameAction(trimmed).then((result) => {
+        /*
+         * Kech kelgan javob yangisini bosib ketmasin: odam
+         * yozishni davom ettirgan bo'lishi mumkin.
+         */
+        if (ticket !== latestCheck.current) return;
+        setAvailability(
+          result.ok ? { state: "free" } : { state: "taken", error: result.error ?? "" },
+        );
+      });
+    }, 450);
+  }
 
   function finish(result: ActivateResult) {
     if (!result.ok) {
@@ -96,7 +136,11 @@ export function ActivationForm({
   }
 
   const canSubmit =
-    email.trim().length > 3 && password.length >= 8 && password === confirm && !pending;
+    username.trim().length >= 4 &&
+    availability.state !== "taken" &&
+    password.length >= 8 &&
+    password === confirm &&
+    !pending;
 
   return (
     <form
@@ -104,21 +148,34 @@ export function ActivationForm({
         e.preventDefault();
         if (!canSubmit) return;
         startTransition(async () =>
-          finish(await activateWithNewAccount({ token, email: email.trim(), password })),
+          finish(await activateWithNewAccount({ token, username: username.trim(), password })),
         );
       }}
     >
-      <Field label="Email">
+      <Field label="Login">
         <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={username}
+          onChange={(e) => onUsernameChange(e.target.value)}
           className={inputClass}
-          placeholder="siz@example.com"
+          placeholder="asadbekazamov"
           required
         />
       </Field>
+
+      <p className="-mt-2 mb-3 text-xs text-ink-soft">
+        Liderlar.uz tizimiga kirish uchun o&apos;zingizga maxsus login tanlang.
+        {availability.state === "checking" && " Tekshirilmoqda…"}
+        {availability.state === "free" && (
+          <span className="font-semibold text-emerald-600"> ✓ Login bo&apos;sh</span>
+        )}
+        {availability.state === "taken" && (
+          <span className="font-semibold text-rose-600"> ✕ {availability.error}</span>
+        )}
+      </p>
 
       <Field label="Parol">
         <input
@@ -155,7 +212,7 @@ export function ActivationForm({
         disabled={!canSubmit}
         className="w-full rounded-md bg-liderlar-blue px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-electric-blue disabled:opacity-50"
       >
-        {pending ? "Yaratilmoqda…" : "Akkauntni yaratish"}
+        {pending ? "Faollashtirilmoqda…" : "Akkauntni faollashtirish"}
       </button>
 
       <p className="mt-3 text-center text-xs text-ink-soft">

@@ -40,16 +40,31 @@ export interface RegionOption {
   name: string;
 }
 
-export function ApplicationForm({ regions }: { regions: readonly RegionOption[] }) {
+export function ApplicationForm({
+  regions,
+  prefilledCode = "",
+  suggestions = [],
+  promoRequired = false,
+}: {
+  regions: readonly RegionOption[];
+  /** `?ref=` dan kelgan kod. Bo'sh bo'lishi odatiy. */
+  prefilledCode?: string;
+  /** VIP obunachilarining kodlari — taklif sifatida. */
+  suggestions?: ReadonlyArray<{ fullName: string; code: string }>;
+  promoRequired?: boolean;
+}) {
   const { push } = useToast();
   const [submitted, setSubmitted] = React.useState(false);
   const {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
+    // Ulashilgan havoladan kelgan kod darhol maydonda turadi.
+    defaultValues: { promoCode: prefilledCode },
   });
 
   const fullName = register("fullName");
@@ -196,7 +211,7 @@ export function ApplicationForm({ regions }: { regions: readonly RegionOption[] 
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-navy" htmlFor="promoCode">
-            Promo kod
+            Promo kod{promoRequired && <span className="text-coral"> *</span>}
           </label>
           <Input
             id="promoCode"
@@ -206,9 +221,50 @@ export function ApplicationForm({ regions }: { regions: readonly RegionOption[] 
               return promoCode.onChange(event);
             }}
             className="uppercase"
-            placeholder="Agar bo'lsa"
+            placeholder={promoRequired ? "Sizni taklif qilgan odamning kodi" : "Agar bo'lsa"}
           />
           <FieldError message={errors.promoCode?.message} />
+
+          {/*
+            TASDIQ XABARI (§46).
+
+            Havoladan kelgan odam kodning qo'llanganini KO'RISHI kerak —
+            aks holda u maydonni qo'lda to'ldirishga urinadi yoki
+            kod ishladimi-yo'qmi bilmay qoladi.
+          */}
+          {prefilledCode !== "" && (
+            <p className="mt-1.5 text-xs font-semibold text-emerald-700">
+              Tavsiya kodi qo&apos;llanildi: {prefilledCode}
+            </p>
+          )}
+
+          {promoRequired && prefilledCode === "" && (
+            <p className="mt-1.5 text-xs text-ink-soft">
+              Istalgan nomzodning promo kodini kiritishingiz mumkin.
+            </p>
+          )}
+
+          {suggestions.length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-semibold text-liderlar-blue">
+                Liderlar VIP a&apos;zolarining kodlari
+              </summary>
+              <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-brand-soft bg-paper p-2">
+                {suggestions.map((item) => (
+                  <li key={item.code}>
+                    <button
+                      type="button"
+                      onClick={() => setValue("promoCode", item.code, { shouldValidate: true })}
+                      className="flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs transition hover:bg-ice/60"
+                    >
+                      <span className="min-w-0 truncate text-ink">{item.fullName}</span>
+                      <code className="shrink-0 font-bold text-navy">{item.code}</code>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       </section>
 

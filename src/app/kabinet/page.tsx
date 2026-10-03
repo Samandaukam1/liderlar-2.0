@@ -17,6 +17,8 @@ import { loadProfileStats } from "@/lib/analytics/profile-stats";
 import { ProfileStatsPanel } from "@/components/kabinet/profile-stats-panel";
 import { MonthlyLinksPanel } from "@/components/kabinet/monthly-links-panel";
 import { loadMonthlyLinks } from "@/lib/monthly/link-data";
+import { loadReferralSummary } from "@/lib/referral/member-data";
+import { PromoCodePanel } from "@/components/kabinet/promo-code-panel";
 
 export const metadata: Metadata = {
   title: "Shaxsiy kabinet",
@@ -84,7 +86,7 @@ export default async function KabinetPage() {
    * Shuning uchun bu yuklash `candidate` bor-yo'qligidan
    * qat'i nazar bajariladi.
    */
-  const [mehr, mehrFlags, profileStats, monthlyLinks] = await Promise.all([
+  const [mehr, mehrFlags, profileStats, monthlyLinks, referral] = await Promise.all([
     loadMemberMehrData(user.id),
     getMehrFlags(),
     /*
@@ -96,6 +98,12 @@ export default async function KabinetPage() {
     candidate ? loadProfileStats(candidate.id) : Promise.resolve(null),
     // Oylik havolalar ham NOMZODGA bog'langan.
     candidate ? loadMonthlyLinks(candidate.id) : Promise.resolve([]),
+    /*
+     * Tavsiya kodi PROFILGA bog'langan, nomzodga emas: §75 bo'yicha
+     * kod har bir akkauntda bo'ladi — ensiklopediyada nashr qilingan
+     * bo'lish shart emas.
+     */
+    loadReferralSummary(user.id, profile?.full_name ?? null),
   ]);
 
   /*
@@ -164,6 +172,59 @@ export default async function KabinetPage() {
           {profileStats && <ProfileStatsPanel stats={profileStats} />}
 
           {candidate && <MonthlyLinksPanel rows={monthlyLinks} />}
+
+          {/*
+            PROFIL MUHARRIRI HAVOLASI.
+
+            Faqat nomzod profili BOR odamda ko'rinadi: profilsiz
+            odamni muharrirga yuborish uni "profilingiz yo'q" degan
+            xabarga olib borardi.
+
+            Huquq SAHIFADA tekshiriladi, bu yerda emas: havolani
+            butunlay yashirish obunasi yo'q odamni imkoniyat
+            borligidan ham bexabar qoldirardi.
+          */}
+          {candidate && (
+            <section className="rounded-lg border border-brand-soft bg-white p-5">
+              <h3 className="font-semibold text-navy">Profilni tahrirlash</h3>
+              <p className="mt-1 text-sm text-ink-soft">
+                Ta&apos;lim, ish tajribasi, yutuqlar va aloqa ma&apos;lumotlaringizni
+                o&apos;zingiz yangilang.
+              </p>
+              <LinkButton href="/kabinet/profil" className="mt-3" size="sm">
+                Muharrirni ochish
+              </LinkButton>
+            </section>
+          )}
+
+          {/*
+            MAQOLALAR HAVOLASI.
+
+            Nomzod profili bor odamda ko'rinadi. Huquq sahifada
+            tekshiriladi — havolani yashirish obunasi yo'q odamni
+            imkoniyat borligidan bexabar qoldirardi.
+          */}
+          {candidate && (
+            <section className="rounded-lg border border-brand-soft bg-white p-5">
+              <h3 className="font-semibold text-navy">Maqolalarim</h3>
+              <p className="mt-1 text-sm text-ink-soft">
+                Maqola yozing — tasdiqlangandan keyin Liderlar Online
+                bo&apos;limida chiqadi.
+              </p>
+              <LinkButton href="/kabinet/maqolalar" className="mt-3" size="sm">
+                Maqolalarga o&apos;tish
+              </LinkButton>
+            </section>
+          )}
+
+          <PromoCodePanel
+            summary={referral}
+            applyUrl={
+              referral.code
+                ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://liderlar.uz"}/ariza?ref=${referral.code}`
+                : ""
+            }
+          />
 
           <MehrPanel
             data={mehr}

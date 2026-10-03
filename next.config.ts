@@ -46,6 +46,35 @@ const nextConfig: NextConfig = {
     };
   },
   images: {
+    /*
+     * KESH MUDDATI 31 KUN — STANDART 4 SOAT O'RNIGA.
+     *
+     * NEGA: standart 4 soatda Next optimizatorining keshi eskiradi va
+     * u ASL rasmni Supabase'dan QAYTA yuklab oladi — har rasm, har
+     * o'lcham varianti, har 4 soatda. Ishlab chiqarishda Supabase
+     * Cached Egress aynan shundan juda yuqori chiqqan.
+     *
+     * UZUN TTL BU LOYIHADA XAVFSIZ. Hujjat ogohlantiradi: keshni
+     * bekor qilish mexanizmi yo'q, ya'ni rasm almashtirilsa eskisi
+     * ko'rinib turishi mumkin. Lekin bu yerda yuklash HAR SAFAR
+     * YANGI MANZIL yasaydi (`buildObjectPath` — oy papkasi + uuid va
+     * `upsert: false`), demak almashtirilgan rasmning URL'i ham
+     * o'zgaradi va kesh o'z-o'zidan chetlab o'tiladi.
+     *
+     * Ya'ni bu sozlama yuklash qoidasiga TAYANADI: agar kelajakda
+     * biror joy rasmni bir xil manzil ustiga yozsa, o'sha rasm bir
+     * oygacha yangilanmay qoladi.
+     */
+    minimumCacheTTL: 2678400,
+
+    /*
+     * AVIF QO'SHILMAYDI — ataylab.
+     *
+     * U WebP'dan ~20% kichik, lekin kodlash ~50% uzoq va Next har
+     * formatni ALOHIDA keshlaydi, ya'ni disk talabi ikki baravar
+     * bo'ladi. Bu loyihada muammo tezlik emas, EGRESS edi — AVIF
+     * esa uni kamaytirmaydi.
+     */
     remotePatterns: [
       ...(supabaseHostname
         ? [

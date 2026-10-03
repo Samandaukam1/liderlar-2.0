@@ -13,6 +13,10 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { getCandidateBySlug, getSimilarCandidates } from "@/lib/data/candidates";
+import { loadThemeSelection } from "@/lib/themes/preference-service";
+import { resolveTheme } from "@/lib/themes/registry";
+import { hasThemeComponent, ThemeRenderer } from "@/components/themes/loader";
+import { ProfileViewTracker as ThemeViewTracker } from "@/components/profile/profile-view-tracker";
 import {
   getCandidatePodcasts,
   getCandidateJournalArticles,
@@ -72,10 +76,51 @@ export async function generateMetadata({
   };
 }
 
-export default async function LeaderProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function LeaderProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
+}) {
   const { slug } = await params;
   const candidate = await getCandidateBySlug(slug).catch(() => null);
   if (!candidate) notFound();
+
+  /*
+   * PREMIUM DIZAYN.
+   *
+   * Tanlov o'qiladi va mos komponent topilsa, SAHIFA SHU BILAN
+   * ALMASHADI. Standart dizaynda esa quyidagi mavjud sahifa
+   * ko'rsatiladi — unga tegilmagan, ya'ni regressiya xavfi yo'q (§65).
+   *
+   * `?preview=` — egasining ko'rib chiqishi. U OMMAVIY tanlovga
+   * ta'sir qilmaydi: faqat shu so'rovning ko'rinishini o'zgartiradi.
+   * Shuning uchun begona odam ham havola bilan boshqa dizaynni
+   * ko'rishi mumkin — bu sir emas va zarari yo'q, lekin NASHR
+   * qilingan dizayn o'zgarmaydi.
+   */
+  const { preview } = await searchParams;
+  const selection = await loadThemeSelection(candidate.id).catch(() => null);
+  const themeKey = preview
+    ? resolveTheme(preview)
+    : (selection?.published ?? resolveTheme(null));
+
+  if (hasThemeComponent(themeKey)) {
+    return (
+      <>
+        {/*
+          KO'RISHLAR HISOBI DIZAYNDAN TASHQARIDA.
+
+          Har dizayn uni o'zida chaqirsa, bittasida esdan chiqib
+          ketardi va o'sha dizayndagi profillar ko'rishlarini
+          yo'qotardi.
+        */}
+        <ThemeViewTracker candidateSlug={candidate.slug} />
+        <ThemeRenderer themeKey={themeKey} profile={candidate} />
+      </>
+    );
+  }
 
   const [podcasts, journalArticles, rankingBreakdown, similar] = await Promise.all([
     getCandidatePodcasts(candidate.id).catch(() => []),

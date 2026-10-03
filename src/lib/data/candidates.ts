@@ -224,14 +224,40 @@ export async function getCandidateBySlug(slug: string) {
       ? integrationKeyResult.data.integration_key
       : null;
   const admin = createAdminClient();
-  const [education, workExperience, achievements, booksRead, events, socialLinks, media, quotes, articles, sections, views, adabiyotXItems] =
+  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, views, adabiyotXItems] =
     await Promise.all([
-      supabase.from("education").select("*").eq("candidate_id", data.id).order("sort_order"),
-      supabase.from("work_experiences").select("*").eq("candidate_id", data.id).order("sort_order"),
-      supabase.from("achievements").select("*").eq("candidate_id", data.id).order("date_from", { ascending: false }),
-      supabase.from("books_read").select("*").eq("candidate_id", data.id).order("date_from", { ascending: false }),
-      supabase.from("events").select("*").eq("candidate_id", data.id).order("date_from", { ascending: false }),
-      supabase.from("social_links").select("*").eq("candidate_id", data.id).order("sort_order"),
+      /*
+       * `review_state = 'published'` — TEKSHIRUVDAGI YOZUV OMMAGA
+       * CHIQMAYDI.
+       *
+       * Foydalanuvchi profil muharririda "Yutuqlar" ga yozuv
+       * qo'shsa, u tasdiqlanmaguncha shu yerda ko'rinmaydi (§6).
+       *
+       * Bu filtr YAGONA himoya emas: RLS siyosati ham shu shartni
+       * tekshiradi. Ikkisi ham bor, chunki RLS ilovadan mustaqil
+       * ishlashi kerak, ilova filtri esa so'rovni tejaydi va
+       * niyatni kodda ko'rinadigan qiladi.
+       */
+      supabase.from("education").select("*").eq("candidate_id", data.id).eq("review_state", "published").order("sort_order"),
+      supabase.from("work_experiences").select("*").eq("candidate_id", data.id).eq("review_state", "published").order("sort_order"),
+      supabase.from("achievements").select("*").eq("candidate_id", data.id).eq("review_state", "published").order("date_from", { ascending: false }),
+      supabase.from("books_read").select("*").eq("candidate_id", data.id).eq("review_state", "published").order("date_from", { ascending: false }),
+      supabase.from("events").select("*").eq("candidate_id", data.id).eq("review_state", "published").order("date_from", { ascending: false }),
+      supabase.from("social_links").select("*").eq("candidate_id", data.id).eq("review_state", "published").order("sort_order"),
+      /*
+       * SERTIFIKATLAR — FAQAT ADMIN OCHGAN DARAJALAR.
+       *
+       * `pending_review` va `rejected` ommada ko'rinmaydi: birinchisi
+       * hali ko'rilmagan da'vo, ikkinchisi rad etilgan. RLS siyosati
+       * ham shu shartni tekshiradi — bu filtr niyatni kodda
+       * ko'rinadigan qiladi va so'rovni tejaydi.
+       */
+      supabase
+        .from("candidate_certificates")
+        .select("id, title, issuer, issued_on, expires_on, credential_url, trust")
+        .eq("candidate_id", data.id)
+        .in("trust", ["user_entered", "verified"])
+        .order("sort_order"),
       admin
         .from("candidate_media")
         .select("*")
@@ -271,7 +297,15 @@ export async function getCandidateBySlug(slug: string) {
     url: /^https?:\/\//.test(item.path)
       ? item.path
       : admin.storage.from(item.bucket).getPublicUrl(item.path).data.publicUrl,
-    caption: item.file_name,
+    /*
+     * IZOH — `alt_text` dan, fayl nomidan EMAS.
+     *
+     * Fayl nomi ("3f2a9c1e….webp", "telegram-gallery.jpg", "IMG_2041.JPG")
+     * ekran o'quvchisi uchun shovqin va kattalashtirilgan oynada izoh
+     * bo'lib chiqardi. Tavsif kiritilmagan bo'lsa — `null`, komponent
+     * o'zining umumiy matnini ishlatadi.
+     */
+    caption: (item.alt_text as string | null | undefined) ?? null,
   }));
 
   const normalized = normalizeCandidateRow(data);
@@ -306,6 +340,7 @@ export async function getCandidateBySlug(slug: string) {
     booksRead: booksRead.data ?? [],
     events: events.data ?? [],
     socialLinks: socialLinks.data ?? [],
+    certificates: certificates.data ?? [],
     media: publicMedia,
     quotes: quotes.data ?? [],
     articles: articles.data ?? [],

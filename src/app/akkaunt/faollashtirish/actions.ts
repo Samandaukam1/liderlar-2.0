@@ -9,6 +9,11 @@ import {
   isActivationEnabled,
 } from "@/lib/accounts/activation-service";
 import { ACTIVATION_FAILURE_TEXT } from "@/lib/accounts/activation-token";
+import {
+  assignUsername,
+  buildInternalAuthEmail,
+  checkUsernameAvailable,
+} from "@/lib/accounts/username-service";
 
 export type ActivateResult =
   | { ok: true; candidateSlug: string | null }
@@ -27,7 +32,14 @@ const passwordSchema = z
 
 const newAccountSchema = z.object({
   token: z.string().min(10),
-  email: z.email("To'g'ri email kiriting."),
+  /*
+   * EMAIL SO'RALMAYDI.
+   *
+   * Nomzodda email bo'lmasligi mumkin va uni majburlash
+   * faollashtirishni to'xtatib qo'yardi. Supabase Auth ichki
+   * manzil bilan ishlaydi; u foydalanuvchiga ko'rinmaydi.
+   */
+  username: z.string().min(1, "Login yozing."),
   password: passwordSchema,
 });
 
@@ -54,7 +66,17 @@ export async function activateWithNewAccount(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Ma'lumot noto'g'ri." };
   }
 
-  const { token, email, password } = parsed.data;
+  const { token, username, password } = parsed.data;
+
+  /*
+   * TARTIB: login -> taklifnoma -> hisob.
+   *
+   * Login band bo'lsa, taklifnomaga umuman tegilmaydi — aks
+   * holda bir martalik havola shunchaki "bu login band" degan
+   * xato uchun sarflanib ketardi.
+   */
+  const available = await checkUsernameAvailable(username);
+  if (!available.ok) return { ok: false, error: available.error };
 
   const inspected = await inspectActivation(token);
   if (!inspected.ok) {
@@ -66,25 +88,46 @@ export async function activateWithNewAccount(
   /*
    * Hisob yaratamiz. `email_confirm: true` — chunki shaxsni
    * taklifnomaning o'zi tasdiqlaydi: u nomzodga admin orqali
-   * yetib borgan va bir martalik.
+   * yetib borgan va bir martalik. Bu bayroq ayni paytda
+   * tasdiqlash xatini ham to'xtatadi — ichki manzilga xat
+   * yuborilmasligi SHART.
    *
    * Profil `handle_new_user` triggeri orqali AVTOMATIK
    * yaratiladi — bu yerda qo'lda yaratsak, dublikat bo'lardi.
    */
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email,
+    email: buildInternalAuthEmail(),
     password,
     email_confirm: true,
     user_metadata: { full_name: inspected.target.fullName },
   });
 
   if (createError || !created?.user) {
-    const message = createError?.message?.toLowerCase() ?? "";
-    if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
-      return { ok: false, error: ACTIVATION_FAILURE_TEXT.email_taken };
-    }
     console.error("ACTIVATION_CREATE_USER_FAILED", { code: createError?.status });
     return { ok: false, error: ACTIVATION_FAILURE_TEXT.error };
+  }
+
+  /*
+   * LOGIN DARHOL YOZILADI.
+   *
+   * Yozilmasa, hisob logini yo'q holda qolardi va odam tizimga
+   * umuman kira olmasdi — ichki manzilni u bilmaydi.
+   */
+  const assigned = await assignUsername(created.user.id, available.username);
+  if (!assigned.ok) {
+    /*
+     * Poyga: shu loginni bir lahza oldin boshqa odam oldi.
+     * Yangi hisob bo'shatiladi — unga hali hech narsa
+     * bog'lanmagan va taklifnoma ham ishlatilmagan, ya'ni
+     * nomzod qaytadan urinishi mumkin.
+     */
+    await admin.auth.admin.deleteUser(created.user.id);
+    return {
+      ok: false,
+      error: assigned.taken
+        ? "Bu login hozirgina band bo‘ldi. Boshqa login tanlang."
+        : "Loginni saqlab bo‘lmadi. Birozdan so‘ng urinib ko‘ring.",
+    };
   }
 
   const result = await consumeActivation(token, created.user.id, "new_account");
@@ -142,4 +185,22 @@ export async function activateWithExistingAccount(
   }
 
   return { ok: true, candidateSlug: result.candidateSlug };
+}
+
+/**
+ * Login bo'shligini tekshiradi — formadagi jonli javob uchun.
+ *
+ * Server OXIRGI SO'Z emas: ikki odam bir vaqtda bir xil loginni
+ * tanlasa, ikkoviga ham "bo'sh" deb javob berilishi mumkin.
+ * Haqiqiy kafolat bazadagi unikal indeksda.
+ */
+export async function checkUsernameAction(
+  username: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const input = (username ?? "").trim();
+  // Juda qisqa matn uchun bazaga umuman borilmaydi.
+  if (input.length < 2) return { ok: false, error: "Login yozing." };
+
+  const result = await checkUsernameAvailable(input);
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

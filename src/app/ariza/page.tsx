@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { ApplicationForm } from "@/components/forms/application-form";
 import { getRegions } from "@/lib/data/reference";
+import { loadVipCodeSuggestions } from "@/lib/referral/code-service";
+import { loadPromoRequirement } from "@/lib/referral/application-hook";
+import { normalizeCode } from "@/lib/referral/code";
 
 export const metadata: Metadata = {
   title: "Ariza topshirish",
@@ -18,7 +21,20 @@ export const metadata: Metadata = {
  */
 export const dynamic = "force-dynamic";
 
-export default async function ApplicationPage() {
+/**
+ * `?ref=KOD` — ulashilgan havoladan kelgan tavsiya kodi.
+ *
+ * Kod SHU YERDA normallashtiriladi: havolaga qo'lda yozilgan bo'lishi,
+ * kichik harfda yoki bo'shliq bilan kelishi mumkin.
+ */
+export default async function ApplicationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
+  const { ref } = await searchParams;
+  const prefilledCode = normalizeCode(ref ?? "");
+
   let regions: Array<{ id: string; name: string }> = [];
   let regionsFailed = false;
   try {
@@ -53,10 +69,26 @@ export default async function ApplicationPage() {
     );
   }
 
-  return renderForm(regions);
+  /*
+   * TAKLIFLAR VA MAJBURIYLIK — PARALLEL.
+   *
+   * Ikkisi bir-biriga bog'liq emas va ketma-ket kutish sahifani
+   * sekinlashtirardi.
+   */
+  const [suggestions, requirement] = await Promise.all([
+    loadVipCodeSuggestions(),
+    loadPromoRequirement(),
+  ]);
+
+  return renderForm(regions, prefilledCode, suggestions, requirement.required);
 }
 
-function renderForm(regions: Array<{ id: string; name: string }>) {
+function renderForm(
+  regions: Array<{ id: string; name: string }>,
+  prefilledCode: string,
+  suggestions: Array<{ fullName: string; code: string }>,
+  promoRequired: boolean,
+) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
       <Breadcrumbs items={[{ label: "Ariza topshirish" }]} />
@@ -67,7 +99,12 @@ function renderForm(regions: Array<{ id: string; name: string }>) {
       </p>
 
       <div className="mt-8">
-        <ApplicationForm regions={regions} />
+        <ApplicationForm
+          regions={regions}
+          prefilledCode={prefilledCode}
+          suggestions={suggestions}
+          promoRequired={promoRequired}
+        />
       </div>
     </div>
   );
