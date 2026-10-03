@@ -1,6 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isFeatureEnabled } from "@/lib/vip/entitlement-service";
 import { normalizeCode } from "./code";
 import { resolveReferralCode } from "./code-service";
 import { attributeApplication } from "./attribution-service";
@@ -26,8 +25,11 @@ import { attributeApplication } from "./attribution-service";
 
 /**
  * `unavailable` — kodni tekshirib bo'lmadi (baza xatosi). `unknown` dan
- * ATAYLAB ajratilgan: majburiy rejimda "bunday kod topilmadi" deyish
- * to'g'ri kodli odamni ham qaytarib yuborardi.
+ * ATAYLAB ajratilgan: tekshirib bo'lmagan kod "noma'lum" emas.
+ *
+ * Tur ARIZANI TO'XTATMAYDI (egasining qarori, 2026-10-03: promo kod
+ * ixtiyoriy va istalgan kod qabul qilinadi). U faqat atributsiyani
+ * hal qiladi.
  */
 export type PromoKind = "personal" | "coordinator" | "registry" | "unknown" | "unavailable";
 
@@ -92,79 +94,6 @@ export async function classifyPromoCode(
   if (registry) return { kind: "registry", ownerProfileId: null };
 
   return { kind: "unknown", ownerProfileId: null };
-}
-
-/* ========================================================================= *
- * MAJBURIYLIK
- * ========================================================================= */
-
-export interface PromoRequirement {
-  required: boolean;
-}
-
-/**
- * Promo kod majburiymi.
- *
- * FLAG OSTIDA. Majburiy qilish ishlayotgan ommaviy oqimni
- * o'zgartiradi va arizalar sonini kamaytirishi mumkin — shuning
- * uchun u ongli ravishda yoqilishi kerak, deploy bilan birga
- * o'z-o'zidan emas.
- */
-export async function loadPromoRequirement(): Promise<PromoRequirement> {
-  return { required: await isFeatureEnabled("vip.referrals_enabled") };
-}
-
-export type PromoGateResult = { ok: true } | { ok: false; error: string; field: "promoCode" };
-
-/**
- * Yuborishdan OLDIN kodni tekshiradi.
- *
- * Flag o'chiq bo'lsa, HOZIRGI xatti-harakat aynan saqlanadi: kod
- * ixtiyoriy va noma'lum kod to'silmaydi. Bu ataylab — mavjud
- * koordinator va kampaniya kodlari oqimi buzilmasligi kerak.
- */
-export async function checkPromoGate(
-  input: string | null | undefined,
-  classification: PromoClassification,
-): Promise<PromoGateResult> {
-  const { required } = await loadPromoRequirement();
-  if (!required) return { ok: true };
-
-  const code = normalizeCode(input);
-  if (code === "") {
-    return {
-      ok: false,
-      error: "Promo kod majburiy. Sizni taklif qilgan odamning kodini kiriting.",
-      field: "promoCode",
-    };
-  }
-
-  /*
-   * MAJBURIY HOLATDA NOMA'LUM KOD RAD ETILADI.
-   *
-   * Aks holda "majburiy" shunchaki bo'sh bo'lmaslikni talab qilardi
-   * va istalgan harflar to'plami o'tib ketardi — ya'ni qoida
-   * ko'rinishda bor, amalda yo'q.
-   */
-  if (classification.kind === "unknown") {
-    return { ok: false, error: "Bunday promo kod topilmadi.", field: "promoCode" };
-  }
-
-  /*
-   * TEKSHIRIB BO'LMADI — "topilmadi" EMAS.
-   *
-   * Majburiy rejimda kodni tasdiqlamay ariza qabul qilinmaydi, lekin
-   * odamga haqiqat aytiladi: kod to'g'ri bo'lishi mumkin, xato bizda.
-   */
-  if (classification.kind === "unavailable") {
-    return {
-      ok: false,
-      error: "Promo kodni hozir tekshirib bo'lmadi. Birozdan keyin qayta urinib ko'ring.",
-      field: "promoCode",
-    };
-  }
-
-  return { ok: true };
 }
 
 /* ========================================================================= *

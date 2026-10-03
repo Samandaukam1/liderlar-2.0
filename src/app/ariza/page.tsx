@@ -3,7 +3,6 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { ApplicationForm } from "@/components/forms/application-form";
 import { getRegions } from "@/lib/data/reference";
 import { loadVipCodeSuggestions } from "@/lib/referral/code-service";
-import { loadPromoRequirement } from "@/lib/referral/application-hook";
 import { normalizeCode } from "@/lib/referral/code";
 
 export const metadata: Metadata = {
@@ -69,25 +68,16 @@ export default async function ApplicationPage({
     );
   }
 
-  /*
-   * TAKLIFLAR VA MAJBURIYLIK — PARALLEL.
-   *
-   * Ikkisi bir-biriga bog'liq emas va ketma-ket kutish sahifani
-   * sekinlashtirardi.
-   */
-  const [suggestions, requirement] = await Promise.all([
-    loadVipCodeSuggestions(),
-    loadPromoRequirement(),
-  ]);
+  // Promo kod ixtiyoriy (2026-10-03) — VIP kodlari faqat taklif sifatida.
+  const suggestions = await loadVipCodeSuggestions();
 
-  return renderForm(regions, prefilledCode, suggestions, requirement.required);
+  return renderForm(regions, prefilledCode, suggestions);
 }
 
 function renderForm(
   regions: Array<{ id: string; name: string }>,
   prefilledCode: string,
   suggestions: Array<{ fullName: string; code: string }>,
-  promoRequired: boolean,
 ) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -103,7 +93,6 @@ function renderForm(
           regions={regions}
           prefilledCode={prefilledCode}
           suggestions={suggestions}
-          promoRequired={promoRequired}
         />
       </div>
     </div>

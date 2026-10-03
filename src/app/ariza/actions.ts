@@ -2,17 +2,14 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { applicationSchema } from "@/lib/validation/application";
-import { checkPromoCodeUsable } from "@/lib/promo/expiry-check";
 import {
-  checkPromoGate,
   classifyPromoCode,
   recordApplicationReferral,
 } from "@/lib/referral/application-hook";
 
 export type SubmitResult =
   | { ok: true }
-  /** `field` berilsa, xabar aynan shu maydonda ko'rsatiladi. */
-  | { ok: false; error: string; field?: "promoCode" };
+  | { ok: false; error: string };
 
 export async function submitApplication(input: unknown): Promise<SubmitResult> {
   const parsed = applicationSchema.safeParse(input);
@@ -22,22 +19,18 @@ export async function submitApplication(input: unknown): Promise<SubmitResult> {
 
   const { fullName, phone, telegram, gender, ageRange, regionId, promoCode } = parsed.data;
 
-  // Ikkala yuborish yo'li ham bir xil tekshiruvdan o'tadi.
-  const promoCheck = await checkPromoCodeUsable(promoCode);
-  if (promoCheck.error) return { ok: false, error: promoCheck.error, field: "promoCode" };
-
-
   /*
-   * SHAXSIY TAVSIYA KODI — KOORDINATOR KODIDAN AJRATILADI.
+   * PROMO KOD ARIZANI HECH QACHON TO'XTATMAYDI.
    *
-   * Tur aniqlanadi va faqat shaxsiy kod atributsiya beradi. Shaxsiy
-   * kod tekin qabul yo'liga HECH QACHON tushmaydi.
+   * Egasining qarori (2026-10-03): kod MAJBURIY EMAS va ISTALGAN kod
+   * qabul qilinadi — noma'lum, muddati tugagan yoki hozir tekshirib
+   * bo'lmagan kod ham. Kod yozilganidek saqlanadi; imtiyozni operator
+   * arizani ko'rib hal qiladi.
+   *
+   * Tur faqat ATRIBUTSIYA uchun aniqlanadi: shaxsiy tavsiya kodi kod
+   * egasiga bog'lanadi va tekin qabul yo'liga HECH QACHON tushmaydi.
    */
   const promoKind = await classifyPromoCode(promoCode);
-  const gate = await checkPromoGate(promoCode, promoKind);
-  if (!gate.ok) {
-    return { ok: false, error: gate.error, field: gate.field };
-  }
 
   /*
    * SERVICE ROLE BILAN — `/api/application/submit` dagi kabi.

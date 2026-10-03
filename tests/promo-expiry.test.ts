@@ -120,41 +120,20 @@ test("bo‘sh kod tekshirilmaydi", () => {
  * ULANISH
  * ===================================================================== */
 
-test("tekshiruv IKKALA yuborish yo‘lida ham bor", () => {
+test("ISTALGAN kod qabul qilinadi — muddati tugagani ham arizani to'xtatmaydi", () => {
   /*
-   * Forma ikki yo'ldan yuboriladi: API route va server action.
-   * Faqat bittasini himoyalash teshik qoldirardi.
+   * Egasining qarori (2026-10-03): promo kod ixtiyoriy va istalgan kod
+   * qabul qilinadi. Avval muddati tugagan kod bu yerda rad etilardi
+   * (`checkPromoCodeUsable`); endi kod yozilganidek saqlanadi va
+   * imtiyozni operator hal qiladi.
    */
-  assert.match(src("src/app/api/application/submit/route.ts"), /checkPromoCodeUsable\(promoCode\)/);
-  assert.match(src("src/app/ariza/actions.ts"), /checkPromoCodeUsable\(promoCode\)/);
-});
-
-test("xabar AYNAN promo maydonida ko‘rsatiladi", () => {
-  /*
-   * Umumiy oyna "xatolik bor" deydi va nomzod nima noto'g'ri
-   * ekanini qidirishga majbur bo'ladi.
-   */
-  assert.match(src("src/app/api/application/submit/route.ts"), /field: "promoCode"/);
-  assert.match(src("src/components/forms/application-form.tsx"), /setError\(result\.field/);
-});
-
-test("xizmat yiqilsa ariza YO‘QOLMAYDI", () => {
-  /*
-   * Bir nechta eskirgan kod o'tib ketgani nomzodni butunlay
-   * yo'qotishdan arzonroq.
-   */
-  const check = src("src/lib/promo/expiry-check.ts");
-  assert.match(check, /catch/);
-  const catchBlock = check.match(/\} catch[\s\S]*?\}/);
-  assert.ok(catchBlock);
-  assert.match(catchBlock[0], /error: null/);
-});
-
-test("faqat MUDDATI TUGAGAN kodlar o‘qiladi", () => {
-  // Amal qilayotgan kodlar ro'yxati bu yerda kerak emas.
-  const check = src("src/lib/promo/expiry-check.ts");
-  assert.match(check, /\.not\("expires_at", "is", null\)/);
-  assert.match(check, /\.lte\("expires_at"/);
+  for (const path of ["src/app/api/application/submit/route.ts", "src/app/ariza/actions.ts"]) {
+    const code = src(path);
+    assert.doesNotMatch(code, /checkPromoCodeUsable|checkPromoGate/, `${path}: promo to'sig'i qolgan`);
+    assert.doesNotMatch(code, /field: "promoCode"/, `${path}: promo maydoni uchun xato qaytaryapti`);
+    // Kod saqlanadi.
+    assert.match(code, /promo_code: promoCode \|\| null/);
+  }
 });
 
 test("xabar matni talab qilinganidek", () => {

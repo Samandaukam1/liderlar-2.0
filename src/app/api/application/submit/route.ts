@@ -1,9 +1,7 @@
 import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { applicationSchema } from "@/lib/validation/application";
-import { checkPromoCodeUsable } from "@/lib/promo/expiry-check";
 import {
-  checkPromoGate,
   classifyPromoCode,
   recordApplicationReferral,
 } from "@/lib/referral/application-hook";
@@ -27,31 +25,17 @@ export async function POST(request: NextRequest) {
   const { fullName, phone, telegram, gender, ageRange, regionId, promoCode } = parsed.data;
 
   /*
-   * MUDDATI TUGAGAN PROMO KOD — ARIZA QABUL QILINMAYDI.
+   * PROMO KOD ARIZANI HECH QACHON TO'XTATMAYDI.
    *
-   * Tekshiruv sxemada emas, shu yerda: sxema brauzerda ham
-   * ishlaydi va u bazani ko'rmaydi. `field` qaytariladi, shunda
-   * forma xabarni AYNAN promo kod maydoniga qo'yadi — umumiy
-   * "xatolik" oynasi nomzodni nima noto'g'ri ekanini qidirishga
-   * majbur qilardi.
-   */
-  const promoCheck = await checkPromoCodeUsable(promoCode);
-  if (promoCheck.error) {
-    return Response.json({ error: promoCheck.error, field: "promoCode" }, { status: 400 });
-  }
-
-
-  /*
-   * SHAXSIY TAVSIYA KODI — KOORDINATOR KODIDAN AJRATILADI.
+   * Egasining qarori (2026-10-03): kod MAJBURIY EMAS va ISTALGAN kod
+   * qabul qilinadi — noma'lum, muddati tugagan yoki hozir tekshirib
+   * bo'lmagan kod ham. Kod yozilganidek saqlanadi; imtiyozni operator
+   * arizani ko'rib hal qiladi.
    *
-   * Tur aniqlanadi va faqat shaxsiy kod atributsiya beradi. Shaxsiy
-   * kod tekin qabul yo'liga HECH QACHON tushmaydi.
+   * Tur faqat ATRIBUTSIYA uchun aniqlanadi: shaxsiy tavsiya kodi kod
+   * egasiga bog'lanadi va tekin qabul yo'liga HECH QACHON tushmaydi.
    */
   const promoKind = await classifyPromoCode(promoCode);
-  const gate = await checkPromoGate(promoCode, promoKind);
-  if (!gate.ok) {
-    return Response.json({ error: gate.error, field: gate.field }, { status: 400 });
-  }
 
   const admin = createAdminClient();
   const { data: created, error } = await admin.from("applications").insert({

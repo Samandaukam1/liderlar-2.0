@@ -288,7 +288,7 @@ test("ariza ikki yo'li ham bir xil tavsiya tekshiruvidan o'tadi", () => {
    */
   for (const path of SUBMIT_PATHS) {
     const source = stripComments(path);
-    for (const fn of ["classifyPromoCode", "checkPromoGate", "recordApplicationReferral"]) {
+    for (const fn of ["classifyPromoCode", "recordApplicationReferral"]) {
       assert.ok(source.includes(fn), `${path} da ${fn} yo'q`);
     }
   }
@@ -311,12 +311,22 @@ test("atributsiya ariza SAQLANGANDAN KEYIN yoziladi", () => {
   }
 });
 
-test("tekshiruv ariza saqlashdan OLDIN bajariladi", () => {
-  // Rad etilgan ariza bazaga tushmasligi kerak.
+test("promo kod ixtiyoriy va arizani rad etmaydi (2026-10-03)", () => {
+  /*
+   * Avval `vip.referrals_enabled` yoqilganda kod majburiy edi va
+   * noma'lum kod "topilmadi" bilan rad etilardi. Egasining qarori:
+   * kod majburiy EMAS, istalgan kod qabul qilinadi. Shaxsiy kod
+   * atributsiyasi esa avvalgidek ishlaydi (yuqoridagi test).
+   */
   for (const path of SUBMIT_PATHS) {
     const source = stripComments(path);
-    const gateAt = source.indexOf("checkPromoGate(");
-    const insertAt = source.indexOf('.from("applications")');
-    assert.ok(gateAt < insertAt, `${path}: tekshiruv insert'dan keyin`);
+    assert.ok(!source.includes("checkPromoGate"), `${path}: promo to'sig'i qolgan`);
+    assert.ok(!/majburiy|topilmadi/i.test(source), `${path}: rad etish matni qolgan`);
   }
-});
+
+  const hook = stripComments("src/lib/referral/application-hook.ts");
+  assert.ok(!/export async function (checkPromoGate|loadPromoRequirement)/.test(hook));
+
+  const form = stripComments("src/components/forms/application-form.tsx");
+  assert.ok(!/promoRequired/.test(form), "forma kodni majburiy ko'rsatishi mumkin");
+}); 

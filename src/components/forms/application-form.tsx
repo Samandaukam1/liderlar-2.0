@@ -44,21 +44,18 @@ export function ApplicationForm({
   regions,
   prefilledCode = "",
   suggestions = [],
-  promoRequired = false,
 }: {
   regions: readonly RegionOption[];
   /** `?ref=` dan kelgan kod. Bo'sh bo'lishi odatiy. */
   prefilledCode?: string;
   /** VIP obunachilarining kodlari — taklif sifatida. */
   suggestions?: ReadonlyArray<{ fullName: string; code: string }>;
-  promoRequired?: boolean;
 }) {
   const { push } = useToast();
   const [submitted, setSubmitted] = React.useState(false);
   const {
     register,
     handleSubmit,
-    setError,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({
@@ -77,23 +74,9 @@ export function ApplicationForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      const result = (await response.json()) as {
-        ok?: boolean;
-        error?: string;
-        field?: "promoCode";
-      };
+      const result = (await response.json()) as { ok?: boolean; error?: string };
       if (response.ok && result.ok) {
         setSubmitted(true);
-      } else if (result.field && result.error) {
-        /*
-         * XABAR AYNAN O'SHA MAYDONDA.
-         *
-         * Umumiy oyna "xatolik bor" deydi va nomzod nima
-         * noto'g'ri ekanini formadan qidirishga majbur bo'ladi.
-         * Muddati tugagan promo kod uchun bu ayniqsa yomon:
-         * qolgan hamma maydon to'g'ri to'ldirilgan.
-         */
-        setError(result.field, { type: "server", message: result.error });
       } else {
         push({ title: "Xatolik", description: result.error ?? "Qayta urinib ko'ring.", variant: "error" });
       }
@@ -211,7 +194,7 @@ export function ApplicationForm({
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-navy" htmlFor="promoCode">
-            Promo kod{promoRequired && <span className="text-coral"> *</span>}
+            Promo kod <span className="font-normal text-ink-soft">(ixtiyoriy)</span>
           </label>
           <Input
             id="promoCode"
@@ -221,7 +204,7 @@ export function ApplicationForm({
               return promoCode.onChange(event);
             }}
             className="uppercase"
-            placeholder={promoRequired ? "Sizni taklif qilgan odamning kodi" : "Agar bo'lsa"}
+            placeholder="Agar bo'lsa"
           />
           <FieldError message={errors.promoCode?.message} />
 
@@ -238,9 +221,10 @@ export function ApplicationForm({
             </p>
           )}
 
-          {promoRequired && prefilledCode === "" && (
+          {prefilledCode === "" && (
             <p className="mt-1.5 text-xs text-ink-soft">
-              Istalgan nomzodning promo kodini kiritishingiz mumkin.
+              Kod bo&apos;lmasa, maydonni bo&apos;sh qoldiring. Istalgan nomzodning promo kodini
+              kiritishingiz mumkin.
             </p>
           )}
 
