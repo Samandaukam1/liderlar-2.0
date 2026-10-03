@@ -9,20 +9,42 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
+/**
+ * Kirishdan keyingi manzil — FAQAT shu saytning ichki yo'li.
+ *
+ * `?next=https://boshqa-sayt` yoki `//boshqa-sayt` qabul qilinsa, kirish
+ * sahifasi fishing havolasiga aylanardi: odam haqiqiy saytda parol
+ * yozib, begona sahifaga tushardi.
+ */
+function safeNext(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/kabinet";
+  }
+  return value;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { push } = useToast();
+  /*
+   * Parol tiklangandan keyin login oldindan yoziladi: odam uni
+   * eslamasligi mumkin (tiklash aynan shuning uchun so'ralgan).
+   */
+  const recovered = searchParams.get("tiklandi") === "1";
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: searchParams.get("login") ?? "" },
+  });
 
   async function onSubmit(values: LoginInput) {
     const result = await signIn(values);
     if (result.ok) {
-      router.push(searchParams.get("next") ?? "/kabinet");
+      router.push(safeNext(searchParams.get("next")));
       router.refresh();
     } else {
       push({ title: "Kirishda xatolik", description: result.error, variant: "error" });
@@ -31,6 +53,11 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {recovered && (
+        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+          Parolingiz yangilandi. Endi yangi parol bilan kiring.
+        </p>
+      )}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-navy">Login yoki email</label>
         {/*
