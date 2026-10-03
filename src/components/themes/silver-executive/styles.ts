@@ -33,7 +33,12 @@ const themeCss = (p: SePalette) => /* css */ `
 .se a{color:inherit;text-decoration:none}
 .se :focus-visible{outline:2px solid var(--se-electric);outline-offset:3px;border-radius:6px}
 .se-wrap{width:100%;max-width:1240px;margin-inline:auto;padding-inline:var(--se-gutter)}
-.se-icon{width:18px;height:18px;flex:none}
+.se-icon{width:20px;height:20px;flex:none;stroke-width:2}
+/* Gradient ikonka idishi — markazda, oq belgi, rangli yumshoq soya. */
+.se-gi{display:grid;place-items:center;flex:none;border-radius:13px;color:#fff;
+  background:linear-gradient(140deg,var(--g1,#2f6bff),var(--g2,#1d4ed8));
+  box-shadow:0 6px 16px -7px var(--g1,#2f6bff),inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform .45s var(--se-ease),box-shadow .45s var(--se-ease)}
 
 /* ---------------------------------------------------------- HERO */
 .se-hero{position:relative;isolation:isolate;overflow:hidden;
@@ -66,9 +71,12 @@ const themeCss = (p: SePalette) => /* css */ `
 .se-role{margin-top:.9rem;font-size:clamp(.98rem,.92rem + .3vw,1.12rem);font-weight:500;line-height:1.5;color:var(--se-ink)}
 .se-role i{font-style:normal;color:var(--se-silver);margin:0 .5rem}
 .se-meta{display:grid;gap:.85rem;margin-top:1.4rem}
-.se-meta li{display:flex;align-items:flex-start;gap:.7rem;min-width:0}
-.se-meta svg{margin-top:.15rem;color:var(--se-navy)}
-.se-meta b{display:block;font-size:.86rem;font-weight:600;line-height:1.35;color:var(--se-navy)}
+.se-meta li{display:flex;align-items:center;gap:.7rem;min-width:0}
+.se-meta__icon{display:grid;place-items:center;width:2.5rem;height:2.5rem;flex:none;border-radius:13px;color:#fff;
+  background:linear-gradient(140deg,var(--g1,#2f6bff),var(--g2,#1d4ed8));
+  box-shadow:0 6px 16px -7px var(--g1,#2f6bff),inset 0 1px 0 rgba(255,255,255,.3)}
+.se-meta__icon .se-icon{width:18px;height:18px}
+.se-meta b{display:block;font-size:.88rem;font-weight:600;line-height:1.35;color:var(--se-navy)}
 .se-meta small{display:block;font-size:.75rem;font-weight:500;color:var(--se-muted)}
 .se-quote{position:relative;margin-top:1.5rem;padding-left:2.4rem;font-size:clamp(1rem,.95rem + .25vw,1.12rem);line-height:1.55;font-weight:500;color:var(--se-ink)}
 .se-quote::before{content:"\\201C";position:absolute;left:0;top:-.55rem;font-size:3rem;font-weight:800;line-height:1;color:var(--se-blue)}
@@ -76,9 +84,9 @@ const themeCss = (p: SePalette) => /* css */ `
 .se-btn{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:3rem;padding:0 1.35rem;border-radius:12px;
   font-size:.88rem;font-weight:600;cursor:pointer;border:1px solid transparent;
   transition:transform .35s var(--se-ease),box-shadow .35s var(--se-ease),background-color .35s var(--se-ease),border-color .35s var(--se-ease)}
-.se-btn svg{width:17px;height:17px}
+.se-btn svg{width:18px;height:18px}
 .se-btn--primary{background:linear-gradient(135deg,var(--se-blue),var(--se-electric));color:#fff;box-shadow:0 10px 24px -10px rgba(29,78,216,.6)}
-.se-btn--primary:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(29,78,216,.7)}
+.se-btn--primary:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(29,78,216,.7);filter:saturate(1.08)}
 .se-btn--ghost{background:var(--se-glass);border-color:var(--se-line-2);color:var(--se-navy);backdrop-filter:blur(8px)}
 .se-btn--ghost:hover{transform:translateY(-2px);border-color:rgba(37,99,235,.4);box-shadow:var(--se-shadow)}
 
@@ -100,16 +108,25 @@ const themeCss = (p: SePalette) => /* css */ `
 /* ---------------------------------------------------------- STATS */
 .se-stats{position:relative;z-index:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;overflow:hidden;
   border-radius:18px;background:var(--se-line);border:1px solid var(--se-line);box-shadow:var(--se-shadow)}
-.se-stat{display:flex;align-items:center;gap:.8rem;min-width:0;padding:1rem;background:rgba(255,255,255,.92)}
-.se-stat__icon{display:grid;place-items:center;width:2.6rem;height:2.6rem;flex:none;border-radius:50%;
-  background:linear-gradient(145deg,#eef3fc,#dfe8f7);color:var(--se-navy);transition:transform .5s var(--se-ease)}
-.se-stat:hover .se-stat__icon{transform:scale(1.06)}
-.se-stat b{display:flex;align-items:baseline;gap:.35rem;font-size:clamp(1.15rem,1rem + .6vw,1.5rem);font-weight:800;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.se-stat{display:flex;align-items:center;gap:.8rem;min-width:0;padding:1rem;background:rgba(255,255,255,.92);
+  transition:background-color .45s var(--se-ease)}
+.se-stat:hover{background:#fff}
+.se-stat>div{min-width:0}
+.se-stat:last-child:nth-child(odd){grid-column:1/-1}
+.se-stat__icon{display:grid;place-items:center;width:3rem;height:3rem;flex:none;border-radius:15px;color:#fff;
+  background:linear-gradient(140deg,var(--g1,#2f6bff),var(--g2,#1d4ed8));
+  box-shadow:0 8px 20px -8px var(--g1,#2f6bff),inset 0 1px 0 rgba(255,255,255,.32);
+  transition:transform .5s var(--se-ease),box-shadow .5s var(--se-ease)}
+.se-stat__icon .se-icon{width:22px;height:22px}
+.se-stat:hover .se-stat__icon{transform:translateY(-2px) scale(1.04);box-shadow:0 12px 24px -8px var(--g1,#2f6bff),inset 0 1px 0 rgba(255,255,255,.32)}
+.se-stat b{display:flex;align-items:baseline;flex-wrap:wrap;gap:.1rem .35rem;min-width:0;font-size:clamp(1.15rem,1rem + .6vw,1.5rem);font-weight:800;line-height:1.15;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .se-stat b small{font-size:.72rem;font-weight:700;color:#16a34a}
 .se-stat b small.down{color:#dc2626}
 .se-stat span{display:block;margin-top:.15rem;font-size:.74rem;font-weight:500;color:var(--se-muted);line-height:1.3}
-.se-stat i{font-style:italic;font-weight:600;font-size:.95rem;letter-spacing:0}
-@media (min-width:768px){.se-stats{grid-template-columns:repeat(var(--se-cols,3),minmax(0,1fr))}.se-stat{padding:1.25rem 1.4rem}}
+.se-stat i{font-style:italic;font-weight:600;font-size:.86rem;line-height:1.3;letter-spacing:0;color:var(--se-ink)}
+@media (min-width:768px){.se-stats{grid-template-columns:repeat(min(var(--se-cols,3),3),minmax(0,1fr))}.se-stat{padding:1.25rem 1.4rem}
+  .se-stat:last-child:nth-child(odd){grid-column:auto}}
+@media (min-width:1200px){.se-stats{grid-template-columns:repeat(var(--se-cols,3),minmax(0,1fr))}}
 @media (min-width:1024px){.se-stats{margin-top:-4.5rem}}
 
 /* ---------------------------------------------------------- LAYOUT */
@@ -176,7 +193,11 @@ body:has([data-hidden-header-link]) .se-nav{top:0;padding-left:calc(var(--se-gut
 .se-row{display:flex;align-items:flex-start;gap:.9rem;padding:1rem;border-radius:14px;border:1px solid var(--se-line);background:#fbfcfe;
   transition:transform .4s var(--se-ease),box-shadow .4s var(--se-ease),border-color .4s var(--se-ease)}
 .se-row:hover{transform:translateY(-2px);border-color:rgba(37,99,235,.28);box-shadow:var(--se-shadow-hover)}
-.se-row__icon{display:grid;place-items:center;width:2.4rem;height:2.4rem;flex:none;border-radius:12px;background:var(--se-blue-soft);color:var(--se-blue)}
+.se-row__icon{display:grid;place-items:center;width:2.7rem;height:2.7rem;flex:none;border-radius:13px;color:#fff;
+  background:linear-gradient(140deg,var(--g1,#2f6bff),var(--g2,#1d4ed8));
+  box-shadow:0 6px 16px -7px var(--g1,#2f6bff),inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform .45s var(--se-ease)}
+.se-row:hover .se-row__icon{transform:scale(1.07)}
 .se-row__body{min-width:0;flex:1}
 .se-row b{display:block;font-size:.96rem;font-weight:700;line-height:1.35;color:var(--se-navy)}
 .se-row span{display:block;margin-top:.15rem;font-size:.84rem;color:var(--se-muted)}
@@ -199,7 +220,8 @@ body:has([data-hidden-header-link]) .se-nav{top:0;padding-left:calc(var(--se-gut
 .se-entry{display:flex;align-items:center;gap:.9rem;padding:.75rem;border-radius:14px;border:1px solid var(--se-line);transition:border-color .4s var(--se-ease),box-shadow .4s var(--se-ease)}
 .se-entry:hover{border-color:rgba(37,99,235,.3);box-shadow:var(--se-shadow-hover)}
 .se-entry__thumb{position:relative;width:4.2rem;height:3.2rem;flex:none;overflow:hidden;border-radius:10px;background:#e8eef7}
-.se-entry__thumb img{object-fit:cover}
+.se-entry__thumb img{object-fit:cover;transition:transform .9s var(--se-ease)}
+.se-entry:hover .se-entry__thumb img{transform:scale(1.07)}
 .se-entry b{display:block;font-size:.94rem;font-weight:700;color:var(--se-navy)}
 .se-entry span{display:block;font-size:.78rem;color:var(--se-muted)}
 .se-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(8.5rem,1fr));gap:1rem}
@@ -214,7 +236,12 @@ body:has([data-hidden-header-link]) .se-nav{top:0;padding-left:calc(var(--se-gut
 .se-aside .se-h2{font-size:1.15rem}
 .se-facts{display:grid;gap:1rem;margin-top:1rem}
 .se-facts li{display:flex;gap:.8rem;min-width:0}
-.se-facts__icon{display:grid;place-items:center;width:2.25rem;height:2.25rem;flex:none;border-radius:10px;background:#f1f5fb;color:var(--se-navy)}
+.se-facts__icon{display:grid;place-items:center;width:2.4rem;height:2.4rem;flex:none;border-radius:12px;color:#fff;
+  background:linear-gradient(140deg,var(--g1,#2f6bff),var(--g2,#1d4ed8));
+  box-shadow:0 6px 14px -7px var(--g1,#2f6bff),inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform .45s var(--se-ease)}
+.se-facts__icon .se-icon{width:18px;height:18px}
+.se-facts li:hover .se-facts__icon{transform:scale(1.06)}
 .se-facts b{display:block;font-size:.84rem;font-weight:700;color:var(--se-navy)}
 .se-facts span{display:block;font-size:.8rem;line-height:1.45;color:var(--se-muted);white-space:pre-line;overflow-wrap:break-word}
 .se-socials{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.5rem}
@@ -232,14 +259,37 @@ body:has([data-hidden-header-link]) .se-nav{top:0;padding-left:calc(var(--se-gut
   .se-portrait{animation:se-portrait 1.3s var(--se-ease) .1s both}
   .se-seq{animation:se-up .9s var(--se-ease) both;animation-delay:calc(.25s + var(--i,0) * .08s)}
   .se-beam{animation:se-line 1.6s var(--se-ease) .6s both,se-drift 6s ease-in-out 2.4s infinite}
-  .se-stats{animation:se-up 1s var(--se-ease) .7s both}
 }
 @media (prefers-reduced-motion:no-preference) and (scripting:enabled){
-  .se [data-se-reveal]{opacity:0;transform:translateY(22px);transition:opacity .9s var(--se-ease),transform 1s var(--se-ease)}
+  .se [data-se-reveal]{opacity:0;transform:translateY(22px);
+    transition:opacity .9s var(--se-ease) var(--d,0s),transform 1s var(--se-ease) var(--d,0s)}
   .se [data-se-reveal][data-se-in]{opacity:1;transform:none}
   .se [data-se-reveal] .se-h2-rule{transform:scaleX(0);transition:transform 1.1s var(--se-ease) .2s}
   .se [data-se-reveal][data-se-in] .se-h2-rule{transform:scaleX(1)}
   .se:not([data-se-ready]) [data-se-reveal]{animation:se-failsafe .8s var(--se-ease) 3s forwards}
+
+  /*
+   * BO'LIM ICHIDAGI ELEMENTLAR KETMA-KET CHIQADI.
+   *
+   * Animatsiya FAQAT "data-se-in" holatida e'lon qilingan, ya'ni odatdagi
+   * holatda elementlar ko'rinib turadi — skript ishlamasa ham mazmun yo'qolmaydi.
+   */
+  .se [data-se-in] .se-row,
+  .se [data-se-in] .se-step,
+  .se [data-se-in] .se-entries li,
+  .se [data-se-in] .se-shelf li,
+  .se [data-se-in] .se-gallery li,
+  .se [data-se-in] .se-facts li{animation:se-up .75s var(--se-ease) both;animation-delay:calc(.15s + var(--n,0) * .06s)}
+  .se [data-se-in] .se-row:nth-child(1),.se [data-se-in] .se-step:nth-child(1),.se [data-se-in] .se-entries li:nth-child(1),.se [data-se-in] .se-shelf li:nth-child(1),.se [data-se-in] .se-gallery li:nth-child(1),.se [data-se-in] .se-facts li:nth-child(1){--n:0}
+  .se [data-se-in] .se-row:nth-child(2),.se [data-se-in] .se-step:nth-child(2),.se [data-se-in] .se-entries li:nth-child(2),.se [data-se-in] .se-shelf li:nth-child(2),.se [data-se-in] .se-gallery li:nth-child(2),.se [data-se-in] .se-facts li:nth-child(2){--n:1}
+  .se [data-se-in] .se-row:nth-child(3),.se [data-se-in] .se-step:nth-child(3),.se [data-se-in] .se-entries li:nth-child(3),.se [data-se-in] .se-shelf li:nth-child(3),.se [data-se-in] .se-gallery li:nth-child(3),.se [data-se-in] .se-facts li:nth-child(3){--n:2}
+  .se [data-se-in] .se-row:nth-child(4),.se [data-se-in] .se-step:nth-child(4),.se [data-se-in] .se-entries li:nth-child(4),.se [data-se-in] .se-shelf li:nth-child(4),.se [data-se-in] .se-gallery li:nth-child(4),.se [data-se-in] .se-facts li:nth-child(4){--n:3}
+  .se [data-se-in] .se-row:nth-child(n+5),.se [data-se-in] .se-step:nth-child(n+5),.se [data-se-in] .se-entries li:nth-child(n+5),.se [data-se-in] .se-shelf li:nth-child(n+5),.se [data-se-in] .se-gallery li:nth-child(n+5),.se [data-se-in] .se-facts li:nth-child(n+5){--n:4}
+
+  /* Ko'rsatkichlar paneli ham ketma-ket. */
+  .se-stat{animation:se-up .8s var(--se-ease) both;animation-delay:calc(.8s + var(--j,0) * .07s)}
+  .se-stat:nth-child(2){--j:1}.se-stat:nth-child(3){--j:2}
+  .se-stat:nth-child(4){--j:3}.se-stat:nth-child(5){--j:4}.se-stat:nth-child(6){--j:5}
 }
 @media (prefers-reduced-motion:reduce){
   .se *,.se *::before,.se *::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}

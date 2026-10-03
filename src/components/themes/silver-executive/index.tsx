@@ -49,6 +49,27 @@ const ELECTRIC = "#2f6bff";
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
+/**
+ * IKONKA OHANGLARI — premium gradientlar.
+ *
+ * Har ikonka o'z juftligini oladi (`--g1` → `--g2`). Ranglar shu yerda,
+ * Tailwind konfiguratsiyasida emas: dizayn olib tashlansa, loyiha
+ * palitrasi ifloslanmaydi.
+ */
+const TONES: readonly [string, string][] = [
+  ["#2f6bff", "#1d4ed8"],
+  ["#8b5cf6", "#6d28d9"],
+  ["#06b6d4", "#0284c7"],
+  ["#10b981", "#059669"],
+  ["#f59e0b", "#ea580c"],
+  ["#f43f5e", "#be123c"],
+];
+
+function tone(index: number): Vars {
+  const [from, to] = TONES[index % TONES.length];
+  return { "--g1": from, "--g2": to } as Vars;
+}
+
 export default function SilverExecutiveTheme({ profile, extras }: ThemeProps) {
   const quotes = (profile.quotes ?? [])
     .map((quote) => ({ id: String(quote.id), text: String(quote.text ?? "").trim() }))
@@ -72,8 +93,15 @@ export default function SilverExecutiveTheme({ profile, extras }: ThemeProps) {
           {sections.length > 1 && <SeNav items={sections.map((s) => ({ id: s.id, label: s.label }))} />}
           <QuickInfo profile={profile} />
           <div className="se-main">
-            {sections.map((section) => (
-              <section key={section.id} id={section.id} className="se-card" data-se-reveal aria-labelledby={`${section.id}-t`}>
+            {sections.map((section, index) => (
+              <section
+                key={section.id}
+                id={section.id}
+                className="se-card"
+                data-se-reveal
+                style={{ "--d": `${Math.min(index, 2) * 80}ms` } as Vars}
+                aria-labelledby={`${section.id}-t`}
+              >
                 <h2 id={`${section.id}-t`} className="se-h2">
                   {section.title}
                   {section.note && <span className="se-note">{section.note}</span>}
@@ -143,10 +171,12 @@ function Hero({ profile, quote, hasBio }: { profile: ThemeProfile; quote: string
           )}
           {meta.length > 0 && (
             <ul className="se-meta se-seq" style={{ "--i": 3 } as Vars}>
-              {meta.map(({ icon: Icon, value, label }) => (
+              {meta.map(({ icon: Icon, value, label }, index) => (
                 <li key={label}>
-                  <Icon className="se-icon" aria-hidden />
-                  <span>
+                  <span className="se-meta__icon" style={tone(index)} aria-hidden>
+                    <Icon className="se-icon" />
+                  </span>
+                  <span className="min-w-0">
                     <b>{value}</b>
                     <small>{label}</small>
                   </span>
@@ -209,9 +239,9 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
 
   return (
     <div className="se-stats" style={{ "--se-cols": items.length } as Vars}>
-      {items.map(({ icon: Icon, value, label }) => (
+      {items.map(({ icon: Icon, value, label }, index) => (
         <div key={label} className="se-stat">
-          <span className="se-stat__icon" aria-hidden>
+          <span className="se-stat__icon" style={tone(index)} aria-hidden>
             <Icon className="se-icon" />
           </span>
           <div className="min-w-0">
@@ -247,9 +277,9 @@ function QuickInfo({ profile }: { profile: ThemeProfile }) {
     <aside className="se-card se-aside" data-se-reveal aria-label="Tezkor ma’lumot">
       <h2 className="se-h2">Tezkor ma’lumot</h2>
       <ul className="se-facts">
-        {visible.map(({ icon: Icon, label, value }) => (
+        {visible.map(({ icon: Icon, label, value }, index) => (
           <li key={label}>
-            <span className="se-facts__icon" aria-hidden>
+            <span className="se-facts__icon" style={tone(index)} aria-hidden>
               <Icon className="se-icon" />
             </span>
             <span className="min-w-0">
@@ -260,7 +290,7 @@ function QuickInfo({ profile }: { profile: ThemeProfile }) {
         ))}
         {links.length > 0 && (
           <li>
-            <span className="se-facts__icon" aria-hidden>
+            <span className="se-facts__icon" style={tone(visible.length)} aria-hidden>
               <Globe className="se-icon" />
             </span>
             <span className="min-w-0">
@@ -412,11 +442,11 @@ function honours(profile: ThemeProfile): Section | null {
 function Rows({ icon: Icon, items }: { icon: LucideIcon; items: TimelineItem[] }) {
   return (
     <ul className="se-rows">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const url = safeUrl(item.url);
         return (
           <li key={item.id} className="se-row">
-            <span className="se-row__icon" aria-hidden>
+            <span className="se-row__icon" style={tone(index)} aria-hidden>
               <Icon className="se-icon" />
             </span>
             <div className="se-row__body">
@@ -450,11 +480,11 @@ function certificates(profile: ThemeProfile): Section | null {
     title: "Sertifikatlar",
     body: (
       <ul className="se-rows">
-        {list.map((certificate) => {
+        {list.map((certificate, index) => {
           const url = safeUrl(certificate.credential_url as string | null);
           return (
             <li key={certificate.id} className="se-row">
-              <span className="se-row__icon" aria-hidden>
+              <span className="se-row__icon" style={tone(index)} aria-hidden>
                 <BadgeCheck className="se-icon" />
               </span>
               <div className="se-row__body">
@@ -500,9 +530,9 @@ function books(profile: ThemeProfile): Section | null {
           <div>
             <h3 className="se-sub">{read.length > 0 ? "Boshqa o‘qigan kitoblari" : "O‘qigan kitoblari"}</h3>
             <ul className="se-rows">
-              {manual.map((book) => (
+              {manual.map((book, index) => (
                 <li key={String(book.id)} className="se-row">
-                  <span className="se-row__icon" aria-hidden>
+                  <span className="se-row__icon" style={tone(index)} aria-hidden>
                     <BookOpen className="se-icon" />
                   </span>
                   <div className="se-row__body">
