@@ -12,6 +12,13 @@ import { BasicsSection } from "@/components/profile-editor/basics-section";
 import { EntrySection } from "@/components/profile-editor/entry-section";
 import { ImagesSection } from "@/components/profile-editor/images-section";
 import { CertificatesSection } from "@/components/profile-editor/certificates-section";
+import { QuotesSection } from "@/components/profile-editor/quotes-section";
+import { EditRequestButton } from "@/components/kabinet/edit-request-button";
+import { loadOwnQuotes } from "@/lib/profile-editor/quote-service";
+import { ThemeGallery } from "@/components/profile-editor/theme-gallery";
+import { loadThemeSelection } from "@/lib/themes/preference-service";
+import { galleryThemes } from "@/lib/themes/registry";
+import { can } from "@/lib/vip/entitlement-service";
 
 export const metadata: Metadata = {
   title: "Profilni tahrirlash",
@@ -109,15 +116,18 @@ export default async function ProfileEditorPage() {
    * §49: bo'limlar ketma-ket yuklansa, sahifa oltita so'rovni navbat
    * bilan kutardi. Ular bir-biriga bog'liq emas.
    */
-  const [candidateResult, pending, gallery, certificates, ...entryLists] = await Promise.all([
+  const [candidateResult, pending, gallery, certificates, quotes, themeSelection, hasPremium, ...entryLists] = await Promise.all([
     admin
       .from("candidates")
-      .select("slug, full_name, short_bio, phone, email, birth_date, status, avatar_url")
+      .select("slug, full_name, short_bio, phone, email, birth_date, birth_year, birth_place, current_location, activity_field, education_summary, description_items, languages, status, avatar_url")
       .eq("id", candidateId)
       .single(),
     loadPendingEdits(candidateId),
     loadGallery(candidateId),
     loadOwnCertificates(candidateId),
+    loadOwnQuotes(candidateId),
+    loadThemeSelection(candidateId),
+    can("profile.premium_themes"),
     ...ENTRY_KINDS.map((kind) => loadOwnEntries(candidateId, kind)),
   ]);
 
@@ -172,10 +182,18 @@ export default async function ProfileEditorPage() {
       <div className="mt-5 space-y-3">
         <BasicsSection
           initial={{
+            fullName: (candidate.full_name as string | null) ?? "",
             shortBio: (candidate.short_bio as string | null) ?? "",
             phone: (candidate.phone as string | null) ?? "",
             email: (candidate.email as string | null) ?? "",
             birthDate: (candidate.birth_date as string | null) ?? "",
+            birthYear: (candidate.birth_year as string | null) ?? "",
+            birthPlace: (candidate.birth_place as string | null) ?? "",
+            currentLocation: (candidate.current_location as string | null) ?? "",
+            activityField: (candidate.activity_field as string | null) ?? "",
+            educationSummary: (candidate.education_summary as string | null) ?? "",
+            descriptionItems: ((candidate.description_items as string[] | null) ?? []).join("\n"),
+            languages: ((candidate.languages as string[] | null) ?? []).join("\n"),
           }}
           pending={pending.map((edit) => ({
             label: edit.label,
@@ -202,7 +220,50 @@ export default async function ProfileEditorPage() {
             entries={entryLists[index] ?? []}
           />
         ))}
+
+        <QuotesSection quotes={quotes.map((q) => ({ id: q.id, text: q.text, status: q.status }))} />
+
+        {/*
+          UZUN BIOGRAFIYA MATNI VA QO'SHIMCHA BO'LIMLAR.
+
+          Ular tahririyat tayyorlagan maqola (fakt-tekshiruvi bilan) — a'zo
+          matnni to'g'ridan-to'g'ri o'zgartirmaydi, TAHRIR SO'ROVI yuboradi.
+          Shu tariqa biografiyadagi har bir ma'lumotning boshqaruv yo'li bor.
+        */}
+        <section className="rounded-lg border border-brand-soft bg-white px-4 py-3">
+          <p className="font-semibold text-navy">Biografiya matni va qo&apos;shimcha bo&apos;limlar</p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            Uzun biografiya maqolasi tahririyat tomonidan tayyorlanadi. Nimani o&apos;zgartirish kerakligini yozing —
+            tahririyat yangilaydi.
+          </p>
+          <div className="mt-2">
+            <EditRequestButton />
+          </div>
+        </section>
       </div>
+
+      {/*
+        PREMIUM DIZAYNLAR — muharrirning o'zida. Har bir dizayn a'zoning
+        haqiqiy ma'lumotlari bilan jonli ko'rinishda; "Qo'llash" bosilmaguncha
+        ommaviy profil o'zgarmaydi.
+      */}
+      <section className="mt-8" aria-labelledby="premium-dizaynlar">
+        <h2 id="premium-dizaynlar" className="font-display text-xl font-bold text-navy">
+          Premium dizaynlar
+        </h2>
+        <p className="mt-1 text-xs text-ink-soft">Dizayn faqat ko&apos;rinishni o&apos;zgartiradi — ma&apos;lumot va havola o&apos;zgarmaydi.</p>
+        <div className="mt-4">
+          <ThemeGallery
+            themes={galleryThemes()}
+            published={themeSelection.published}
+            draft={themeSelection.draft}
+            slug={candidate.slug as string}
+            hasPremium={hasPremium}
+            isPublished={candidate.status === "published"}
+            hideSiteHeader={themeSelection.hideSiteHeader}
+          />
+        </div>
+      </section>
     </div>
   );
 }

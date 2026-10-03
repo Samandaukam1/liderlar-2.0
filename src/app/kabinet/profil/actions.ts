@@ -20,6 +20,7 @@ import {
 } from "@/lib/profile-editor/certificate-service";
 import { removeCertificateEvidence } from "@/lib/profile-editor/evidence-service";
 import type { CertificateInput } from "@/lib/profile-editor/certificate-rules";
+import { deleteOwnQuote, submitQuote } from "@/lib/profile-editor/quote-service";
 
 /**
  * PROFIL MUHARRIRI AMALLARI.
@@ -162,4 +163,16 @@ export async function removeEvidence(
   const result = await removeCertificateEvidence(certificateId);
   if (result.ok) refresh();
   return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function addQuote(text: string): Promise<{ ok: boolean; message: string }> {
+  const result = await submitQuote(text);
+  if (result.ok) refresh();
+  return result;
+}
+
+export async function removeQuote(quoteId: string): Promise<{ ok: boolean; message: string }> {
+  const result = await deleteOwnQuote(quoteId);
+  if (result.ok) refresh();
+  return result;
 }

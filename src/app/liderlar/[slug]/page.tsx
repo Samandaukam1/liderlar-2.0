@@ -30,6 +30,7 @@ import { ShareButtons } from "@/components/profile/share-buttons";
 import { ProfileViewTracker } from "@/components/profile/profile-view-tracker";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
 import { ProfilePromoCode } from "@/components/profile/profile-promo-code";
+import { HiddenSiteHeader } from "@/components/profile/hidden-site-header";
 import { getPublicReferralCode } from "@/lib/referral/public-code";
 import { CandidateAdabiyotXSection } from "@/components/profile/candidate-adabiyotx-section";
 import { CandidateBooksRow } from "@/components/profile/candidate-books-row";
@@ -83,7 +84,7 @@ export default async function LeaderProfilePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; header?: string }>;
 }) {
   const { slug } = await params;
   const candidate = await getCandidateBySlug(slug).catch(() => null);
@@ -102,11 +103,26 @@ export default async function LeaderProfilePage({
    * ko'rishi mumkin — bu sir emas va zarari yo'q, lekin NASHR
    * qilingan dizayn o'zgarmaydi.
    */
-  const { preview } = await searchParams;
+  const { preview, header } = await searchParams;
   const selection = await loadThemeSelection(candidate.id).catch(() => null);
   const themeKey = preview
     ? resolveTheme(preview)
     : (selection?.published ?? resolveTheme(null));
+
+  /*
+   * SAYT HEADERI: egasining sozlamasi. Ko'rib chiqishda (`?preview=`)
+   * `?header=0` sozlamani SAQLAMASDAN sinab ko'rish imkonini beradi.
+   */
+  const hideHeader = preview ? header === "0" : selection?.hideSiteHeader === true;
+  /*
+   * KO'RIB CHIQISH — KO'RISH EMAS. Muharrirdagi jonli ko'rinishlar va
+   * `?preview=` havolalari ko'rishlar hisobiga (reyting, challenge) tushmaydi.
+   */
+  const isPreview = Boolean(preview);
+
+  const themePromoCode = hasThemeComponent(themeKey)
+    ? await getPublicReferralCode(candidate.id).catch(() => null)
+    : null;
 
   if (hasThemeComponent(themeKey)) {
     return (
@@ -118,8 +134,20 @@ export default async function LeaderProfilePage({
           ketardi va o'sha dizayndagi profillar ko'rishlarini
           yo'qotardi.
         */}
-        <ThemeViewTracker candidateSlug={candidate.slug} />
+        {!isPreview && <ThemeViewTracker candidateSlug={candidate.slug} />}
+        {hideHeader && <HiddenSiteHeader />}
         <ThemeRenderer themeKey={themeKey} profile={candidate} />
+        {themePromoCode && (
+          /*
+           * PROMO KOD PREMIUM DIZAYNDA HAM — dizayn tuzilishiga aralashmasdan,
+           * sahifa oxirida. Standart dizaynda u hero'ning yuqori chap qismida.
+           */
+          <div className="bg-navy px-4 py-8">
+            <div className="mx-auto flex max-w-6xl justify-center sm:justify-start">
+              <ProfilePromoCode code={themePromoCode} name={candidate.full_name} />
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -254,7 +282,8 @@ export default async function LeaderProfilePage({
 
   return (
     <div>
-      <ProfileViewTracker candidateSlug={candidate.slug} />
+      {!isPreview && <ProfileViewTracker candidateSlug={candidate.slug} />}
+      {hideHeader && <HiddenSiteHeader />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 

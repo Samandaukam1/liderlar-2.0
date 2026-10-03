@@ -9,6 +9,7 @@ import {
   discardTheme,
   publishTheme,
   resetTheme,
+  setHeaderHidden,
 } from "@/app/kabinet/profil/dizayn/actions";
 import { DEFAULT_THEME, type ThemeKey, type ThemeMeta } from "@/lib/themes/registry";
 
@@ -31,6 +32,7 @@ export function ThemeGallery({
   slug,
   hasPremium,
   isPublished,
+  hideSiteHeader,
 }: {
   themes: ThemeMeta[];
   published: ThemeKey;
@@ -39,6 +41,8 @@ export function ThemeGallery({
   hasPremium: boolean;
   /** Nomzod sahifasi ommaviy nashr qilinganmi. */
   isPublished: boolean;
+  /** Ommaviy profilda sayt headeri berkitilganmi. */
+  hideSiteHeader: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -110,6 +114,38 @@ export function ThemeGallery({
 
       {error && <p className="mb-3 text-sm font-semibold text-rose-600">{error}</p>}
 
+      {/*
+        SAYT HEADERI — faqat shu profil sahifasi uchun. Ko'rinishlar
+        (pastdagi jonli kartochkalar) shu sozlamani aks ettiradi.
+      */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-soft bg-white p-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-navy">Sayt headeri</p>
+          <p className="text-xs text-ink-soft">
+            Profilingiz sahifasida standart Liderlar menyusi ko&apos;rinsinmi. Saytga qaytish havolasi baribir qoladi.
+          </p>
+        </div>
+        <div className="inline-flex rounded-full border border-brand-soft p-1" role="group" aria-label="Sayt headeri">
+          {[
+            { value: false, label: "Ko‘rsatish" },
+            { value: true, label: "Berkitish" },
+          ].map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              aria-pressed={hideSiteHeader === option.value}
+              disabled={pending || !hasPremium || hideSiteHeader === option.value}
+              onClick={() => run(() => setHeaderHidden(option.value, slug))}
+              className={`min-h-9 rounded-full px-4 text-xs font-semibold transition ${
+                hideSiteHeader === option.value ? "bg-liderlar-blue text-white" : "text-ink-soft hover:text-navy"
+              } disabled:cursor-default`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {!hasPremium && (
         <p className="mb-4 rounded-lg border border-brand-soft bg-paper px-4 py-3 text-xs leading-relaxed text-ink-soft">
           Premium dizaynlar <b>Liderlar VIP</b> obunasi bilan ochiladi. Standart
@@ -128,7 +164,15 @@ export function ThemeGallery({
             slug={slug}
             canPreview={isPublished}
             pending={pending}
+            hideSiteHeader={hideSiteHeader}
             onChoose={() => run(() => chooseTheme(theme.key, slug))}
+            onApply={() =>
+              run(async () => {
+                // "Qo'llash" = tanlash + nashr, bitta bosishda. Huquq ikkalasida serverda.
+                const chosen = await chooseTheme(theme.key, slug);
+                return chosen.ok ? publishTheme(slug) : chosen;
+              })
+            }
           />
         ))}
       </ul>
@@ -164,7 +208,9 @@ function ThemeCard({
   slug,
   canPreview,
   pending,
+  hideSiteHeader,
   onChoose,
+  onApply,
 }: {
   theme: ThemeMeta;
   isPublished: boolean;
@@ -173,8 +219,11 @@ function ThemeCard({
   slug: string;
   canPreview: boolean;
   pending: boolean;
+  hideSiteHeader: boolean;
   onChoose: () => void;
+  onApply: () => void;
 }) {
+  const previewUrl = `/liderlar/${slug}?preview=${theme.key}&header=${hideSiteHeader ? "0" : "1"}`;
   return (
     <li
       className={`rounded-lg border p-4 ${
@@ -202,6 +251,26 @@ function ThemeCard({
         )}
       </div>
 
+      {canPreview && theme.ready && (
+        /*
+         * HAQIQIY KO'RINISH — a'zoning o'z ma'lumotlari bilan, shu dizaynda.
+         *
+         * Kichraytirilgan jonli sahifa (rasm yoki namuna emas). `loading="lazy"`
+         * — faqat ekranga kelganda yuklanadi; bosib bo'lmaydi; ko'rishlar
+         * hisobiga tushmaydi (`?preview=` sahifasi hisoblagichsiz).
+         */
+        <div className="relative mt-3 aspect-[16/11] w-full overflow-hidden rounded-md border border-brand-soft bg-ice">
+          <iframe
+            src={previewUrl}
+            title={`${theme.label} dizayni ko'rinishi`}
+            loading="lazy"
+            tabIndex={-1}
+            aria-hidden
+            className="pointer-events-none absolute left-0 top-0 h-[400%] w-[400%] origin-top-left scale-25 border-0"
+          />
+        </div>
+      )}
+
       <p className="mt-2 text-xs leading-relaxed text-ink">{theme.description}</p>
       <p className="mt-1.5 text-[11px] text-ink-soft">Kimga mos: {theme.suitedFor}</p>
 
@@ -224,12 +293,22 @@ function ThemeCard({
           <>
             <button
               type="button"
-              disabled={pending || isPublished || isDraft}
-              onClick={onChoose}
-              className="rounded-md border border-brand-soft px-3 py-1.5 text-xs font-semibold text-liderlar-blue transition hover:bg-ice/50 disabled:opacity-40"
+              disabled={pending || isPublished}
+              onClick={onApply}
+              className="min-h-9 rounded-md bg-liderlar-blue px-3 text-xs font-semibold text-white transition disabled:opacity-40"
             >
-              {isPublished ? "Hozir shu" : isDraft ? "Tanlangan" : "Tanlash"}
+              {isPublished ? "Faol dizayn" : "Qo‘llash"}
             </button>
+            {!isPublished && !isDraft && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={onChoose}
+                className="min-h-9 rounded-md border border-brand-soft px-3 text-xs font-semibold text-liderlar-blue transition hover:bg-ice/50 disabled:opacity-40"
+              >
+                Qoralama
+              </button>
+            )}
 
             {canPreview && (
               /*
@@ -240,9 +319,9 @@ function ThemeCard({
                * xatoga olib borardi.
                */
               <Link
-                href={`/liderlar/${slug}?preview=${theme.key}`}
+                href={previewUrl}
                 target="_blank"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft"
+                className="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-ink-soft"
               >
                 Ko&apos;rib chiqish
                 <ExternalLink className="h-3 w-3" aria-hidden />

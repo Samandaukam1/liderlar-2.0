@@ -128,7 +128,7 @@ export async function saveProfileFields(
    */
   const { data: current, error: readError } = await admin
     .from("candidates")
-    .select("short_bio, birth_date, region_id, category_id, phone, email")
+    .select("short_bio, birth_date, region_id, category_id, phone, email, full_name, birth_year, birth_place, education_summary, current_location, activity_field, description_items, languages")
     .eq("id", candidateId)
     .single();
 

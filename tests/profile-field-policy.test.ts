@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import {
   CANDIDATE_FIELDS,
   checkEntry,
@@ -343,10 +343,19 @@ test("ko'rik talab qiladigan har bir maydon SQL da qo'llanadi", () => {
    * bo'lgan maydon u yerda bo'lmasa, admin tasdiqlay olmaydi va
    * o'zgarish navbatda abadiy qolib ketardi.
    */
-  const sql = readFileSync(
-    "../liderlar-admin/supabase/migrations/20261002120000_candidate_profile_edits.sql",
-    "utf8",
-  );
+  /*
+   * ENG OXIRGI ta'rif tekshiriladi: funksiya keyingi migratsiyalarda qayta
+   * yozilgan (PT409, biografiya maydonlari) va eski fayl endi amaldagi
+   * ta'rif emas.
+   */
+  const dir = "../liderlar-admin/supabase/migrations";
+  const latest = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .filter((f) => readFileSync(`${dir}/${f}`, "utf8").includes("create or replace function public.apply_candidate_profile_edit("))
+    .pop();
+  assert.ok(latest, "apply_candidate_profile_edit ta'rifi topilmadi");
+  const sql = readFileSync(`${dir}/${latest}`, "utf8");
 
   for (const [field, rule] of Object.entries(CANDIDATE_FIELDS)) {
     if (rule.policy !== "review") continue;

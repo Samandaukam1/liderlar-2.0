@@ -82,6 +82,7 @@ export default async function ThemeSelectionPage() {
           slug={candidate.slug as string}
           hasPremium={hasPremium}
           isPublished={candidate.status === "published"}
+          hideSiteHeader={selection.hideSiteHeader}
         />
       </div>
     </div>

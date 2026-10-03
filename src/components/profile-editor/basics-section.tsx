@@ -5,10 +5,19 @@ import { ChevronDown } from "lucide-react";
 import { saveFields } from "@/app/kabinet/profil/actions";
 
 export interface BasicsValues {
+  fullName: string;
   shortBio: string;
   phone: string;
   email: string;
   birthDate: string;
+  birthYear: string;
+  birthPlace: string;
+  currentLocation: string;
+  activityField: string;
+  educationSummary: string;
+  /** Ro'yxatlar — har biri yangi qatordan. */
+  descriptionItems: string;
+  languages: string;
 }
 
 export interface PendingLabel {
@@ -38,10 +47,13 @@ export function BasicsSection({
   const [message, setMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
-  const [shortBio, setShortBio] = useState(initial.shortBio);
-  const [phone, setPhone] = useState(initial.phone);
-  const [email, setEmail] = useState(initial.email);
-  const [birthDate, setBirthDate] = useState(initial.birthDate);
+  const [values, setValues] = useState<BasicsValues>(initial);
+  const set = (key: keyof BasicsValues) => (value: string) => setValues((v) => ({ ...v, [key]: value }));
+  const { shortBio, phone, email, birthDate } = values;
+  const setShortBio = set("shortBio");
+  const setPhone = set("phone");
+  const setEmail = set("email");
+  const setBirthDate = set("birthDate");
 
   function submit() {
     startTransition(async () => {
@@ -49,10 +61,18 @@ export function BasicsSection({
       setFailed(false);
 
       const result = await saveFields({
+        full_name: values.fullName,
         short_bio: shortBio,
         phone,
         email,
         birth_date: birthDate,
+        birth_year: values.birthYear,
+        birth_place: values.birthPlace,
+        current_location: values.currentLocation,
+        activity_field: values.activityField,
+        education_summary: values.educationSummary,
+        description_items: values.descriptionItems,
+        languages: values.languages,
       });
 
       setMessage(result.message);
@@ -72,7 +92,7 @@ export function BasicsSection({
         <span>
           <span className="block font-semibold text-navy">Asosiy ma&apos;lumotlar</span>
           <span className="mt-0.5 block text-xs text-ink-soft">
-            Qisqa ma&apos;lumot, aloqa va tug&apos;ilgan sana
+            Ism, qisqa ma&apos;lumot, soha, tillar, aloqa va tug&apos;ilgan ma&apos;lumotlar
           </span>
         </span>
         <ChevronDown
@@ -110,10 +130,18 @@ export function BasicsSection({
 
           {!editing ? (
             <>
+              <Row label="To'liq ism" value={initial.fullName} />
               <Row label="Qisqa ma'lumot" value={initial.shortBio} />
+              <Row label="Kim sifatida tanilgan (teglar)" value={initial.descriptionItems} />
+              <Row label="Faoliyat sohasi" value={initial.activityField} />
+              <Row label="Hozirgi manzil" value={initial.currentLocation} />
+              <Row label="Tillar" value={initial.languages} />
+              <Row label="Ta'lim (qisqacha)" value={initial.educationSummary} />
+              <Row label="Tug'ilgan sana" value={initial.birthDate} />
+              <Row label="Tug'ilgan yil" value={initial.birthYear} />
+              <Row label="Tug'ilgan joy" value={initial.birthPlace} />
               <Row label="Telefon" value={initial.phone} />
               <Row label="Email" value={initial.email} />
-              <Row label="Tug'ilgan sana" value={initial.birthDate} />
 
               <button
                 type="button"
@@ -128,6 +156,15 @@ export function BasicsSection({
             </>
           ) : (
             <>
+              <Field label="To'liq ism" hint="Tahririyat tekshiruvidan o'tadi">
+                <input
+                  value={values.fullName}
+                  onChange={(e) => set("fullName")(e.target.value)}
+                  maxLength={200}
+                  className={inputClass}
+                />
+              </Field>
+
               <Field label="Qisqa ma'lumot" hint="Darhol profilga joylanadi">
                 <textarea
                   value={shortBio}
@@ -140,6 +177,77 @@ export function BasicsSection({
                 <span className="mt-1 block text-right text-[11px] text-ink-soft">
                   {shortBio.length}/600
                 </span>
+              </Field>
+
+              <Field label="Kim sifatida tanilgan" hint="Darhol · har birini yangi qatordan, ko'pi bilan 8 ta">
+                <textarea
+                  value={values.descriptionItems}
+                  onChange={(e) => set("descriptionItems")(e.target.value)}
+                  rows={3}
+                  className={inputClass}
+                  placeholder={"Jurnalistika talabasi\nTadbirkorlik tashabbuskori"}
+                />
+              </Field>
+
+              <Field label="Faoliyat sohasi" hint="Darhol profilga joylanadi">
+                <input
+                  value={values.activityField}
+                  onChange={(e) => set("activityField")(e.target.value)}
+                  maxLength={300}
+                  className={inputClass}
+                  placeholder="Media va raqamli kommunikatsiya"
+                />
+              </Field>
+
+              <Field label="Hozirgi manzil" hint="Darhol profilga joylanadi">
+                <input
+                  value={values.currentLocation}
+                  onChange={(e) => set("currentLocation")(e.target.value)}
+                  maxLength={200}
+                  className={inputClass}
+                  placeholder="Toshkent shahri"
+                />
+              </Field>
+
+              <Field label="Tillar" hint="Darhol · har birini yangi qatordan">
+                <textarea
+                  value={values.languages}
+                  onChange={(e) => set("languages")(e.target.value)}
+                  rows={2}
+                  className={inputClass}
+                  placeholder={"O'zbek\nIngliz"}
+                />
+              </Field>
+
+              <Field label="Ta'lim (qisqacha)" hint="Tahririyat tekshiruvidan o'tadi">
+                <textarea
+                  value={values.educationSummary}
+                  onChange={(e) => set("educationSummary")(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  className={inputClass}
+                />
+              </Field>
+
+              <Field label="Tug'ilgan yil" hint="Tahririyat tekshiruvidan o'tadi">
+                <input
+                  value={values.birthYear}
+                  onChange={(e) => set("birthYear")(e.target.value)}
+                  maxLength={20}
+                  inputMode="numeric"
+                  className={inputClass}
+                  placeholder="2001"
+                />
+              </Field>
+
+              <Field label="Tug'ilgan joy" hint="Tahririyat tekshiruvidan o'tadi">
+                <input
+                  value={values.birthPlace}
+                  onChange={(e) => set("birthPlace")(e.target.value)}
+                  maxLength={200}
+                  className={inputClass}
+                  placeholder="Samarqand viloyati, Paxtachi tumani"
+                />
               </Field>
 
               <Field label="Telefon" hint="Darhol saqlanadi">
@@ -193,10 +301,7 @@ export function BasicsSection({
                   disabled={saving}
                   onClick={() => {
                     // Bekor qilishda kiritilganlar tashlab yuboriladi.
-                    setShortBio(initial.shortBio);
-                    setPhone(initial.phone);
-                    setEmail(initial.email);
-                    setBirthDate(initial.birthDate);
+                    setValues(initial);
                     setEditing(false);
                     setMessage(null);
                   }}

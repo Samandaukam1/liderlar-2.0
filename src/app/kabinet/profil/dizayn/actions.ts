@@ -6,6 +6,7 @@ import {
   publishDraftTheme,
   resetToDefaultTheme,
   setDraftTheme,
+  setHideSiteHeader,
   type ThemeWriteResult,
 } from "@/lib/themes/preference-service";
 
@@ -45,5 +46,14 @@ export async function discardTheme(slug?: string): Promise<ThemeWriteResult> {
 export async function resetTheme(slug?: string): Promise<ThemeWriteResult> {
   const result = await resetToDefaultTheme();
   if (result.ok) refresh(slug);
+  return result;
+}
+
+export async function setHeaderHidden(hidden: boolean, slug?: string): Promise<ThemeWriteResult> {
+  const result = await setHideSiteHeader(hidden);
+  if (result.ok) {
+    revalidatePath("/kabinet/profil/dizayn");
+    if (slug) revalidatePath(`/liderlar/${slug}`);
+  }
   return result;
 }

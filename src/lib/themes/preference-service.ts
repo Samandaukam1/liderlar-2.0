@@ -23,6 +23,8 @@ export interface ThemeSelection {
   published: ThemeKey;
   /** Egasi ko'rib chiqayotgan dizayn. `null` — qoralama yo'q. */
   draft: ThemeKey | null;
+  /** Ommaviy profilda sayt headeri berkitilganmi. */
+  hideSiteHeader: boolean;
 }
 
 /**
@@ -36,13 +38,13 @@ export async function loadThemeSelection(candidateId: string): Promise<ThemeSele
 
   const { data, error } = await admin
     .from("candidate_theme_preferences")
-    .select("published_theme, draft_theme")
+    .select("published_theme, draft_theme, hide_site_header")
     .eq("candidate_id", candidateId)
     .maybeSingle();
 
   if (error) {
     console.error("[dizayn] tanlov o'qilmadi:", error.message);
-    return { published: resolveTheme(null), draft: null };
+    return { published: resolveTheme(null), draft: null, hideSiteHeader: false };
   }
 
   const draftRaw = data?.draft_theme ?? null;
@@ -58,6 +60,7 @@ export async function loadThemeSelection(candidateId: string): Promise<ThemeSele
      * ko'rinardi.
      */
     draft: draftRaw === null ? null : resolveTheme(draftRaw),
+    hideSiteHeader: data?.hide_site_header === true,
   };
 }
 
@@ -224,5 +227,40 @@ export async function resetToDefaultTheme(): Promise<ThemeWriteResult> {
     after: { theme: DEFAULT_THEME },
   });
 
+  return { ok: true };
+}
+
+/**
+ * "HEADERNI BERKITISH" — faqat shu a'zoning ommaviy profili uchun.
+ *
+ * Premium dizayn huquqi bilan (frontend yashirishi avtorizatsiya emas).
+ * Qator bo'lmasa yaratiladi; dizayn tanlovi o'zgarmaydi.
+ */
+export async function setHideSiteHeader(hidden: unknown): Promise<ThemeWriteResult> {
+  if (typeof hidden !== "boolean") return { ok: false, error: "Qiymat noto'g'ri." };
+
+  const entitled = await requireEntitlement("profile.premium_themes");
+  if (!entitled.ok) return { ok: false, error: entitled.error };
+
+  const resolved = await resolveOwnCandidate();
+  if (!resolved.ok) return { ok: false, error: resolved.error };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("candidate_theme_preferences")
+    .upsert(
+      { candidate_id: resolved.owned.candidateId, hide_site_header: hidden, updated_at: new Date().toISOString() },
+      { onConflict: "candidate_id" },
+    );
+  if (error) {
+    console.error("[dizayn] header sozlamasi saqlanmadi:", error.message);
+    return { ok: false, error: "Sozlamani saqlab bo'lmadi." };
+  }
+
+  await recordAudit("profile.theme.published", {
+    actorId: resolved.owned.profileId,
+    entityId: resolved.owned.candidateId,
+    after: { hide_site_header: hidden },
+  });
   return { ok: true };
 }
