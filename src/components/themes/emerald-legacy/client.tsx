@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * EMERALD LEGACY — mijoz qismi.
@@ -133,62 +132,6 @@ export function ElRail({ label, children }: { label: string; children: React.Rea
         {children}
       </div>
     </>
-  );
-}
-
-/**
- * PORTRET.
- *
- * Nomzodning RANGLI surati ko'rsatiladi. Agar Post Studio kesmasi shu
- * suratga AYNAN mos tushsa (nisbati bir xil), u alfa NIQOB sifatida
- * qo'llanadi va portret fonsiz chiqadi.
- *
- * Nega moslik brauzerda o'lchanadi: bazadagi "manba = profil rasmi"
- * yozuvi yetarli emas — kesma ba'zan qirqilgan holda saqlangan va
- * nisbati boshqacha bo'lib qoladi. Bunday niqob yuzni surib, portretni
- * buzib ko'rsatardi. Shuning uchun avval ramkali ko'rinish chiziladi,
- * o'lchov tasdiqlansa — yumshoq o'tish bilan fonsiz ko'rinishga o'tadi.
- */
-export function ElPortrait({
-  src,
-  cutout,
-  alt,
-}: {
-  src: string;
-  cutout: string | null;
-  alt: string;
-}) {
-  const [masked, setMasked] = useState(false);
-
-  useEffect(() => {
-    if (!cutout) return;
-    let cancelled = false;
-    const probe = (url: string) =>
-      new Promise<number | null>((resolve) => {
-        const img = new window.Image();
-        img.onload = () => resolve(img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : null);
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
-
-    void Promise.all([probe(src), probe(cutout)]).then(([photo, cut]) => {
-      if (cancelled || !photo || !cut) return;
-      // 1% chidamlilik: optimizator yaxlitlashi nisbatni arzimas o'zgartiradi.
-      if (Math.abs(photo - cut) / photo < 0.01) setMasked(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [src, cutout]);
-
-  return (
-    <span
-      className={`el-portrait__frame ${masked ? "el-portrait__frame--cut" : "el-portrait__frame--photo"}`}
-      style={masked && cutout ? ({ "--el-cut": `url("${cutout}")` } as CSSProperties) : undefined}
-    >
-      <Image src={src} alt={alt} fill preload sizes="(min-width: 1080px) 620px, 94vw" />
-      {!masked && <span className="el-portrait__veil" aria-hidden />}
-    </span>
   );
 }
 

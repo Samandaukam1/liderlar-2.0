@@ -7,7 +7,7 @@ import { isVerified, range, safeUrl, toTimeline, trustLabel, year, type Timeline
 import { chapterNumber, monogram, rankingView, scoreText, splitName, withoutPortrait } from "@/lib/themes/profile-compose";
 import type { ThemeExtras, ThemeProfile, ThemeProps } from "@/lib/themes/types";
 import type { PortraitCutout } from "@/lib/themes/portrait-cutout";
-import { ElMotion, ElPortrait, ElPromo, ElRail, ElShare } from "./client";
+import { ElMotion, ElPromo, ElRail, ElShare } from "./client";
 import { elDisplay, elSans, elSerif } from "./fonts";
 import { emeraldLegacyCss } from "./styles";
 
@@ -202,8 +202,29 @@ function Hero({
             <span className="el-portrait__lines" aria-hidden>
               <i /><i /><i /><i />
             </span>
-            {profile.avatar_url ? (
-              <ElPortrait src={profile.avatar_url} cutout={cutout?.url ?? null} alt={profile.full_name} />
+            {cutout ? (
+              /*
+                PORTRET — FONSIZ.
+
+                Post Studio kesmasi: odamning o'zi, fon yo'q. Kesma
+                ataylab oq-qora saqlanadi (post kartochkalari uslubi), shu
+                sababli bu yerda ILIQ BRONZA tusga bo'yaladi — jonsiz
+                kulrang ham, yashil ham emas. Rang CSS filtri bilan
+                beriladi, ya'ni rasm aynan o'zi bo'lib qoladi.
+
+                Asl rangli surat niqob sifatida ishlatilmadi: kesma
+                qirqilgan (masalan 659x1084) va asl surat (912x1152) bilan
+                ustma-ust tushmaydi.
+              */
+              <span className="el-portrait__frame el-portrait__frame--cut">
+                <Image src={cutout.url} alt={profile.full_name} fill preload sizes="(min-width: 1080px) 620px, 94vw" />
+              </span>
+            ) : profile.avatar_url ? (
+              /* Kesma yo'q — rasm yumshoq chetli ramkada. */
+              <span className="el-portrait__frame el-portrait__frame--photo">
+                <Image src={profile.avatar_url} alt={profile.full_name} fill preload sizes="(min-width: 1080px) 620px, 94vw" />
+                <span className="el-portrait__veil" aria-hidden />
+              </span>
             ) : (
               <span className="el-initials" aria-hidden>
                 {monogram(profile.full_name)}

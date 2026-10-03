@@ -81,7 +81,7 @@ const themeCss = (p: ElPalette) => /* css */ `
    * Shuning uchun uzun familiya ham bitta qatorda qoladi va so'z
    * o'rtasidan bo'linmaydi.
    */
-  font-size:clamp(1.3rem,calc(100cqi / (var(--el-ch,8) * .84)),5.4rem);
+  font-size:clamp(1.2rem,calc(100cqi / (var(--el-ch,8) * .93)),5.4rem);
   overflow-wrap:normal;word-break:normal;hyphens:none}
 @supports not (font-size:1cqi){
   .el-name{font-size:clamp(1.5rem,.4rem + 4.2vw,3.4rem)}
@@ -117,23 +117,17 @@ const themeCss = (p: ElPalette) => /* css */ `
 .el-portrait{position:relative;width:100%;aspect-ratio:4/5;max-height:62svh;margin-inline:auto}
 .el-portrait__frame{position:absolute;inset:0;display:block;transition:opacity .6s var(--el-ease)}
 /*
- * Fonsiz RANGLI portret: rasm — nomzodning asl surati, kesma PNG esa
- * uning alfa niqobi. Rang nomzodning O'ZINIKI; faqat biroz yoritilgan va
- * to'yinganligi sal oshirilgan.
+ * FONSIZ PORTRET — ILIQ BRONZA TUS.
+ *
+ * Kesma oq-qora saqlanadi (post kartochkalari shunday loyihalangan), shu
+ * sababli bu yerda filtr bilan bronza-oltin tusga keltiriladi: teri jonli
+ * ko'rinadi, zumrad fonda esa iliq qarama-qarshilik hosil bo'ladi.
+ * Yashil tus ATAYLAB berilmaydi — u yuzni kasal ko'rsatadi.
  */
 .el-portrait__frame--cut{-webkit-mask-image:linear-gradient(180deg,#000 78%,rgba(0,0,0,.6) 92%,transparent 100%);
   mask-image:linear-gradient(180deg,#000 78%,rgba(0,0,0,.6) 92%,transparent 100%)}
 .el-portrait__frame--cut img{object-fit:contain;object-position:50% 100%;
-  filter:brightness(1.06) saturate(1.16) contrast(1.02);
-  -webkit-mask-image:var(--el-cut);mask-image:var(--el-cut);
-  -webkit-mask-size:contain;mask-size:contain;
-  -webkit-mask-position:50% 100%;mask-position:50% 100%;
-  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
-/*
- * Rasm ramkada: chetlari yumshoq, pastki qirrasi fonga eriydi, atrofida
- * ingichka zumrad chiziq. Nomzodning O'Z rangi saqlanadi — biroz
- * yoritilgan va to'yinganligi sal oshirilgan, boshqa tus berilmaydi.
- */
+  filter:sepia(.52) saturate(1.5) brightness(1.07) contrast(1.05)}
 .el-portrait__frame--photo{inset:0;overflow:hidden;
   /* Chetlari yumshoq — to'rtburchak chegara ko'rinmaydi, rasm fonga singadi. */
   -webkit-mask-image:radial-gradient(82% 70% at 50% 38%,#000 26%,rgba(0,0,0,.55) 64%,transparent 96%);
