@@ -85,6 +85,9 @@ export function themeExtrasFor(key: ThemeKey): ThemeExtrasNeeds {
   if (key === "imperial-gold") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
+  if (key === "silver-executive") {
+    return { ...NO_EXTRAS, journalArticles: true, podcasts: true };
+  }
   return NO_EXTRAS;
 }
 
@@ -112,7 +115,7 @@ export function ThemeRenderer({
     case "ivory-editorial":
       return <IvoryEditorial profile={profile} />;
     case "silver-executive":
-      return <SilverExecutive profile={profile} />;
+      return <SilverExecutive profile={profile} extras={extras} />;
     case "royal-navy":
       return <RoyalNavy profile={profile} />;
     case "monochrome-signature":

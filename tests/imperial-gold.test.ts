@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { rankingView, splitName, withoutPortrait } from "../src/components/themes/imperial-gold/compose.ts";
+import { rankingView, splitName, withoutPortrait } from "../src/lib/themes/profile-compose.ts";
 import { pickPortraitCutout } from "../src/lib/themes/portrait-cutout.ts";
 
 const AVATAR = "https://x.supabase.co/storage/v1/object/public/candidate-avatars/a/b.jpg";

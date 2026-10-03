@@ -1,5 +1,5 @@
 /**
- * IMPERIAL GOLD — KOMPOZITSIYA QOIDALARI (sof modul).
+ * PREMIUM DIZAYNLAR — KOMPOZITSIYA QOIDALARI (sof modul).
  *
  * Ko'rinish emas, QAROR: ism qanday qatorlarga bo'linadi, reyting qaysi
  * holatda qanday aytiladi, galereyadan nima chiqarib tashlanadi. Alohida

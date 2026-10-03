@@ -96,7 +96,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Silver Executive",
     mood: "Zamonaviy korporativ premium",
     description:
-      "Grafit, kumush va sovuq kulrang. Tuzilgan kartochka, toza panjara, ma'lumotga yo'naltirilgan yutuqlar.",
+      "Oq va och kumush-moviy fon, to'q ko'k tipografiya, qirollik ko'k urg'u. Chapda fonga qo'shilib ketgan portret, shisha yuzalar va toza ko'rsatkichlar paneli.",
     premium: true,
     ready: true,
     suitedFor: "Biznes va boshqaruv",

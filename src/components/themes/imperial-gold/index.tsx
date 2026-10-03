@@ -22,7 +22,7 @@ import {
   scoreText,
   splitName,
   withoutPortrait,
-} from "./compose";
+} from "@/lib/themes/profile-compose";
 import { igSans, igSerif } from "./fonts";
 import { IgGallery } from "./gallery";
 import { IgMotion, IgSectionNav } from "./motion";
