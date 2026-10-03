@@ -53,7 +53,7 @@ export function Podium({ rows }: { rows: RankingRow[] }) {
               {name}
             </p>
             {row.candidate.is_verified && <VerifiedBadge className="mt-1" />}
-            <p className="mt-1 font-display text-lg font-bold text-liderlar-blue">{row.total_score.toFixed(1)}</p>
+            <p className="mt-1 font-display text-lg font-bold text-liderlar-blue">{new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 2 }).format(row.total_score)}</p>
             <div
               className={`mt-3 w-full rounded-t-xl bg-gradient-blue ${HEIGHTS[col]} ${isFirst ? "" : "opacity-80"}`}
             />

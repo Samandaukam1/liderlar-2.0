@@ -37,16 +37,23 @@ export async function getPeriodForFilter(filter: PeriodFilter = "barcha-vaqt") {
   return data;
 }
 
-export async function getRankingLeaderboard(categoryCode: string, periodId: string, limit = 50) {
+export async function getRankingLeaderboard(
+  categoryCode: string,
+  periodId: string,
+  limit = 50,
+  regionId: string | null = null,
+) {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("ranking_scores")
     .select(`candidate_id, position, previous_position, total_score, candidate:candidates!inner(${CANDIDATE_CARD_SELECT})`)
     .eq("category", categoryCode)
     .eq("period_id", periodId)
     .eq("candidate.status", "published")
-    .order("position", { ascending: true, nullsFirst: false })
-    .limit(limit);
+    .is("candidate.deleted_at", null);
+  // Hudud filtri — o'rin UMUMIY reytingdagi o'rni bo'lib qoladi (alohida hisob yo'q).
+  if (regionId) query = query.eq("candidate.region_id", regionId);
+  const { data, error } = await query.order("position", { ascending: true, nullsFirst: false }).limit(limit);
   if (error) throw error;
 
   return (data ?? [])
@@ -71,4 +78,57 @@ export async function getRankingWeights(periodId?: string) {
   const { data, error } = await query.limit(1).maybeSingle();
   if (error) throw error;
   return data;
+}
+
+/**
+ * REYTING QOIDALARI — OMMAVIY TUSHUNTIRISH UCHUN, BAZADAN.
+ *
+ * Sahifadagi har bir raqam (og'irliklar, ko'rish siyosati, davr) shu
+ * yerdan keladi: admin panelda o'zgarsa, tushuntirish ham o'zgaradi.
+ * Hisobning o'zi `recalculate_rankings()` da — frontend hisoblamaydi.
+ */
+export interface RankingRules {
+  period: { name: string; startsOn: string; endsOn: string | null } | null;
+  weights: { achievements: number; monthlyActivity: number; activeLeadership: number };
+  views: { enabled: boolean; viewsPerPoint: number; pointsCap: number } | null;
+}
+
+export async function getRankingRules(): Promise<RankingRules> {
+  const supabase = createAdminClient();
+  const { data: period } = await supabase
+    .from("ranking_periods")
+    .select("id, name, starts_on, ends_on")
+    .eq("is_current", true)
+    .maybeSingle();
+
+  const [{ data: weights }, { data: policy }] = await Promise.all([
+    period
+      ? supabase.from("ranking_weights").select("achievements, monthly_activity, active_leadership").eq("period_id", period.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.rpc("ranking_view_policy"),
+  ]);
+  const view = (Array.isArray(policy) ? policy[0] : policy) as
+    | { enabled: boolean; views_per_point: number; points_cap: number }
+    | null;
+
+  return {
+    period: period
+      ? { name: period.name as string, startsOn: period.starts_on as string, endsOn: (period.ends_on as string | null) ?? null }
+      : null,
+    // Jadvalda yozuv bo'lmasa — `recalculate_rankings()` dagi standart 40/25/35.
+    weights: {
+      achievements: Number(weights?.achievements ?? 40),
+      monthlyActivity: Number(weights?.monthly_activity ?? 25),
+      activeLeadership: Number(weights?.active_leadership ?? 35),
+    },
+    views: view
+      ? { enabled: view.enabled, viewsPerPoint: Number(view.views_per_point), pointsCap: Number(view.points_cap) }
+      : null,
+  };
+}
+
+export async function getRankingRegions(): Promise<{ id: string; name: string }[]> {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("regions").select("id, name").order("name", { ascending: true });
+  return (data ?? []) as { id: string; name: string }[];
 }

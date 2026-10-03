@@ -34,7 +34,7 @@ export function RankingCard({ row }: { row: RankingRow }) {
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="font-display text-lg font-bold text-navy">{row.total_score.toFixed(1)}</span>
+        <span className="font-display text-lg font-bold text-navy">{new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 2 }).format(row.total_score)}</span>
         <RankDeltaBadge delta={delta} />
       </div>
     </Link>

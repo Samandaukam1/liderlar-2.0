@@ -97,18 +97,26 @@ test("server mijozga ISHONMAYDI — User-Agent'ni o'zi tekshiradi", () => {
   assert.match(code, /serverSaysBot \|\| clientSaysAutomated/);
 });
 
-test("botga cookie berilmaydi", () => {
+test("botga cookie berilmaydi (cookie faqat sahifa navigatsiyasida, proxy'da)", () => {
   /*
    * Har krauler so'rovi yangi cookie olsa, ular baribir har
-   * safar yangi tashrifchi bo'lib ko'rinardi — cookie hech
-   * narsa bermasdi, faqat javob hajmini oshirardi.
+   * safar yangi tashrifchi bo'lib ko'rinardi.
+   *
+   * 2026-10-04: cookie API'da EMAS, proxy'da beriladi — avval API
+   * cookie'siz so'rovga yangi ID berardi va skript sikli cheksiz
+   * "noyob" ko'rish yasardi.
    */
-  const code = src("src/app/api/profile-view/route.ts");
-  assert.match(code, /if \(!existingViewerId && !isBot\)/);
+  const proxy = src("src/proxy.ts");
+  assert.match(proxy, /isPageNavigation && !isBot && !request\.cookies\.get\(VIEWER_COOKIE\)/);
+
+  const route = src("src/app/api/profile-view/route.ts");
+  assert.doesNotMatch(route, /cookies\.set\(/, "API cookie bermasligi kerak");
+  assert.match(route, /if \(!existingViewerId\)/);
+  assert.match(route, /"no_cookie"/);
 });
 
 test("cookie brauzer skriptiga ochiq emas", () => {
-  const code = src("src/app/api/profile-view/route.ts");
+  const code = src("src/proxy.ts");
   assert.match(code, /httpOnly: true/);
   assert.match(code, /secure: true/);
 });

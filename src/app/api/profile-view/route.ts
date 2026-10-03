@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { randomUUID, createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { isBotUserAgent } from "@/lib/analytics/bot-detection";
+import { networkHash } from "@/lib/analytics/network-hash";
 
 export const runtime = "nodejs";
 
@@ -33,9 +34,27 @@ export async function POST(req: NextRequest) {
   const clientSaysAutomated = body?.automated === true;
   const isBot = serverSaysBot || clientSaysAutomated;
 
+  /*
+   * COOKIE'SIZ SO'ROV SANALMAYDI.
+   *
+   * Cookie'ni sahifa navigatsiyasida proxy beradi (`src/proxy.ts`).
+   * Avval bu yerda cookie'siz so'rovga YANGI ID berilardi va har bir
+   * skript so'rovi "yangi noyob ko'rish" bo'lib sanalardi.
+   */
   const existingViewerId = req.cookies.get(COOKIE)?.value;
-  const viewerId = existingViewerId ?? randomUUID();
-  const viewerHash = createHash("sha256").update(viewerId).digest("hex");
+  if (!existingViewerId) {
+    const admin = createAdminClient();
+    await admin
+      .rpc("record_profile_view_exclusion", {
+        p_candidate_slug: candidateSlug,
+        p_reason: isBot ? "bot" : "no_cookie",
+      })
+      .then(({ error }) => {
+        if (error) console.error("PROFILE_VIEW_EXCLUSION_FAILED", { code: error.code });
+      });
+    return NextResponse.json({ counted: false });
+  }
+  const viewerHash = createHash("sha256").update(existingViewerId).digest("hex");
 
   /*
    * O'Z SAHIFASINI KO'RISH — SERVERDA ANIQLANADI.
@@ -62,6 +81,8 @@ export async function POST(req: NextRequest) {
     p_viewer_hash: viewerHash,
     p_viewer_user_id: viewerUserId,
     p_is_bot: isBot,
+    // Kunlik chegaralar (tarmoq bo'yicha) — xom IP emas, HMAC.
+    p_network_hash: networkHash(req.headers),
   });
 
   if (error) {
@@ -69,21 +90,5 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.json({ counted: Boolean(data) });
-
-  /*
-   * Cookie BOTGA berilmaydi: har bir krauler so'rovi yangi
-   * cookie olsa, ular baribir har safar yangi tashrifchi
-   * bo'lib ko'rinardi va cookie hech narsa bermasdi.
-   */
-  if (!existingViewerId && !isBot) {
-    res.cookies.set(COOKIE, viewerId, {
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-      sameSite: "lax",
-      httpOnly: true,
-      secure: true,
-    });
-  }
-
   return res;
 }
