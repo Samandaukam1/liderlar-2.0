@@ -17,6 +17,18 @@ export interface PortraitCutout {
   url: string;
   width: number | null;
   height: number | null;
+  /**
+   * Kesma AYNAN profil rasmidan yasalganmi.
+   *
+   * Shunday bo'lsa, kesmani NIQOB qilib ishlatish mumkin: ustiga rangli
+   * profil rasmi qo'yilsa, fonsiz va RANGLI portret chiqadi (Post Studio
+   * kesmaning o'zini ataylab oq-qora saqlaydi — post kartochkalari shunday
+   * loyihalangan).
+   *
+   * Manba ariza fayli bo'lsa `false`: u boshqa kadr bo'lishi mumkin va
+   * niqob suratga ustma-ust tushmay, yuzni buzib ko'rsatardi.
+   */
+  alignedWithAvatar: boolean;
 }
 
 export interface PortraitCutoutRow {
@@ -69,6 +81,11 @@ export function isCutoutCurrent(sourceUrl: unknown, avatarUrl: string): boolean 
   return withoutQuery(sourceUrl) === withoutQuery(avatarUrl);
 }
 
+/** Manba AYNAN shu profil rasmimi (niqob usuli faqat shunda xavfsiz). */
+export function isSameImage(sourceUrl: unknown, avatarUrl: string): boolean {
+  return typeof sourceUrl === "string" && withoutQuery(sourceUrl) === withoutQuery(avatarUrl);
+}
+
 function dimension(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 10000
     ? value
@@ -116,7 +133,11 @@ export function pickPortraitCutout(
     const url = row.portrait_processed_url;
     if (!isCutoutUrl(url)) continue;
     if (!isCutoutCurrent(row.portrait_source_url, avatarUrl)) continue;
-    return { url, ...cutoutDimensions(row.metadata) };
+    return {
+      url,
+      ...cutoutDimensions(row.metadata),
+      alignedWithAvatar: isSameImage(row.portrait_source_url, avatarUrl),
+    };
   }
   return null;
 }

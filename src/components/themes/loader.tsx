@@ -85,6 +85,9 @@ export function themeExtrasFor(key: ThemeKey): ThemeExtrasNeeds {
   if (key === "imperial-gold") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
+  if (key === "emerald-legacy") {
+    return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
+  }
   if (key === "silver-executive") {
     return { ...NO_EXTRAS, journalArticles: true, podcasts: true };
   }
@@ -121,7 +124,7 @@ export function ThemeRenderer({
     case "monochrome-signature":
       return <MonochromeSignature profile={profile} />;
     case "emerald-legacy":
-      return <EmeraldLegacy profile={profile} />;
+      return <EmeraldLegacy profile={profile} extras={extras} />;
     case "aurora-glass":
       return <AuroraGlass profile={profile} />;
     case "zarafshon":

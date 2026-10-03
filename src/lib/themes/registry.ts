@@ -106,7 +106,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Emerald Legacy",
     mood: "Meros, bilim, intellektual nufuz",
     description:
-      "Chuqur zumrad, qaymoq va bosiq guruch rangi. Kitobdek editorial oqim, iqtibos bloklari.",
+      "Chuqur zumrad-qora, nurli zumrad shisha va bosiq antiqa guruch. Assimetrik hero, me'moriy ism, suzuvchi ma'lumot modullari, gorizontal vaqt o'qi va kinematik media lentasi.",
     premium: true,
     ready: true,
     suitedFor: "Olimlar, ustozlar",
