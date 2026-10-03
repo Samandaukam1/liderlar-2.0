@@ -49,27 +49,6 @@ const ELECTRIC = "#2f6bff";
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
-/**
- * IKONKA OHANGLARI — premium gradientlar.
- *
- * Har ikonka o'z juftligini oladi (`--g1` → `--g2`). Ranglar shu yerda,
- * Tailwind konfiguratsiyasida emas: dizayn olib tashlansa, loyiha
- * palitrasi ifloslanmaydi.
- */
-const TONES: readonly [string, string][] = [
-  ["#2f6bff", "#1d4ed8"],
-  ["#8b5cf6", "#6d28d9"],
-  ["#06b6d4", "#0284c7"],
-  ["#10b981", "#059669"],
-  ["#f59e0b", "#ea580c"],
-  ["#f43f5e", "#be123c"],
-];
-
-function tone(index: number): Vars {
-  const [from, to] = TONES[index % TONES.length];
-  return { "--g1": from, "--g2": to } as Vars;
-}
-
 export default function SilverExecutiveTheme({ profile, extras }: ThemeProps) {
   const quotes = (profile.quotes ?? [])
     .map((quote) => ({ id: String(quote.id), text: String(quote.text ?? "").trim() }))
@@ -171,9 +150,9 @@ function Hero({ profile, quote, hasBio }: { profile: ThemeProfile; quote: string
           )}
           {meta.length > 0 && (
             <ul className="se-meta se-seq" style={{ "--i": 3 } as Vars}>
-              {meta.map(({ icon: Icon, value, label }, index) => (
+              {meta.map(({ icon: Icon, value, label }) => (
                 <li key={label}>
-                  <span className="se-meta__icon" style={tone(index)} aria-hidden>
+                  <span className="se-meta__icon" aria-hidden>
                     <Icon className="se-icon" />
                   </span>
                   <span className="min-w-0">
@@ -239,9 +218,9 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
 
   return (
     <div className="se-stats" style={{ "--se-cols": items.length } as Vars}>
-      {items.map(({ icon: Icon, value, label }, index) => (
+      {items.map(({ icon: Icon, value, label }) => (
         <div key={label} className="se-stat">
-          <span className="se-stat__icon" style={tone(index)} aria-hidden>
+          <span className="se-stat__icon" aria-hidden>
             <Icon className="se-icon" />
           </span>
           <div className="min-w-0">
@@ -277,9 +256,9 @@ function QuickInfo({ profile }: { profile: ThemeProfile }) {
     <aside className="se-card se-aside" data-se-reveal aria-label="Tezkor ma’lumot">
       <h2 className="se-h2">Tezkor ma’lumot</h2>
       <ul className="se-facts">
-        {visible.map(({ icon: Icon, label, value }, index) => (
+        {visible.map(({ icon: Icon, label, value }) => (
           <li key={label}>
-            <span className="se-facts__icon" style={tone(index)} aria-hidden>
+            <span className="se-facts__icon" aria-hidden>
               <Icon className="se-icon" />
             </span>
             <span className="min-w-0">
@@ -290,7 +269,7 @@ function QuickInfo({ profile }: { profile: ThemeProfile }) {
         ))}
         {links.length > 0 && (
           <li>
-            <span className="se-facts__icon" style={tone(visible.length)} aria-hidden>
+            <span className="se-facts__icon" aria-hidden>
               <Globe className="se-icon" />
             </span>
             <span className="min-w-0">
@@ -442,11 +421,11 @@ function honours(profile: ThemeProfile): Section | null {
 function Rows({ icon: Icon, items }: { icon: LucideIcon; items: TimelineItem[] }) {
   return (
     <ul className="se-rows">
-      {items.map((item, index) => {
+      {items.map((item) => {
         const url = safeUrl(item.url);
         return (
           <li key={item.id} className="se-row">
-            <span className="se-row__icon" style={tone(index)} aria-hidden>
+            <span className="se-row__icon" aria-hidden>
               <Icon className="se-icon" />
             </span>
             <div className="se-row__body">
@@ -480,11 +459,11 @@ function certificates(profile: ThemeProfile): Section | null {
     title: "Sertifikatlar",
     body: (
       <ul className="se-rows">
-        {list.map((certificate, index) => {
+        {list.map((certificate) => {
           const url = safeUrl(certificate.credential_url as string | null);
           return (
             <li key={certificate.id} className="se-row">
-              <span className="se-row__icon" style={tone(index)} aria-hidden>
+              <span className="se-row__icon" aria-hidden>
                 <BadgeCheck className="se-icon" />
               </span>
               <div className="se-row__body">
@@ -530,9 +509,9 @@ function books(profile: ThemeProfile): Section | null {
           <div>
             <h3 className="se-sub">{read.length > 0 ? "Boshqa o‘qigan kitoblari" : "O‘qigan kitoblari"}</h3>
             <ul className="se-rows">
-              {manual.map((book, index) => (
+              {manual.map((book) => (
                 <li key={String(book.id)} className="se-row">
-                  <span className="se-row__icon" style={tone(index)} aria-hidden>
+                  <span className="se-row__icon" aria-hidden>
                     <BookOpen className="se-icon" />
                   </span>
                   <div className="se-row__body">
