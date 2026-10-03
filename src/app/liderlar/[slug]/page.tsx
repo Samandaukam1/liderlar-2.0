@@ -15,7 +15,8 @@ import {
 import { getCandidateBySlug, getSimilarCandidates } from "@/lib/data/candidates";
 import { loadThemeSelection } from "@/lib/themes/preference-service";
 import { resolveTheme } from "@/lib/themes/registry";
-import { hasThemeComponent, ThemeRenderer } from "@/components/themes/loader";
+import { hasThemeComponent, ThemeRenderer, themeExtrasFor } from "@/components/themes/loader";
+import { getCandidatePortraitCutout } from "@/lib/data/portrait-cutout";
 import { ProfileViewTracker as ThemeViewTracker } from "@/components/profile/profile-view-tracker";
 import {
   getCandidatePodcasts,
@@ -120,11 +121,23 @@ export default async function LeaderProfilePage({
    */
   const isPreview = Boolean(preview);
 
-  const themePromoCode = hasThemeComponent(themeKey)
-    ? await getPublicReferralCode(candidate.id).catch(() => null)
-    : null;
-
   if (hasThemeComponent(themeKey)) {
+    /*
+     * QO'SHIMCHA MA'LUMOT — FAQAT SHU DIZAYNGA KERAKLISI, PARALLEL.
+     *
+     * Masalan, Imperial Gold Post Studio yasagan shaffof portretni
+     * ishlatadi; boshqa dizaynlar uni so'ramaydi.
+     */
+    const needs = themeExtrasFor(themeKey);
+    const [themePromoCode, portraitCutout, journalArticles, podcasts] = await Promise.all([
+      getPublicReferralCode(candidate.id).catch(() => null),
+      needs.portraitCutout
+        ? getCandidatePortraitCutout(candidate.id, candidate.avatar_url).catch(() => null)
+        : null,
+      needs.journalArticles ? getCandidateJournalArticles(candidate.id).catch(() => []) : undefined,
+      needs.podcasts ? getCandidatePodcasts(candidate.id).catch(() => []) : undefined,
+    ]);
+
     return (
       <>
         {/*
@@ -136,8 +149,17 @@ export default async function LeaderProfilePage({
         */}
         {!isPreview && <ThemeViewTracker candidateSlug={candidate.slug} />}
         {hideHeader && <HiddenSiteHeader />}
-        <ThemeRenderer themeKey={themeKey} profile={candidate} />
-        {themePromoCode && (
+        <ThemeRenderer
+          themeKey={themeKey}
+          profile={candidate}
+          extras={{
+            portraitCutout,
+            promoCode: needs.promoCode ? themePromoCode : undefined,
+            journalArticles,
+            podcasts,
+          }}
+        />
+        {themePromoCode && !needs.promoCode && (
           /*
            * PROMO KOD PREMIUM DIZAYNDA HAM — dizayn tuzilishiga aralashmasdan,
            * sahifa oxirida. Standart dizaynda u hero'ning yuqori chap qismida.

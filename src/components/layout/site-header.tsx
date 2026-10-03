@@ -146,7 +146,7 @@ function MenuDropdown({
 export function MobileTopBar() {
   return (
     <header data-site-header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-brand-soft bg-paper/90 px-4 backdrop-blur-xl lg:hidden">
-      <Link href="/" aria-label={SITE_NAME} className="relative z-10 flex shrink-0 items-center">
+      <Link href="/" aria-label={SITE_NAME} data-site-logo className="relative z-10 flex shrink-0 items-center">
         <BrandLogo variant="light" priority className="h-[38px]" />
       </Link>
       <div className="relative z-10 flex items-center gap-1.5">
@@ -210,7 +210,7 @@ export function SiteHeader({ onlineEnabled = false }: { onlineEnabled?: boolean 
           scrolled ? "h-16" : "h-[4.75rem]"
         )}
       >
-        <Link href="/" aria-label={SITE_NAME} className="flex shrink-0 items-center">
+        <Link href="/" aria-label={SITE_NAME} data-site-logo className="flex shrink-0 items-center">
           <BrandLogo variant="light" priority className="h-[52px]" />
         </Link>
 

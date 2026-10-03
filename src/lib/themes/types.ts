@@ -1,4 +1,6 @@
 import type { getCandidateBySlug } from "@/lib/data/candidates";
+import type { getCandidateJournalArticles, getCandidatePodcasts } from "@/lib/data/profile-extra";
+import type { PortraitCutout } from "@/lib/themes/portrait-cutout";
 
 /**
  * MAVZU SHARTNOMASI.
@@ -17,11 +19,28 @@ import type { getCandidateBySlug } from "@/lib/data/candidates";
 export type ThemeProfile = NonNullable<Awaited<ReturnType<typeof getCandidateBySlug>>>;
 
 /**
+ * Ba'zi dizaynlarga qo'shimcha ma'lumot.
+ *
+ * Profilning o'zida yo'q, lekin mavjud tizimlarda allaqachon bor narsalar
+ * (Post Studio portreti, jurnal materiallari, …). Ular FAQAT shu dizayn
+ * tanlanganda yuklanadi (`themeExtrasFor`), ya'ni boshqa dizaynlardagi
+ * profillar ortiqcha so'rov qilmaydi. Maydon yo'q bo'lsa — dizayn uni
+ * ko'rsatmaydi, xato bermaydi.
+ */
+export interface ThemeExtras {
+  portraitCutout?: PortraitCutout | null;
+  promoCode?: string | null;
+  journalArticles?: Awaited<ReturnType<typeof getCandidateJournalArticles>>;
+  podcasts?: Awaited<ReturnType<typeof getCandidatePodcasts>>;
+}
+
+/**
  * Har bir dizayn qabul qiladigan proplar.
  *
- * `profile` dan boshqa hech narsa YO'Q: dizayn o'zi so'rov qilmasligi
- * kerak (§49 — har bo'lim uchun alohida so'rov qilinmasin).
+ * Dizayn o'zi so'rov qilmasligi kerak (§49 — har bo'lim uchun alohida
+ * so'rov qilinmasin): hammasi sahifada yuklanib, shu yerdan keladi.
  */
 export interface ThemeProps {
   profile: ThemeProfile;
+  extras?: ThemeExtras;
 }

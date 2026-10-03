@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import type { ThemeKey } from "@/lib/themes/registry";
-import type { ThemeProfile } from "@/lib/themes/types";
+import type { ThemeExtras, ThemeProfile } from "@/lib/themes/types";
 
 /**
  * DIZAYN YUKLOVCHI.
@@ -61,6 +61,34 @@ export function implementedThemeKeys(): readonly ThemeKey[] {
 }
 
 /**
+ * Qaysi dizayn qanday qo'shimcha ma'lumotni o'zi ko'rsatadi.
+ *
+ * Sahifa faqat shu ro'yxatdagini yuklaydi — boshqa dizaynlar ortiqcha
+ * so'rov qilmaydi. `promoCode: true` bo'lsa, dizayn promo kodni o'z
+ * uslubida chizadi va sahifa umumiy promo blokini qo'shmaydi.
+ */
+export interface ThemeExtrasNeeds {
+  portraitCutout: boolean;
+  promoCode: boolean;
+  journalArticles: boolean;
+  podcasts: boolean;
+}
+
+const NO_EXTRAS: ThemeExtrasNeeds = {
+  portraitCutout: false,
+  promoCode: false,
+  journalArticles: false,
+  podcasts: false,
+};
+
+export function themeExtrasFor(key: ThemeKey): ThemeExtrasNeeds {
+  if (key === "imperial-gold") {
+    return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
+  }
+  return NO_EXTRAS;
+}
+
+/**
  * Dizaynni ko'rsatadi.
  *
  * `switch` ATAYLAB: xaritadan komponent olib, uni o'zgaruvchi orqali
@@ -70,13 +98,15 @@ export function implementedThemeKeys(): readonly ThemeKey[] {
 export function ThemeRenderer({
   themeKey,
   profile,
+  extras,
 }: {
   themeKey: ThemeKey;
   profile: ThemeProfile;
+  extras?: ThemeExtras;
 }) {
   switch (themeKey) {
     case "imperial-gold":
-      return <ImperialGold profile={profile} />;
+      return <ImperialGold profile={profile} extras={extras} />;
     case "obsidian":
       return <Obsidian profile={profile} />;
     case "ivory-editorial":

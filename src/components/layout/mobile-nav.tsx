@@ -86,6 +86,7 @@ export function MobileNav() {
     <>
       <nav
         aria-label="Mobil menyu"
+        data-site-mobile-nav
         className="fixed bottom-3 left-3 right-3 z-40 flex items-center gap-1 rounded-[1.4rem] border border-brand-soft bg-paper/94 p-1.5 shadow-[0_16px_50px_rgba(7,88,126,0.18)] backdrop-blur-xl lg:hidden"
       >
         {ITEMS.map((item) => {

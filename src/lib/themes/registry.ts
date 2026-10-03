@@ -86,7 +86,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Imperial Gold",
     mood: "Nufuz, yetakchilik, institutsional hashamat",
     description:
-      "Chuqur qora fon, iliq suyak rangi va o'lchovli metall tilla. Katta editorial ism, bir tomonda portret, ingichka tilla chiziqlar.",
+      "Iliq chuqur qora, fil suyagi matn va o'lchovli shampan tillasi. Fonsiz portret ingichka tilla ramkadan chiqib turadi, katta editorial serif ism, sokin va silliq animatsiyalar.",
     premium: true,
     ready: true,
     suitedFor: "Rahbarlar, tashkilot asoschilari",
