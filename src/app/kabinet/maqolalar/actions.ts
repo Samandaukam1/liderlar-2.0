@@ -49,8 +49,9 @@ export async function saveDraft(
 export async function uploadHero(
   articleId: string,
   heroUrl: string,
+  dimensions?: { width: number; height: number },
 ): Promise<{ ok: boolean; error?: string }> {
-  const result = await setArticleHero(articleId, heroUrl);
+  const result = await setArticleHero(articleId, heroUrl, dimensions);
   if (result.ok) refresh(articleId);
   return result;
 }

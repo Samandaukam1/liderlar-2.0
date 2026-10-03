@@ -21,6 +21,9 @@ export interface OnlineCard {
   excerpt: string | null;
   heroUrl: string;
   heroAlt: string | null;
+  /** Banner o'lchami — masonry balandligi; `null` bo'lsa 16:9. */
+  heroWidth: number | null;
+  heroHeight: number | null;
   publishedAt: string;
   author: {
     name: string;
@@ -42,7 +45,7 @@ export interface OnlineFeed {
  * emas va har kartochka uchun o'n minglab belgi uzatilardi (§51).
  */
 const CARD_COLUMNS =
-  "id, slug, title, subtitle, excerpt, hero_url, hero_alt, published_at, candidates(full_name, slug, avatar_url)";
+  "id, slug, title, subtitle, excerpt, hero_url, hero_alt, hero_width, hero_height, published_at, candidates(full_name, slug, avatar_url)";
 
 function toCard(row: Record<string, unknown>): OnlineCard | null {
   const candidate = row.candidates as
@@ -71,6 +74,8 @@ function toCard(row: Record<string, unknown>): OnlineCard | null {
     excerpt: (row.excerpt as string | null) ?? null,
     heroUrl,
     heroAlt: (row.hero_alt as string | null) ?? null,
+    heroWidth: (row.hero_width as number | null) ?? null,
+    heroHeight: (row.hero_height as number | null) ?? null,
     publishedAt,
     author: {
       name: candidate.full_name?.trim() || "Muallif",
@@ -96,6 +101,7 @@ export async function getOnlineFeed(
     .select(CARD_COLUMNS)
     .eq("state", "published")
     .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
     /*
      * BITTA ORTIQCHA OLINADI.
      *
@@ -104,7 +110,19 @@ export async function getOnlineFeed(
      */
     .limit(limit + 1);
 
-  if (cursor) query = query.lt("published_at", cursor);
+  /*
+   * KURSOR — (published_at, id). Faqat sana bo'lsa, bir xil soniyada
+   * nashr qilingan maqolalar sahifalar chegarasida TUSHIB QOLARDI.
+   * Eski shakl (faqat sana) ham qabul qilinadi — tashqi havolalar uchun.
+   */
+  const parsed = parseCursor(cursor);
+  if (parsed?.id) {
+    query = query.or(
+      `published_at.lt."${parsed.publishedAt}",and(published_at.eq."${parsed.publishedAt}",id.lt.${parsed.id})`,
+    );
+  } else if (parsed) {
+    query = query.lt("published_at", parsed.publishedAt);
+  }
 
   const { data, error } = await query;
 
@@ -120,10 +138,24 @@ export async function getOnlineFeed(
     .map((row) => toCard(row as Record<string, unknown>))
     .filter((card): card is OnlineCard => card !== null);
 
+  const last = rows.slice(0, limit).at(-1) as { published_at?: string; id?: string } | undefined;
   return {
     items,
-    nextCursor: hasMore ? (items.at(-1)?.publishedAt ?? null) : null,
+    nextCursor: hasMore && last?.published_at && last.id ? `${last.published_at}~${last.id}` : null,
   };
+}
+
+/**
+ * Kursorni xavfsiz o'qiydi: faqat ISO vaqt va uuid. Boshqa narsa
+ * PostgREST filtr satriga tushmasligi kerak.
+ */
+export function parseCursor(cursor: string | null | undefined): { publishedAt: string; id: string | null } | null {
+  if (!cursor) return null;
+  const [rawTime, rawId] = cursor.split("~");
+  const time = Date.parse(rawTime ?? "");
+  if (!Number.isFinite(time)) return null;
+  const id = rawId && /^[0-9a-f-]{36}$/i.test(rawId) ? rawId : null;
+  return { publishedAt: new Date(time).toISOString(), id };
 }
 
 /**

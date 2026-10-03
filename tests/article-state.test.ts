@@ -361,8 +361,13 @@ test("sahifalash KURSOR bilan, offset emas", () => {
    * `offset` oshgani sari baza oldidagi barcha qatorlarni sanab
    * o'tadi va oxirgi sahifalar sekinlashadi.
    */
+  /*
+   * 2026-10-04: kursor (published_at, id) juftligi — bir xil soniyada
+   * nashr qilingan maqolalar sahifa chegarasida tushib qolmasin.
+   */
   const data = src("src/lib/data/liderlar-online.ts");
-  assert.match(data, /\.lt\("published_at", cursor\)/);
+  assert.match(data, /published_at\.lt\."\$\{parsed\.publishedAt\}",and\(published_at\.eq\."\$\{parsed\.publishedAt\}",id\.lt\.\$\{parsed\.id\}\)/);
+  assert.match(data, /\.order\("id", \{ ascending: false \}\)/);
   assert.equal(/\.range\(/.test(data), false, "range/offset topildi");
 });
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ImagePlus, Send } from "lucide-react";
 import { saveDraft, sendForReview, uploadHero } from "@/app/kabinet/maqolalar/actions";
 import { uploadProfileImage, PROGRESS_TEXT } from "@/lib/profile-editor/upload-client";
+import { checkHeroDimensions, heroAspect, HERO_RECOMMENDATION_TEXT } from "@/lib/articles/hero-rules";
 import {
   authorCanEdit,
   authorCanSubmit,
@@ -349,8 +350,32 @@ function HeroBlock({
   );
   const [error, setError] = useState<string | null>(null);
 
+  const [warning, setWarning] = useState<string | null>(null);
+
   async function onPick(file: File) {
     setError(null);
+    setWarning(null);
+
+    /*
+     * O'LCHAM YUKLASHDAN OLDIN tekshiriladi: kichik rasm umuman
+     * yuklanmaydi (trafik va vaqt behuda ketmaydi).
+     */
+    let dims: { width: number; height: number };
+    try {
+      const bitmap = await createImageBitmap(file);
+      dims = { width: bitmap.width, height: bitmap.height };
+      bitmap.close();
+    } catch {
+      setError("Rasmni o‘qib bo‘lmadi. JPG, PNG yoki WebP yuklang.");
+      return;
+    }
+    const check = checkHeroDimensions(dims.width, dims.height);
+    if (!check.ok) {
+      setError(check.error);
+      return;
+    }
+    setWarning(check.warning);
+
     const uploaded = await uploadProfileImage(file, "gallery", setProgress);
     setProgress(null);
 
@@ -359,7 +384,7 @@ function HeroBlock({
       return;
     }
 
-    const saved = await uploadHero(article.id, uploaded.url);
+    const saved = await uploadHero(article.id, uploaded.url, dims);
     if (!saved.ok) {
       setError(saved.error ?? "Bannerni saqlab bo'lmadi.");
       return;
@@ -372,6 +397,7 @@ function HeroBlock({
       <p className="mb-1 text-xs font-semibold text-navy">
         Banner rasmi <span className="text-coral">*</span>
       </p>
+      <p className="mb-2 text-[11px] leading-relaxed text-ink-soft">{HERO_RECOMMENDATION_TEXT}</p>
 
       {article.heroUrl ? (
         /*
@@ -381,16 +407,37 @@ function HeroBlock({
          * rasm qanday kesilishini shu yerda ko'radi va keyin
          * kutilmagan natijaga uchramaydi.
          */
-        <span className="block aspect-video overflow-hidden rounded-md border border-brand-soft">
-          <Image
-            src={article.heroUrl}
-            alt={heroAlt || "Banner"}
-            width={800}
-            height={450}
-            sizes="(max-width: 768px) 100vw, 672px"
-            className="h-full w-full object-cover"
-          />
-        </span>
+        <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">
+          <figure>
+            <span className="block aspect-video overflow-hidden rounded-md border border-brand-soft">
+              <Image
+                src={article.heroUrl}
+                alt={heroAlt || "Banner"}
+                width={800}
+                height={450}
+                sizes="(max-width: 768px) 100vw, 672px"
+                className="h-full w-full object-cover"
+              />
+            </span>
+            <figcaption className="mt-1 text-[11px] text-ink-soft">Maqola sahifasi (16:9 — chetlari qirqilishi mumkin)</figcaption>
+          </figure>
+          <figure>
+            <span
+              className="block overflow-hidden rounded-xl border border-brand-soft"
+              style={{ aspectRatio: String(heroAspect(article.heroWidth ?? null, article.heroHeight ?? null)) }}
+            >
+              <Image
+                src={article.heroUrl}
+                alt=""
+                width={300}
+                height={Math.round(300 / heroAspect(article.heroWidth ?? null, article.heroHeight ?? null))}
+                sizes="144px"
+                className="h-full w-full object-cover"
+              />
+            </span>
+            <figcaption className="mt-1 text-[11px] text-ink-soft">Lentada (telefon)</figcaption>
+          </figure>
+        </div>
       ) : (
         <p className="rounded-md border border-dashed border-brand-soft bg-paper px-3 py-6 text-center text-xs text-ink-soft">
           Banner rasmi yuklanmagan. U maqola tepasida va Liderlar Online
@@ -440,6 +487,7 @@ function HeroBlock({
       )}
 
       {error && <p className="mt-1 text-xs font-semibold text-rose-600">{error}</p>}
+      {warning && <p className="mt-1 text-xs text-amber-700">{warning}</p>}
     </div>
   );
 }

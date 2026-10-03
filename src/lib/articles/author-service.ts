@@ -42,6 +42,9 @@ export interface ArticleDetail extends ArticleListRow {
   excerpt: string | null;
   content: string;
   heroAlt: string | null;
+  /** Banner o'lchami (lenta joylashuvi uchun); eski maqolalarda `null`. */
+  heroWidth: number | null;
+  heroHeight: number | null;
 }
 
 export type ArticleResult<T = undefined> =
@@ -94,7 +97,7 @@ export async function loadOwnArticle(
   const { data, error } = await admin
     .from("member_articles")
     .select(
-      "id, title, subtitle, excerpt, content, hero_url, hero_alt, state, slug, review_note, updated_at, published_at",
+      "id, title, subtitle, excerpt, content, hero_url, hero_alt, hero_width, hero_height, state, slug, review_note, updated_at, published_at",
     )
     .eq("id", articleId)
     .eq("candidate_id", candidateId)
@@ -114,6 +117,8 @@ export async function loadOwnArticle(
     content: (data.content as string) ?? "",
     heroUrl: (data.hero_url as string | null) ?? null,
     heroAlt: (data.hero_alt as string | null) ?? null,
+    heroWidth: (data.hero_width as number | null) ?? null,
+    heroHeight: (data.hero_height as number | null) ?? null,
     state: data.state as ArticleState,
     slug: (data.slug as string | null) ?? null,
     reviewNote: (data.review_note as string | null) ?? null,
@@ -326,6 +331,7 @@ async function writeRevision(
 export async function setArticleHero(
   articleId: string,
   heroUrl: string,
+  dimensions?: { width: unknown; height: unknown },
 ): Promise<{ ok: boolean; error?: string }> {
   const entitled = await requireEntitlement("articles.create");
   if (!entitled.ok) return { ok: false, error: entitled.error };
@@ -344,10 +350,23 @@ export async function setArticleHero(
     return { ok: false, error: "Banner rasmi noto'g'ri." };
   }
 
+  /*
+   * O'LCHAM — faqat lenta joylashuvi uchun (masonry, sakramaslik).
+   * Brauzer yuboradi, shuning uchun qat'iy chegarada tekshiriladi;
+   * noto'g'ri bo'lsa `null` (16:9 deb olinadi) — xavfsizlikka ta'siri yo'q.
+   */
+  const dim = (v: unknown) => (Number.isInteger(v) && (v as number) > 0 && (v as number) <= 20000 ? (v as number) : null);
+  const heroWidth = dim(dimensions?.width);
+  const heroHeight = dim(dimensions?.height);
+
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("member_articles")
-    .update({ hero_url: heroUrl })
+    .update({
+      hero_url: heroUrl,
+      hero_width: heroWidth && heroHeight ? heroWidth : null,
+      hero_height: heroWidth && heroHeight ? heroHeight : null,
+    })
     .eq("id", articleId)
     .eq("candidate_id", resolved.owned.candidateId)
     /*
