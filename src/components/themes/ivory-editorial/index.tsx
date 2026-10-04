@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
 import { rankingDisplay } from "@/lib/themes/profile-compose";
+import { formatDateUz } from "@/lib/utils";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -43,6 +44,7 @@ export default function IvoryEditorialTheme({ profile }: ThemeProps) {
         <Path profile={profile} />
         <Achievements profile={profile} />
         <Certificates profile={profile} />
+        <Articles profile={profile} />
         <Gallery profile={profile} />
       </div>
 
@@ -187,6 +189,43 @@ function Ranking({ profile }: ThemeProps) {
         )}
       </p>
     </section>
+  );
+}
+
+/* ========================================================================= *
+ * MAQOLALARI — a'zoning Liderlar Online'dagi o'z maqolalari
+ *
+ *    Avtomatik ko'rinadi; muallif kabinetda har birini yashira oladi.
+ *    Maqola bo'lmasa bo'lim umuman chizilmaydi.
+ * ========================================================================= */
+
+function Articles({ profile }: ThemeProps) {
+  const articles = profile.memberArticles ?? [];
+  if (articles.length === 0) return null;
+
+  return (
+    <Block title="Maqolalari">
+      <ul className="grid gap-6 sm:grid-cols-2">
+        {articles.map((m) => (
+          <li key={m.id}>
+            <Link href={m.href} className="group block">
+              {m.heroUrl && (
+                <span className="relative mb-3 block aspect-[16/9] overflow-hidden">
+                  <Image src={m.heroUrl} alt="" fill sizes="(max-width: 640px) 100vw, 480px" loading="lazy" className="object-cover" />
+                </span>
+              )}
+              <span className="text-[10px] font-semibold uppercase tracking-[0.3em]" style={{ color: BURGUNDY }}>
+                {m.publishedAt ? `Liderlar Online · ${formatDateUz(m.publishedAt)}` : "Liderlar Online"}
+              </span>
+              <span className="mt-1 block font-display text-xl font-bold leading-snug group-hover:underline">{m.title}</span>
+              {m.excerpt && (
+                <span className="mt-1 block line-clamp-2 text-sm leading-relaxed" style={{ color: SOFT }}>{m.excerpt}</span>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Block>
   );
 }
 

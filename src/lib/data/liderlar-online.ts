@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readingMinutes } from "@/lib/articles/state";
+import { richTextToPlain } from "@/lib/articles/rich-text";
 
 /**
  * LIDERLAR ONLINE — OMMAVIY MA'LUMOT.
@@ -206,7 +207,8 @@ export async function getOnlineArticle(slug: string): Promise<OnlineArticle | nu
   return {
     ...card,
     content,
-    readingMinutes: readingMinutes(content),
+    // Belgilar va havola manzillari so'z bo'lib sanalmasin.
+    readingMinutes: readingMinutes(richTextToPlain(content)),
     seoTitle: (data.seo_title as string | null) ?? null,
     seoDescription: (data.seo_description as string | null) ?? null,
   };

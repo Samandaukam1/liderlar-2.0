@@ -2,6 +2,7 @@ import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
 import { getCandidateRanking, getOverallRankings } from "@/lib/data/candidate-ranking";
+import { isStoredHeroUrl } from "@/lib/articles/hero-rules";
 import { splitPipeValues, stripCandidateMarkers, toShortBioItems } from "@/lib/candidates/text";
 import type { CandidateCardData, CandidateSectionData } from "@/lib/types";
 
@@ -261,7 +262,7 @@ export async function getCandidateBySlug(slug: string) {
       ? integrationKeyResult.data.integration_key
       : null;
   const admin = createAdminClient();
-  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, views, adabiyotXItems, ranking] =
+  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, views, adabiyotXItems, ranking, memberArticles] =
     await Promise.all([
       /*
        * `review_state = 'published'` — TEKSHIRUVDAGI YOZUV OMMAGA
@@ -348,6 +349,25 @@ export async function getCandidateBySlug(slug: string) {
        * ham reyting sahifasi bilan BIR XIL manbaga ulandi.
        */
       getCandidateRanking(data.id as string),
+      /*
+       * A'ZONING O'Z MAQOLALARI — Liderlar Online'da nashr qilinganlari.
+       *
+       * Avtomatik ko'rinadi; muallif kabinetda har birini yashira oladi
+       * (`show_on_profile`). Mazmun olinmaydi — sahifada faqat karta,
+       * to'liq matn o'z manzilida (`/liderlar-online/<slug>`).
+       *
+       * Anon rol bilan o'qiladi: RLS faqat nashr qilingan maqolani va
+       * faqat nashr qilingan nomzodnikini ochadi.
+       */
+      supabase
+        .from("member_articles")
+        .select("id, slug, title, subtitle, excerpt, hero_url, hero_alt, published_at")
+        .eq("candidate_id", data.id)
+        .eq("state", "published")
+        .eq("show_on_profile", true)
+        .not("slug", "is", null)
+        .order("published_at", { ascending: false })
+        .limit(24),
     ]);
 
   const publicMedia = (media.data ?? []).map((item) => ({
@@ -413,6 +433,22 @@ export async function getCandidateBySlug(slug: string) {
     media: publicMedia,
     quotes: quotes.data ?? [],
     articles: articles.data ?? [],
+    memberArticles: (memberArticles.data ?? []).map((row) => ({
+      id: row.id as string,
+      slug: row.slug as string,
+      title: (row.title as string) ?? "",
+      subtitle: (row.subtitle as string | null) ?? null,
+      excerpt: (row.excerpt as string | null) ?? null,
+      /*
+       * Faqat bizning storage'dagi rasm — begona host `next/image` da
+       * butun biografiyani yiqitardi (o'n bitta ko'rinishning hammasi
+       * shu qiymatdan foydalanadi, himoya bitta joyda).
+       */
+      heroUrl: isStoredHeroUrl(row.hero_url as string | null) ? (row.hero_url as string) : null,
+      heroAlt: (row.hero_alt as string | null) ?? null,
+      publishedAt: (row.published_at as string | null) ?? null,
+      href: `/liderlar-online/${row.slug as string}`,
+    })),
     adabiyotXItems,
   };
 }

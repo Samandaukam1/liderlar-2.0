@@ -456,7 +456,7 @@ function buildSections(
     timeline(profile),
     honours(profile),
     certificates(profile),
-    media(extras),
+    media(profile, extras),
     books(profile),
     gallery(profile),
     quotesSection(restQuotes),
@@ -646,12 +646,24 @@ function optimizable(url: string | null | undefined): string | null {
   }
 }
 
-function media(extras: ThemeExtras | undefined): Section | null {
+function media(profile: ThemeProfile, extras: ThemeExtras | undefined): Section | null {
   const articles = extras?.journalArticles ?? [];
   const podcasts = extras?.podcasts ?? [];
-  if (articles.length === 0 && podcasts.length === 0) return null;
+  const own = profile.memberArticles ?? [];
+  if (own.length === 0 && articles.length === 0 && podcasts.length === 0) return null;
 
   const films = [
+    /*
+     * A'ZONING O'Z MAQOLALARI — avval, chunki bular uning o'zi yozgani.
+     * Muallif kabinetda yashirganlari bu yerga kelmaydi (`show_on_profile`).
+     */
+    ...(profile.memberArticles ?? []).map((m) => ({
+      id: `m-${m.id}`,
+      href: m.href,
+      title: m.title,
+      meta: m.publishedAt ? `Liderlar Online · ${formatDateUz(m.publishedAt)}` : "Liderlar Online",
+      image: optimizable(m.heroUrl),
+    })),
     ...articles.map((a) => ({
       id: `a-${a.id}`,
       href: `/jurnal/maqola/${a.slug}`,

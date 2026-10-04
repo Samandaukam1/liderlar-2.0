@@ -57,3 +57,30 @@ export function heroAspect(width: number | null, height: number | null): number 
   // Juda cho'ziq rasmlar lentani buzmasin: 1:2 .. 2.4:1 oralig'ida.
   return Math.min(2.4, Math.max(0.5, width / height));
 }
+
+/* ========================================================================= *
+ * BANNER MANZILI
+ * ========================================================================= */
+
+/**
+ * Banner manzili bizning storage'imizdami.
+ *
+ * YAGONA QOIDA ikki joy uchun:
+ *
+ *   · yozish (`setArticleHero`) — tashqi rasm Liderlar Online'ga
+ *     qo'yilmasin: u keyin o'zgarishi yoki yo'qolishi mumkin;
+ *   · o'qish (biografik sahifa) — `next/image` faqat sozlangan
+ *     hostlarni qabul qiladi va begona host BUTUN SAHIFANI yiqitadi.
+ *     Shuning uchun bazadan kelgan qiymat ham ko'rsatishdan oldin
+ *     shu qoidadan o'tadi: eski yoki paneldan kiritilgan noto'g'ri
+ *     manzil biografiyani "Nimadir xato ketdi" ga aylantirmasin.
+ *
+ * `next.config.ts` dagi `*.supabase.co/storage/v1/object/public/**`
+ * naqshi bilan mos.
+ */
+export function isStoredHeroUrl(value: string | null | undefined): value is string {
+  return (
+    typeof value === "string" &&
+    /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\//.test(value)
+  );
+}

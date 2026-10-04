@@ -29,6 +29,7 @@ import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
 import { ShareButtons } from "@/components/profile/share-buttons";
 import { ProfileViewTracker } from "@/components/profile/profile-view-tracker";
 import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
+import { ProfileMemberArticles } from "@/components/profile/profile-member-articles";
 import { ProfilePromoCode } from "@/components/profile/profile-promo-code";
 import { HiddenSiteHeader } from "@/components/profile/hidden-site-header";
 import { getPublicReferralCode } from "@/lib/referral/public-code";
@@ -276,6 +277,7 @@ export default async function LeaderProfilePage({
       : hasBiography
         ? [{ id: "biografiya", label: "Biografiya" }]
         : []),
+    ...(candidate.memberArticles.length > 0 ? [{ id: "maqolalari", label: "Maqolalari" }] : []),
     ...(ownWorks.length > 0 ? [{ id: "ijodiy-ishlari", label: "Ijodiy ishlari" }] : []),
     ...(readBooks.length > 0 ? [{ id: "oqigan-kitoblari", label: "O'qigan kitoblari" }] : []),
     ...(candidate.booksRead.length > 0
@@ -524,6 +526,12 @@ export default async function LeaderProfilePage({
               )
             )}
           </section>
+
+          {/*
+            NOMZODNING O'Z MAQOLALARI — biografiyadan keyin, chunki bu ham
+            uning o'zi yozgan matn. Muallif kabinetda yashirgani chiqmaydi.
+          */}
+          <ProfileMemberArticles articles={candidate.memberArticles} />
 
           <div id="ijodiy-ishlari" className="scroll-mt-20">
             <CandidateAdabiyotXSection title="Ijodiy ishlari" items={ownWorks} />

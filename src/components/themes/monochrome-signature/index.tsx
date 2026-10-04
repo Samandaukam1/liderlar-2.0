@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
 import { rankingDisplay } from "@/lib/themes/profile-compose";
+import { formatDateUz } from "@/lib/utils";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -43,6 +44,7 @@ export default function MonochromeSignatureTheme({ profile }: ThemeProps) {
         <Experience profile={profile} />
         <Achievements profile={profile} />
         <Certificates profile={profile} />
+        <Articles profile={profile} />
       </div>
 
       <Gallery profile={profile} />
@@ -158,6 +160,35 @@ function Ranking({ profile }: ThemeProps) {
           ranking.rankNote
         )}
       </p>
+    </Row>
+  );
+}
+
+/* ========================================================================= *
+ * MAQOLALARI — a'zoning Liderlar Online'dagi o'z maqolalari
+ *
+ *    Avtomatik ko'rinadi; muallif kabinetda har birini yashira oladi.
+ *    Maqola bo'lmasa bo'lim umuman chizilmaydi.
+ * ========================================================================= */
+
+function Articles({ profile }: ThemeProps) {
+  const articles = profile.memberArticles ?? [];
+  if (articles.length === 0) return null;
+
+  return (
+    <Row label="Maqolalari">
+      <ul>
+        {articles.map((m, index) => (
+          <li key={m.id} className={index > 0 ? "border-t" : undefined} style={{ borderColor: HAIRLINE }}>
+            <Link href={m.href} className="group flex items-baseline justify-between gap-6 py-3">
+              <span className="min-w-0 text-lg leading-snug group-hover:underline">{m.title}</span>
+              <span className="shrink-0 text-[11px] uppercase tracking-[0.25em]" style={{ color: GREY }}>
+                {m.publishedAt ? formatDateUz(m.publishedAt) : "Liderlar Online"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </Row>
   );
 }

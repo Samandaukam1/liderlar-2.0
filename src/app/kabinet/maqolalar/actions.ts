@@ -5,6 +5,7 @@ import {
   createArticle,
   saveArticle,
   setArticleHero,
+  setArticleProfileVisibility,
   submitArticle,
   type ArticleDraftInput,
 } from "@/lib/articles/author-service";
@@ -62,4 +63,22 @@ export async function sendForReview(
   const result = await submitArticle(articleId);
   if (result.ok) refresh(articleId);
   return result;
+}
+
+/**
+ * Maqola biografik sahifada ko'rinadimi.
+ *
+ * Ommaviy profil ham yangilanadi: aks holda yashirilgan maqola kesh
+ * muddati tugaguncha sahifada turib qolardi.
+ */
+export async function setProfileVisibility(
+  articleId: string,
+  visible: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await setArticleProfileVisibility(articleId, visible);
+  if (result.ok) {
+    refresh();
+    revalidatePath("/liderlar/[slug]", "page");
+  }
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

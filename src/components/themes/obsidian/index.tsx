@@ -9,6 +9,7 @@ import {
   year,
 } from "@/lib/themes/shape";
 import { rankingDisplay } from "@/lib/themes/profile-compose";
+import { formatDateUz } from "@/lib/utils";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -51,6 +52,7 @@ export default function ObsidianTheme({ profile }: ThemeProps) {
         <Path profile={profile} />
         <Achievements profile={profile} />
         <Certificates profile={profile} />
+        <Articles profile={profile} />
         <Gallery profile={profile} />
       </div>
 
@@ -220,6 +222,42 @@ function Ranking({ profile }: ThemeProps) {
         )}
       </p>
     </section>
+  );
+}
+
+/* ========================================================================= *
+ * MAQOLALARI — a'zoning Liderlar Online'dagi o'z maqolalari
+ *
+ *    Avtomatik ko'rinadi; muallif kabinetda har birini yashira oladi.
+ *    Maqola bo'lmasa bo'lim umuman chizilmaydi.
+ * ========================================================================= */
+
+function Articles({ profile }: ThemeProps) {
+  const articles = profile.memberArticles ?? [];
+  if (articles.length === 0) return null;
+
+  return (
+    <Block title="Maqolalari">
+      <ul className="divide-y" style={{ borderColor: LINE }}>
+        {articles.map((m) => (
+          <li key={m.id} style={{ borderColor: LINE }}>
+            <Link href={m.href} className="group flex items-center gap-4 py-4">
+              {m.heroUrl && (
+                <span className="relative block h-14 w-24 shrink-0 overflow-hidden">
+                  <Image src={m.heroUrl} alt="" fill sizes="96px" loading="lazy" className="object-cover opacity-80 transition group-hover:opacity-100" />
+                </span>
+              )}
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold leading-snug group-hover:underline">{m.title}</span>
+                <span className="mt-1 block text-[11px] uppercase tracking-[0.25em]" style={{ color: MUTED }}>
+                  {m.publishedAt ? `Liderlar Online · ${formatDateUz(m.publishedAt)}` : "Liderlar Online"}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Block>
   );
 }
 

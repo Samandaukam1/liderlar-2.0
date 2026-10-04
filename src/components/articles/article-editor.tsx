@@ -16,6 +16,8 @@ import {
   type ArticleState,
 } from "@/lib/articles/state";
 import type { ArticleDetail } from "@/lib/articles/author-service";
+import { ContentEditor } from "@/components/articles/content-editor";
+import { RichArticleBody } from "@/components/ui/rich-article-body";
 
 /**
  * MAQOLA MUHARRIRI (§23).
@@ -186,23 +188,25 @@ export function ArticleEditor({ article }: { article: ArticleDetail }) {
             />
           </Field>
 
-          <Field label="Maqola matni">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={18}
-              className={`${inputClass} font-serif leading-relaxed`}
-              placeholder="Matnni shu yerga yozing. Abzatslarni bo'sh qator bilan ajrating."
-            />
-            <span className="mt-1 flex items-center justify-between text-[11px] text-ink-soft">
-              <span>
-                {content.trim().length < CONTENT_MIN_LENGTH
-                  ? `Kamida ${CONTENT_MIN_LENGTH} belgi (hozir ${content.trim().length})`
-                  : `${content.trim().length} belgi`}
+          {/*
+            MATN — ASBOBLAR PANELI BILAN (qalin, kursiv, havola, iqtibos,
+            sarlavha, ro'yxat) va "Ko'rinish" yorlig'i. `Field` ishlatilmaydi:
+            u `<label>` va ichidagi tugmalar label xatti-harakatiga aralashardi.
+          */}
+          <ContentEditor
+            value={content}
+            onChange={setContent}
+            footer={
+              <span className="mt-1 flex items-center justify-between text-[11px] text-ink-soft">
+                <span>
+                  {content.trim().length < CONTENT_MIN_LENGTH
+                    ? `Kamida ${CONTENT_MIN_LENGTH} belgi (hozir ${content.trim().length})`
+                    : `${content.trim().length} belgi`}
+                </span>
+                {savedAt && <span>Avtosaqlandi: {savedAt}</span>}
               </span>
-              {savedAt && <span>Avtosaqlandi: {savedAt}</span>}
-            </span>
-          </Field>
+            }
+          />
 
           {/*
             YUBORISH SHARTLARI RO'YXAT SIFATIDA.
@@ -323,8 +327,9 @@ function ReadOnlyView({ article }: { article: ArticleDetail }) {
         </span>
       )}
 
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">
-        {article.content}
+      {/* Tekshiruvdagi maqola ham ommaviy sahifadagidek ko'rinadi — belgilar emas, natija. */}
+      <div className="mt-3">
+        <RichArticleBody content={article.content} className="max-w-none text-[0.95rem]" />
       </div>
     </div>
   );

@@ -225,7 +225,8 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
     { icon: Eye, label: "Profil ko‘rishlari", value: formatNumber(profile.view_count) },
   ];
   const counts: [LucideIcon, number, string][] = [
-    [FileText, extras?.journalArticles?.length ?? 0, "Maqolalari"],
+    // A'zoning o'z maqolalari ham sanaladi — ular ham uning maqolalari.
+    [FileText, (extras?.journalArticles?.length ?? 0) + (profile.memberArticles?.length ?? 0), "Maqolalari"],
     [Award, (profile.achievements ?? []).length, "Yutuqlari"],
     [BadgeCheck, (profile.certificates ?? []).length, "Sertifikatlari"],
   ];
@@ -329,7 +330,7 @@ function buildSections(
     honours(profile),
     certificates(profile),
     books(profile),
-    media(extras),
+    media(profile, extras),
     gallery(profile),
   ].filter((section): section is Section => section !== null);
 }
@@ -598,11 +599,23 @@ function optimizable(url: string | null | undefined): string | null {
   }
 }
 
-function media(extras: ThemeExtras | undefined): Section | null {
+function media(profile: ThemeProfile, extras: ThemeExtras | undefined): Section | null {
   const articles = extras?.journalArticles ?? [];
   const podcasts = extras?.podcasts ?? [];
-  if (articles.length === 0 && podcasts.length === 0) return null;
+  const own = profile.memberArticles ?? [];
+  if (own.length === 0 && articles.length === 0 && podcasts.length === 0) return null;
   const entries = [
+    /*
+     * A'ZONING O'Z MAQOLALARI — avval, chunki bular uning o'zi yozgani.
+     * Muallif kabinetda yashirganlari bu yerga kelmaydi (`show_on_profile`).
+     */
+    ...(profile.memberArticles ?? []).map((m) => ({
+      id: `m-${m.id}`,
+      href: m.href,
+      title: m.title,
+      meta: m.publishedAt ? `Liderlar Online · ${formatDateUz(m.publishedAt)}` : "Liderlar Online",
+      image: optimizable(m.heroUrl),
+    })),
     ...articles.map((a) => ({
       id: `a-${a.id}`,
       href: `/jurnal/maqola/${a.slug}`,

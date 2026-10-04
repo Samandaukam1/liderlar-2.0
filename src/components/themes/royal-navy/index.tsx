@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
 import { rankingDisplay } from "@/lib/themes/profile-compose";
+import { formatDateUz } from "@/lib/utils";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -40,6 +41,7 @@ export default function RoyalNavyTheme({ profile }: ThemeProps) {
       <Service profile={profile} />
       <Achievements profile={profile} />
       <Certificates profile={profile} />
+      <Articles profile={profile} />
       <Gallery profile={profile} />
       <Footer profile={profile} />
     </div>
@@ -166,6 +168,46 @@ function Ranking({ profile }: ThemeProps) {
           ranking.rankNote
         )}
       </p>
+    </Band>
+  );
+}
+
+/* ========================================================================= *
+ * MAQOLALARI — a'zoning Liderlar Online'dagi o'z maqolalari
+ *
+ *    Avtomatik ko'rinadi; muallif kabinetda har birini yashira oladi.
+ *    Maqola bo'lmasa bo'lim umuman chizilmaydi.
+ * ========================================================================= */
+
+function Articles({ profile }: ThemeProps) {
+  const articles = profile.memberArticles ?? [];
+  if (articles.length === 0) return null;
+
+  return (
+    <Band title="Maqolalari">
+      <ul className="grid gap-4 sm:grid-cols-2">
+        {articles.map((m) => (
+          <li key={m.id}>
+            <Link
+              href={m.href}
+              className="group flex h-full gap-4 p-4 transition"
+              style={{ backgroundColor: NAVY_SOFT, borderTop: `2px solid ${GOLD}` }}
+            >
+              {m.heroUrl && (
+                <span className="relative block h-16 w-24 shrink-0 overflow-hidden">
+                  <Image src={m.heroUrl} alt="" fill sizes="96px" loading="lazy" className="object-cover" />
+                </span>
+              )}
+              <span className="min-w-0">
+                <span className="block font-display text-base font-semibold leading-snug group-hover:underline">{m.title}</span>
+                <span className="mt-1 block text-[11px] uppercase tracking-[0.2em]" style={{ color: MUTED }}>
+                  {m.publishedAt ? `Liderlar Online · ${formatDateUz(m.publishedAt)}` : "Liderlar Online"}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </Band>
   );
 }

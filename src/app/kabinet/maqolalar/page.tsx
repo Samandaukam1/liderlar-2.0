@@ -7,6 +7,7 @@ import { resolveOwnCandidate } from "@/lib/profile-editor/edit-service";
 import { loadOwnArticles } from "@/lib/articles/author-service";
 import { STATE_TEXT } from "@/lib/articles/state";
 import { NewArticleButton } from "@/components/articles/new-article-button";
+import { ProfileVisibilityToggle } from "@/components/articles/profile-visibility-toggle";
 
 export const metadata: Metadata = {
   title: "Maqolalarim",
@@ -70,7 +71,10 @@ export default async function ArticlesPage() {
         Maqolalarim
       </h1>
       <p className="mt-2 text-sm text-ink-soft">
-        Tasdiqlangan maqolalar <b>Liderlar Online</b> bo&apos;limida chiqadi.
+        Tasdiqlangan maqolalar <b>Liderlar Online</b> bo&apos;limida va{" "}
+        <b>biografik sahifangizda</b>{" "}
+        avtomatik chiqadi. Sahifangizda
+        ko&apos;rsatishni xohlamagan maqolani pastdagi tugma bilan yashiring.
       </p>
 
       <div className="mt-5">
@@ -90,10 +94,13 @@ export default async function ArticlesPage() {
       ) : (
         <ul className="mt-6 space-y-3">
           {articles.map((article) => (
-            <li key={article.id}>
+            <li
+              key={article.id}
+              className="overflow-hidden rounded-lg border border-brand-soft bg-white transition hover:border-liderlar-blue/40"
+            >
               <Link
                 href={`/kabinet/maqolalar/${article.id}`}
-                className="flex gap-3 rounded-lg border border-brand-soft bg-white p-3 transition hover:border-liderlar-blue/40"
+                className="flex gap-3 p-3"
               >
                 {article.heroUrl ? (
                   <span className="relative block h-16 w-24 shrink-0 overflow-hidden rounded">
@@ -127,6 +134,20 @@ export default async function ArticlesPage() {
                   )}
                 </span>
               </Link>
+
+              {/*
+                TUGMA HAVOLADAN TASHQARIDA.
+
+                Havola ichidagi tugma ikki ish qilardi: bosish ham
+                almashtirardi, ham muharrirni ochardi.
+              */}
+              <div className="border-t border-brand-soft bg-paper/60 px-3 py-2">
+                <ProfileVisibilityToggle
+                  articleId={article.id}
+                  initial={article.showOnProfile}
+                  published={article.state === "published"}
+                />
+              </div>
             </li>
           ))}
         </ul>

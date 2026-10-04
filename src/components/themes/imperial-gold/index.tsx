@@ -365,7 +365,7 @@ function buildChapters(
     honoursChapter(profile),
     certificatesChapter(profile),
     booksChapter(profile),
-    journalChapter(extras),
+    journalChapter(profile, extras),
     podcastsChapter(extras),
     galleryChapter(profile),
     quotesChapter(restQuotes),
@@ -705,9 +705,28 @@ function optimizable(url: string | null | undefined): string | null {
   }
 }
 
-function journalChapter(extras: ThemeExtras | undefined): Chapter | null {
-  const articles = extras?.journalArticles ?? [];
-  if (articles.length === 0) return null;
+function journalChapter(profile: ThemeProfile, extras: ThemeExtras | undefined): Chapter | null {
+  const entries = [
+    /*
+     * A'ZONING O'Z MAQOLALARI — avval, chunki bular uning o'zi yozgani.
+     * Muallif kabinetda yashirganlari bu yerga kelmaydi (`show_on_profile`).
+     */
+    ...(profile.memberArticles ?? []).map((m) => ({
+      id: `m-${m.id}`,
+      href: m.href,
+      title: m.title,
+      meta: m.publishedAt ? `Liderlar Online · ${formatDateUz(m.publishedAt)}` : "Liderlar Online",
+      image: optimizable(m.heroUrl),
+    })),
+    ...(extras?.journalArticles ?? []).map((article) => ({
+      id: `j-${article.id}`,
+      href: `/jurnal/maqola/${article.slug}`,
+      title: String(article.title ?? ""),
+      meta: article.journal ? `Liderlar Online · ${article.journal.issue_number}-son` : "Liderlar Online",
+      image: optimizable(article.cover_url),
+    })),
+  ];
+  if (entries.length === 0) return null;
 
   return {
     id: "maqolalar",
@@ -715,14 +734,9 @@ function journalChapter(extras: ThemeExtras | undefined): Chapter | null {
     title: "Maqolalar",
     body: (
       <ul className="ig-entries">
-        {articles.map((article) => (
-          <li key={article.id} data-ig-reveal>
-            <Entry
-              href={`/jurnal/maqola/${article.slug}`}
-              title={String(article.title ?? "")}
-              meta={article.journal ? `Liderlar Online · ${article.journal.issue_number}-son` : "Liderlar Online"}
-              image={optimizable(article.cover_url)}
-            />
+        {entries.map((entry) => (
+          <li key={entry.id} data-ig-reveal>
+            <Entry href={entry.href} title={entry.title} meta={entry.meta} image={entry.image} />
           </li>
         ))}
       </ul>

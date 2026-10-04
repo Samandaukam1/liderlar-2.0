@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordAudit } from "@/lib/vip/audit-log";
+import { isStoredHeroUrl } from "@/lib/articles/hero-rules";
 import { requireEntitlement } from "@/lib/vip/entitlement-service";
 import { resolveOwnCandidate } from "@/lib/profile-editor/edit-service";
 import {
@@ -35,6 +36,8 @@ export interface ArticleListRow {
   reviewNote: string | null;
   updatedAt: string;
   publishedAt: string | null;
+  /** Biografik sahifada ko'rinadimi (faqat nashr qilinganda ma'noli). */
+  showOnProfile: boolean;
 }
 
 export interface ArticleDetail extends ArticleListRow {
@@ -60,7 +63,7 @@ export async function loadOwnArticles(candidateId: string): Promise<ArticleListR
 
   const { data, error } = await admin
     .from("member_articles")
-    .select("id, title, state, hero_url, slug, review_note, updated_at, published_at")
+    .select("id, title, state, hero_url, slug, review_note, updated_at, published_at, show_on_profile")
     .eq("candidate_id", candidateId)
     .order("updated_at", { ascending: false });
 
@@ -78,6 +81,7 @@ export async function loadOwnArticles(candidateId: string): Promise<ArticleListR
     reviewNote: (row.review_note as string | null) ?? null,
     updatedAt: row.updated_at as string,
     publishedAt: (row.published_at as string | null) ?? null,
+    showOnProfile: row.show_on_profile !== false,
   }));
 }
 
@@ -97,7 +101,7 @@ export async function loadOwnArticle(
   const { data, error } = await admin
     .from("member_articles")
     .select(
-      "id, title, subtitle, excerpt, content, hero_url, hero_alt, hero_width, hero_height, state, slug, review_note, updated_at, published_at",
+      "id, title, subtitle, excerpt, content, hero_url, hero_alt, hero_width, hero_height, state, slug, review_note, updated_at, published_at, show_on_profile",
     )
     .eq("id", articleId)
     .eq("candidate_id", candidateId)
@@ -124,6 +128,7 @@ export async function loadOwnArticle(
     reviewNote: (data.review_note as string | null) ?? null,
     updatedAt: data.updated_at as string,
     publishedAt: (data.published_at as string | null) ?? null,
+    showOnProfile: data.show_on_profile !== false,
   };
 }
 
@@ -346,7 +351,7 @@ export async function setArticleHero(
    * istalgan saytdagi rasm qo'yilardi — u keyin o'zgartirilishi
    * yoki yo'qolishi mumkin.
    */
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\//.test(heroUrl)) {
+  if (!isStoredHeroUrl(heroUrl)) {
     return { ok: false, error: "Banner rasmi noto'g'ri." };
   }
 
@@ -471,6 +476,60 @@ export async function submitArticle(
     before: { state: article.state },
     after: { state: "submitted" },
     metadata: { candidate_id: resolved.owned.candidateId, title: article.title },
+  });
+
+  return { ok: true };
+}
+
+/* ========================================================================= *
+ * PROFILDA KO'RSATISH
+ * ========================================================================= */
+
+/**
+ * Maqola muallifning biografik sahifasida ko'rinadimi.
+ *
+ * VIP HUQUQI TALAB QILINMAYDI — ATAYLAB. Bu NASHR emas va hech narsa
+ * qo'shmaydi: faqat o'z sahifasidagi ro'yxatdan olib tashlash yoki
+ * qaytarish. Obunasi tugagan a'zo ham o'z maqolasini sahifasidan
+ * yashira olishi kerak — aks holda mazmun uning roziligisiz osilib
+ * qolardi. Maqola Liderlar Online va AdabiyotX'da avvalgidek qoladi.
+ *
+ * EGALIK — yagona, lekin qat'iy shart: `articleId` brauzerdan keladi,
+ * shuning uchun `candidate_id` yozishning o'zida (§44).
+ */
+export async function setArticleProfileVisibility(
+  articleId: string,
+  visible: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  if (typeof visible !== "boolean") return { ok: false, error: "Noto'g'ri qiymat." };
+
+  const resolved = await resolveOwnCandidate();
+  if (!resolved.ok) return { ok: false, error: resolved.error };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("member_articles")
+    .update({ show_on_profile: visible })
+    .eq("id", articleId)
+    .eq("candidate_id", resolved.owned.candidateId)
+    .select("id, title, slug")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[maqola] profil ko'rinishi saqlanmadi:", error.message);
+    return { ok: false, error: "O'zgarishni saqlab bo'lmadi." };
+  }
+  /*
+   * Topilmadi: yoki yo'q, yoki BOSHQA nomzodniki. Ikkisi bir xil
+   * javob oladi — farqi maqolaning mavjudligini oshkor qilardi.
+   */
+  if (!data) return { ok: false, error: "Maqola topilmadi." };
+
+  await recordAudit("article.profile_visibility_changed", {
+    actorId: resolved.owned.profileId,
+    entityId: articleId,
+    after: { show_on_profile: visible },
+    metadata: { candidate_id: resolved.owned.candidateId, slug: (data.slug as string | null) ?? null },
   });
 
   return { ok: true };

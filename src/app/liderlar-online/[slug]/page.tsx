@@ -7,7 +7,7 @@ import { getMoreFromAuthor, getOnlineArticle } from "@/lib/data/liderlar-online"
 import { resolveSiteUrl } from "@/lib/site-url";
 import { formatDateUz } from "@/lib/utils";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { ArticleBody } from "@/components/ui/article-body";
+import { RichArticleBody } from "@/components/ui/rich-article-body";
 import { ArticleCard } from "@/components/online/article-card";
 
 export const dynamic = "force-dynamic";
@@ -150,14 +150,15 @@ export default async function OnlineArticlePage({
       </figure>
 
       {/*
-        MAZMUN `ArticleBody` ORQALI.
+        MAZMUN `RichArticleBody` ORQALI.
 
-        U matnni abzatslarga ajratib, JSX sifatida chiqaradi —
-        `dangerouslySetInnerHTML` yo'q, ya'ni React o'zi ekranlaydi
-        va saqlangan XSS imkonsiz (§58).
+        Muallif muharrirda qalin, kursiv, havola, iqtibos, sarlavha va
+        ro'yxat qo'yadi. Matn tahlil qilinib JSX sifatida chiqadi —
+        `dangerouslySetInnerHTML` yo'q, ya'ni saqlangan XSS imkonsiz
+        (§58). Belgisiz eski matn avvalgidek abzatslar bo'lib chiqadi.
       */}
       <div className="mt-8">
-        <ArticleBody content={article.content} lead dropCap />
+        <RichArticleBody content={article.content} dropCap />
       </div>
 
       <footer className="mt-12 border-t border-brand-soft pt-6">

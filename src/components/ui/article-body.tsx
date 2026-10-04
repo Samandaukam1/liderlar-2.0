@@ -18,6 +18,13 @@ export function readingMinutes(content?: string | null) {
 }
 
 /**
+ * Maqola matnining tipografiyasi — oddiy va belgilangan (`RichArticleBody`)
+ * matn bir xil ko'rinishi uchun BITTA joyda.
+ */
+export const ARTICLE_BODY_CLASS =
+  "mx-auto max-w-[38rem] text-[1.06rem] leading-[1.85] text-ink [hyphens:auto] [text-wrap:pretty] sm:text-[1.1rem] sm:leading-[1.9]";
+
+/**
  * Mobil o'qish uchun moslangan maqola matni: qulay o'lchamdagi satr uzunligi,
  * bo'g'inlarga bo'lish va abzatslar orasidagi nafas oladigan bo'shliq.
  */
@@ -38,13 +45,7 @@ export function ArticleBody({
   if (paragraphs.length === 0) return null;
 
   return (
-    <div
-      className={cn(
-        "mx-auto max-w-[38rem] text-[1.06rem] leading-[1.85] text-ink [hyphens:auto] [text-wrap:pretty] sm:text-[1.1rem] sm:leading-[1.9]",
-        className
-      )}
-      lang="uz"
-    >
+    <div className={cn(ARTICLE_BODY_CLASS, className)} lang="uz">
       {paragraphs.map((paragraph, idx) => (
         <p
           key={idx}
