@@ -126,7 +126,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Obsidian",
     mood: "Minimal qorong'u hashamat",
     description:
-      "Qoraga yaqin fon, ko'mir va platina. Katta kinematografik portret, keng bo'sh joy, dramatik tipografiya.",
+      "Toza qora, oq tipografiya va ingichka kumush chiziqlar. Ortda ulkan ism (ism — oq, familiya — kontur), oldinda katta fonsiz portret; rang faqat ijtimoiy tarmoq belgilarida.",
     premium: true,
     ready: true,
     suitedFor: "Ijodkorlar, me'morlar",
