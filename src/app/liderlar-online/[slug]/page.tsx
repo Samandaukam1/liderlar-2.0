@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isFeatureEnabled } from "@/lib/vip/entitlement-service";
 import { getMoreFromAuthor, getOnlineArticle } from "@/lib/data/liderlar-online";
 import { resolveSiteUrl } from "@/lib/site-url";
-import { formatDateUz } from "@/lib/utils";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { parseRichText } from "@/lib/articles/rich-text";
+import { articleOutline } from "@/lib/articles/reading";
 import { RichArticleBody } from "@/components/ui/rich-article-body";
 import { ArticleCard } from "@/components/online/article-card";
+import { ArticleReader, ReaderAuthorCard } from "@/components/reader/article-reader";
 
 export const dynamic = "force-dynamic";
 
@@ -78,127 +77,63 @@ export default async function OnlineArticlePage({
   ]);
 
   const url = `${siteUrl}/liderlar-online/${article.slug}`;
+  const authorHref = `/liderlar/${article.author.slug}`;
+  // Mundarija — matndagi sarlavhalardan (kamida ikkita bo'lsa).
+  const outline = articleOutline(parseRichText(article.content));
 
   return (
-    <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <Breadcrumbs
-        items={[
+    <article>
+      <ArticleReader
+        crumbs={[
           { label: "Liderlar Online", href: "/liderlar-online" },
           { label: article.title },
         ]}
-      />
+        kicker="Liderlar Online"
+        title={article.title}
+        dek={article.subtitle}
+        authors={[{ name: article.author.name, href: authorHref, avatarUrl: article.author.avatarUrl }]}
+        publishedAt={article.publishedAt}
+        readingMinutes={article.readingMinutes}
+        cover={{ url: article.heroUrl, alt: article.heroAlt, caption: article.heroAlt }}
+        shareUrl={url}
+        outline={outline}
+        footer={
+          <>
+            {/* MUALLIF O'Z PROFILIGA HAVOLA QILADI (§26, §31). */}
+            <ReaderAuthorCard
+              name={article.author.name}
+              href={authorHref}
+              avatarUrl={article.author.avatarUrl}
+              about={article.authorAbout}
+              moreHref={`${authorHref}#maqolalari`}
+            />
 
-      <header className="mt-4">
-        <h1 className="font-display text-3xl font-bold leading-tight text-navy text-balance sm:text-4xl">
-          {article.title}
-        </h1>
-
-        {article.subtitle && (
-          <p className="mt-3 text-lg leading-relaxed text-ink-soft">{article.subtitle}</p>
-        )}
-
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-y border-brand-soft py-3">
-          {/* MUALLIF O'Z PROFILIGA HAVOLA QILADI (§26, §31). */}
-          <Link href={`/liderlar/${article.author.slug}`} className="flex items-center gap-2">
-            {article.author.avatarUrl && (
-              <span className="relative block h-9 w-9 shrink-0 overflow-hidden rounded-full bg-paper">
-                <Image
-                  src={article.author.avatarUrl}
-                  alt=""
-                  fill
-                  sizes="36px"
-                  className="object-cover"
-                />
-              </span>
+            {more.length > 0 && (
+              <section className="mt-14">
+                <div className="mb-6 flex items-center gap-3">
+                  <h2 className="font-display text-2xl font-bold text-navy">Shu muallifning boshqa maqolalari</h2>
+                  <span aria-hidden className="h-px flex-1 bg-border-soft" />
+                </div>
+                <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
+                  {more.map((item) => (
+                    <ArticleCard key={item.id} article={item} />
+                  ))}
+                </div>
+              </section>
             )}
-            <span className="text-sm font-semibold text-navy">{article.author.name}</span>
-          </Link>
+          </>
+        }
+      >
+        {/*
+          MAZMUN `RichArticleBody` ORQALI.
 
-          <span className="text-xs text-ink-soft">{formatDateUz(article.publishedAt)}</span>
-
-          {/*
-            O'QISH VAQTI FAQAT HISOBLANGANDA (§31).
-
-            Qisqa matn uchun `null` qaytadi va hech narsa
-            ko'rsatilmaydi — "1 daqiqa" degan yozuv 50 so'z uchun
-            ma'nosiz.
-          */}
-          {article.readingMinutes !== null && (
-            <span className="text-xs text-ink-soft">
-              {article.readingMinutes} daqiqa o&apos;qish
-            </span>
-          )}
-        </div>
-      </header>
-
-      <figure className="mt-6">
-        <span className="relative block aspect-video overflow-hidden rounded-xl bg-paper">
-          <Image
-            src={article.heroUrl}
-            alt={article.heroAlt ?? ""}
-            fill
-            sizes="(max-width: 1024px) 100vw, 896px"
-            priority
-            className="object-cover"
-          />
-        </span>
-        {article.heroAlt && (
-          <figcaption className="mt-2 text-center text-xs text-ink-soft">
-            {article.heroAlt}
-          </figcaption>
-        )}
-      </figure>
-
-      {/*
-        MAZMUN `RichArticleBody` ORQALI.
-
-        Muallif muharrirda qalin, kursiv, havola, iqtibos, sarlavha va
-        ro'yxat qo'yadi. Matn tahlil qilinib JSX sifatida chiqadi —
-        `dangerouslySetInnerHTML` yo'q, ya'ni saqlangan XSS imkonsiz
-        (§58). Belgisiz eski matn avvalgidek abzatslar bo'lib chiqadi.
-      */}
-      <div className="mt-8">
-        <RichArticleBody content={article.content} dropCap />
-      </div>
-
-      <footer className="mt-12 border-t border-brand-soft pt-6">
-        <Link
-          href={`/liderlar/${article.author.slug}`}
-          className="flex items-center gap-3 rounded-lg border border-brand-soft bg-paper p-4 transition hover:border-liderlar-blue/40"
-        >
-          {article.author.avatarUrl && (
-            <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white">
-              <Image
-                src={article.author.avatarUrl}
-                alt=""
-                fill
-                sizes="56px"
-                className="object-cover"
-              />
-            </span>
-          )}
-          <span className="min-w-0">
-            <span className="block text-xs text-ink-soft">Muallif</span>
-            <span className="block font-semibold text-navy">{article.author.name}</span>
-            <span className="mt-0.5 block text-xs text-liderlar-blue">
-              Profilni ko&apos;rish
-            </span>
-          </span>
-        </Link>
-      </footer>
-
-      {more.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
-            Shu muallifning boshqa maqolalari
-          </h2>
-          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-            {more.map((item) => (
-              <ArticleCard key={item.id} article={item} />
-            ))}
-          </div>
-        </section>
-      )}
+          Muallif muharrirda qalin, kursiv, havola, iqtibos, sarlavha va
+          ro'yxat qo'yadi. Matn tahlil qilinib JSX sifatida chiqadi —
+          `dangerouslySetInnerHTML` yo'q, ya'ni saqlangan XSS imkonsiz
+          (§58). Belgisiz eski matn avvalgidek abzatslar bo'lib chiqadi.
+        */}
+        <RichArticleBody content={article.content} className="max-w-none" dropCap lead />
+      </ArticleReader>
 
       {/*
         TUZILGAN MA'LUMOT (§32).

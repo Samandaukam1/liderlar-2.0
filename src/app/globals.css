@@ -658,3 +658,72 @@ body {
   background: var(--color-liderlar-blue);
   color: var(--color-paper);
 }
+
+/* =========================================================================
+ * O'QISH OYNASI — MATN O'LCHAMI
+ *
+ * QATLAMSIZ (`@layer` tashqarisida) — ATAYLAB. Maqola matni bloki
+ * (`ArticleBody` / `RichArticleBody`) o'zining Tailwind o'lcham
+ * utilitalariga ega (`ARTICLE_BODY_CLASS`), ular `@layer utilities` da.
+ * Qatlamsiz qoida har qanday qatlamdan ustun turadi — shuning uchun
+ * o'lcham `.reader-body` ning O'ZIGA EMAS, uning ichidagi matn blokiga
+ * (`> *`) ham qo'yiladi. Faqat o'rovchiga qo'yilsa, ichki blokning
+ * utilitasi uni bosib ketardi va tugma matnga ta'sir qilmasdi.
+ *
+ * O'lchamni `ReaderTools` tanlaydi (`data-reader-size`). Sarlavha,
+ * iqtibos va ro'yxat `em` da — ular ham shu o'lcham bilan birga
+ * o'zgaradi.
+ * ========================================================================= */
+
+.reader-body,
+.reader-body > * {
+  font-size: 1.0625rem;
+  line-height: 1.85;
+}
+
+@media (min-width: 640px) {
+  .reader-body,
+  .reader-body > * {
+    font-size: 1.15rem;
+    line-height: 1.9;
+  }
+}
+
+[data-reader-size="sm"] .reader-body,
+[data-reader-size="sm"] .reader-body > * {
+  font-size: 1rem;
+}
+
+[data-reader-size="lg"] .reader-body,
+[data-reader-size="lg"] .reader-body > * {
+  font-size: 1.2rem;
+}
+
+@media (min-width: 640px) {
+  [data-reader-size="sm"] .reader-body,
+  [data-reader-size="sm"] .reader-body > * {
+    font-size: 1.05rem;
+  }
+
+  [data-reader-size="lg"] .reader-body,
+  [data-reader-size="lg"] .reader-body > * {
+    font-size: 1.3rem;
+  }
+}
+
+/* Matnda tanlangan so'z — sayt rangida, lekin o'qiladigan kontrastda. */
+.reader-body ::selection {
+  background: rgb(19 188 228 / 0.28);
+  color: var(--color-navy);
+}
+
+@media print {
+  [data-reader-chrome] {
+    display: none !important;
+  }
+
+  .reader-body {
+    font-size: 12pt;
+    color: #000;
+  }
+}

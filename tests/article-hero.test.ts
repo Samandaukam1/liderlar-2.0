@@ -17,8 +17,17 @@ test("tavsiya 16:9 — 1600 × 900, matnda aniq yozilgan", () => {
 });
 
 test("16:9 nisbat maqola sahifasidagi bannerga mos (aspect-video)", () => {
+  /*
+   * Banner endi umumiy o'qish oynasida chiziladi (`ArticleReader`).
+   * Sahifa unga muqovani beradi, nisbat esa qobiqda — ikkalasi ham
+   * tekshiriladi, aks holda biri o'zgarsa test buni sezmasdi.
+   */
   const page = readFileSync("src/app/liderlar-online/[slug]/page.tsx", "utf8");
-  assert.match(page, /aspect-video/);
+  assert.match(page, /<ArticleReader[\s\S]*cover=\{\{ url: article\.heroUrl/);
+
+  const reader = readFileSync("src/components/reader/article-reader.tsx", "utf8");
+  const figure = reader.slice(reader.indexOf("<figure"), reader.indexOf("</figure>"));
+  assert.match(figure, /aspect-video/);
 });
 
 test("kichik rasm rad etiladi, 16:9 dan farqlisi — ogohlantirish", () => {

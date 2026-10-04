@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getArticleBySlug } from "@/lib/data/articles";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { Avatar } from "@/components/ui/avatar";
-import { ArticleBody, readingMinutes } from "@/components/ui/article-body";
-import { formatDateUz, splitFullName } from "@/lib/utils";
+import { resolveSiteUrl } from "@/lib/site-url";
+import { toShortBioItems } from "@/lib/candidates/text";
+import { shouldDropCapText } from "@/lib/articles/reading";
+import { ArticleBody, readingMinutes, toParagraphs } from "@/components/ui/article-body";
+import { ArticleReader, ReaderAuthorCard } from "@/components/reader/article-reader";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -19,43 +18,61 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+/**
+ * TAHRIRIYAT MAQOLASI — umumiy o'qish oynasida (`ArticleReader`).
+ *
+ * Matn ODDIY MATN sifatida chiziladi (`ArticleBody`): bu maqolalarni
+ * tahririyat yozadi va ularda "*" belgisi kursiv emas, oddiy belgi
+ * bo'lishi mumkin.
+ */
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug).catch(() => null);
   if (!article) notFound();
 
   const candidate = Array.isArray(article.candidate) ? article.candidate[0] : article.candidate;
-  const name = candidate?.full_name ?? null;
-  const [firstName, lastName] = splitFullName(name);
+  const siteUrl = await resolveSiteUrl();
+  const authorHref = candidate?.slug ? `/liderlar/${candidate.slug}` : null;
+  const firstParagraph = toParagraphs(article.content)[0];
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <Breadcrumbs items={[{ label: "Ensiklopediya", href: "/liderlar" }, { label: article.title }]} />
-
-      <h1 className="mt-4 font-display text-[1.9rem] font-bold leading-[1.12] text-navy sm:text-4xl">
-        {article.title}
-      </h1>
-
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-        {candidate && (
-          <Link href={`/liderlar/${candidate.slug}`} className="flex items-center gap-2">
-            <Avatar src={candidate.avatar_url} firstName={firstName} lastName={lastName} size="sm" />
-            <span className="text-sm font-semibold text-navy">{name}</span>
-          </Link>
-        )}
-        {article.published_at && <span className="text-sm text-ink-soft">{formatDateUz(article.published_at)}</span>}
-        <span className="text-sm text-ink-soft">{readingMinutes(article.content)} daqiqalik o&apos;qish</span>
-      </div>
-
-      {article.cover_url && (
-        <div className="relative mt-6 aspect-video w-full overflow-hidden rounded-xl">
-          <Image src={article.cover_url} alt={article.title} fill sizes="768px" className="object-cover" />
-        </div>
-      )}
-
-      <div className="-mx-4 mt-7 border-y border-brand-soft bg-paper px-5 py-8 shadow-card sm:mx-0 sm:rounded-2xl sm:border sm:px-9 sm:py-10">
-        <ArticleBody content={article.content} dropCap lead />
-      </div>
+    <article>
+      <ArticleReader
+        crumbs={[{ label: "Ensiklopediya", href: "/liderlar" }, { label: article.title }]}
+        kicker="Ensiklopediya"
+        title={article.title}
+        /*
+         * Tavsif ko'pincha teglar ro'yxati ("Pedagog | Kitobxon"); Manrope
+         * shriftida "|" "I" harfiga o'xshab qoladi — nuqta bilan ajratamiz.
+         */
+        dek={article.excerpt?.replace(/\s*\|\s*/g, " · ") ?? null}
+        authors={
+          candidate?.full_name
+            ? [{ name: candidate.full_name, href: authorHref, avatarUrl: candidate.avatar_url }]
+            : []
+        }
+        publishedAt={article.published_at}
+        readingMinutes={readingMinutes(article.content)}
+        cover={article.cover_url ? { url: article.cover_url, alt: article.title } : null}
+        shareUrl={`${siteUrl}/maqola/${article.slug}`}
+        footer={
+          candidate?.full_name && authorHref ? (
+            <ReaderAuthorCard
+              name={candidate.full_name}
+              href={authorHref}
+              avatarUrl={candidate.avatar_url}
+              about={toShortBioItems(candidate.short_bio).join(" · ") || null}
+            />
+          ) : null
+        }
+      >
+        <ArticleBody
+          content={article.content}
+          className="max-w-none"
+          dropCap={shouldDropCapText(firstParagraph)}
+          lead
+        />
+      </ArticleReader>
     </article>
   );
 }

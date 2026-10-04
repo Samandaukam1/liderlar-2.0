@@ -109,7 +109,7 @@ export function ContentEditor({
         <div
           role="toolbar"
           aria-label="Matnni bezash"
-          className="flex flex-wrap items-center gap-0.5 border-b border-brand-soft bg-paper px-1.5 py-1"
+          className="flex flex-wrap items-center gap-0.5 border-b border-border-soft bg-paper px-1.5 py-1"
         >
           <ToolButton label="Qalin (Ctrl+B)" disabled={mode === "preview"} onClick={() => wrap("**", "qalin matn")}>
             <Bold className="h-4 w-4" aria-hidden />
@@ -121,7 +121,7 @@ export function ContentEditor({
             <Link2 className="h-4 w-4" aria-hidden />
           </ToolButton>
 
-          <span className="mx-1 h-5 w-px bg-brand-soft" aria-hidden />
+          <span className="mx-1 h-5 w-px bg-border-soft" aria-hidden />
 
           <ToolButton label="Iqtibos" disabled={mode === "preview"} onClick={() => prefix("> ")}>
             <Quote className="h-4 w-4" aria-hidden />
@@ -165,7 +165,7 @@ export function ContentEditor({
 
         {/* ------------------------------------------------ HAVOLA */}
         {linkOpen && mode === "write" && (
-          <div className="border-b border-brand-soft bg-ice/40 px-3 py-2">
+          <div className="border-b border-border-soft bg-ice/40 px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="url"

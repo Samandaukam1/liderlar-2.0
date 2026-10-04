@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJournalArticleBySlug } from "@/lib/data/journals";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { resolveSiteUrl } from "@/lib/site-url";
+import { shouldDropCapText } from "@/lib/articles/reading";
+import { ArticleBody, readingMinutes, toParagraphs } from "@/components/ui/article-body";
+import { ArticleReader } from "@/components/reader/article-reader";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -17,52 +17,55 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+/**
+ * JURNAL MAQOLASI — umumiy o'qish oynasida (`ArticleReader`).
+ *
+ * Avval matn `whitespace-pre-wrap` bilan xom chiqardi; endi u
+ * tahririyat maqolasi kabi abzatslarga ajraladi (`ArticleBody`) —
+ * belgilash talqin qilinmaydi, faqat tipografiya.
+ */
 export default async function JournalArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const article = await getJournalArticleBySlug(slug).catch(() => null);
   if (!article) notFound();
 
   const journal = Array.isArray(article.journal) ? article.journal[0] : article.journal;
+  const siteUrl = await resolveSiteUrl();
+
+  const authors = (article.authors ?? [])
+    .map((author) => {
+      const candidate = Array.isArray(author.candidate) ? author.candidate[0] : author.candidate;
+      return candidate?.full_name
+        ? { name: candidate.full_name, href: `/liderlar/${candidate.slug}`, avatarUrl: candidate.avatar_url }
+        : author.author_name
+          ? { name: author.author_name }
+          : null;
+    })
+    .filter((author): author is NonNullable<typeof author> => author !== null);
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <Breadcrumbs
-        items={[
+    <article>
+      <ArticleReader
+        crumbs={[
           { label: "Liderlar Online", href: "/jurnal" },
           ...(journal ? [{ label: `#${journal.issue_number}`, href: `/jurnal/${journal.slug}` }] : []),
           { label: article.title },
         ]}
-      />
-
-      <h1 className="mt-4 font-display text-3xl font-bold text-navy sm:text-4xl">{article.title}</h1>
-
-      {article.authors?.length > 0 && (
-        <p className="mt-3 text-sm text-ink-soft">
-          Muallif(lar):{" "}
-          {article.authors
-            .map((a) => {
-              const candidate = Array.isArray(a.candidate) ? a.candidate[0] : a.candidate;
-              return candidate ? (
-                <Link key={a.id} href={`/liderlar/${candidate.slug}`} className="font-semibold text-liderlar-blue">
-                  {candidate.full_name}
-                </Link>
-              ) : (
-                <span key={a.id}>{a.author_name}</span>
-              );
-            })
-            .reduce<ReactNode[]>((acc, cur, i) => (i === 0 ? [cur] : [...acc, ", ", cur]), [])}
-        </p>
-      )}
-
-      {article.cover_url && (
-        <div className="relative mt-6 aspect-video w-full overflow-hidden rounded-xl">
-          <Image src={article.cover_url} alt={article.title} fill sizes="768px" className="object-cover" />
-        </div>
-      )}
-
-      <div className="prose-article mx-auto mt-8 whitespace-pre-wrap text-[1.05rem] leading-[1.75] text-ink">
-        {article.content}
-      </div>
+        kicker={journal ? `Jurnal · ${journal.issue_number}-son` : "Jurnal"}
+        title={article.title}
+        dek={article.excerpt}
+        authors={authors}
+        readingMinutes={readingMinutes(article.content)}
+        cover={article.cover_url ? { url: article.cover_url, alt: article.title } : null}
+        shareUrl={`${siteUrl}/jurnal/maqola/${article.slug}`}
+      >
+        <ArticleBody
+          content={article.content}
+          className="max-w-none"
+          dropCap={shouldDropCapText(toParagraphs(article.content)[0])}
+          lead
+        />
+      </ArticleReader>
     </article>
   );
 }

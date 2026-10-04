@@ -9,14 +9,19 @@ export function Breadcrumbs({ items, tone = "dark" }: { items: Crumb[]; tone?: "
   return (
     <nav
       aria-label="Breadcrumb"
-      className={cn("flex items-center gap-1.5 text-sm", light ? "text-white/55" : "text-ink-soft")}
+      className={cn("flex min-w-0 items-center gap-1.5 text-sm", light ? "text-white/55" : "text-ink-soft")}
     >
-      <Link href="/" className={cn("flex items-center", light ? "hover:text-white" : "hover:text-liderlar-blue")}>
+      <Link href="/" className={cn("flex shrink-0 items-center", light ? "hover:text-white" : "hover:text-liderlar-blue")}>
         <Home className="h-3.5 w-3.5" aria-hidden />
       </Link>
       {items.map((item, idx) => (
-        <span key={idx} className="flex items-center gap-1.5">
-          <ChevronRight className={cn("h-3.5 w-3.5", light ? "text-white/30" : "text-ink-soft/50")} aria-hidden />
+        /*
+         * `min-w-0` — oxirgi band (joriy sahifa) `truncate` bilan qisqarsin.
+         * Busiz flex bandi matndan torroq bo'la olmaydi va uzun sarlavha
+         * telefonda ekran chetidan chiqib ketardi. Havolalar qisqarmaydi.
+         */
+        <span key={idx} className={cn("flex items-center gap-1.5", item.href ? "shrink-0" : "min-w-0")}>
+          <ChevronRight className={cn("h-3.5 w-3.5 shrink-0", light ? "text-white/30" : "text-ink-soft/50")} aria-hidden />
           {item.href ? (
             <Link href={item.href} className={light ? "hover:text-white" : "hover:text-liderlar-blue"}>
               {item.label}

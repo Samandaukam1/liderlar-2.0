@@ -141,7 +141,7 @@ export default async function ArticlesPage() {
                 Havola ichidagi tugma ikki ish qilardi: bosish ham
                 almashtirardi, ham muharrirni ochardi.
               */}
-              <div className="border-t border-brand-soft bg-paper/60 px-3 py-2">
+              <div className="border-t border-border-soft bg-paper/60 px-3 py-2">
                 <ProfileVisibilityToggle
                   articleId={article.id}
                   initial={article.showOnProfile}

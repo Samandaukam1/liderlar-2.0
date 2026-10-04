@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readingMinutes } from "@/lib/articles/state";
 import { richTextToPlain } from "@/lib/articles/rich-text";
+import { stripCandidateMarkers, toShortBioItems } from "@/lib/candidates/text";
 
 /**
  * LIDERLAR ONLINE — OMMAVIY MA'LUMOT.
@@ -177,6 +178,11 @@ export async function getFeaturedArticle(): Promise<OnlineCard | null> {
 
 export interface OnlineArticle extends OnlineCard {
   content: string;
+  /**
+   * Muallif haqida bir-ikki jumla — maqola oxiridagi kartada.
+   * `short_bio`, bo'lmasa faoliyat sohasi; ikkalasi ham yo'q — `null`.
+   */
+  authorAbout: string | null;
   /** `null` — matn juda qisqa, vaqt ko'rsatilmaydi (§31). */
   readingMinutes: number | null;
   seoTitle: string | null;
@@ -188,7 +194,7 @@ export async function getOnlineArticle(slug: string): Promise<OnlineArticle | nu
 
   const { data, error } = await admin
     .from("member_articles")
-    .select(`${CARD_COLUMNS}, content, seo_title, seo_description`)
+    .select(`${CARD_COLUMNS}, content, seo_title, seo_description, author_meta:candidates(short_bio, activity_field)`)
     .eq("slug", slug)
     .eq("state", "published")
     .maybeSingle();
@@ -203,10 +209,19 @@ export async function getOnlineArticle(slug: string): Promise<OnlineArticle | nu
   if (!card) return null;
 
   const content = (data.content as string) ?? "";
+  const meta = data.author_meta as { short_bio?: string | null; activity_field?: string | null } | null;
 
   return {
     ...card,
     content,
+    /*
+     * `short_bio` ko'pincha "Tadbirkor | Blogger" ko'rinishida (teglar
+     * birlashtirilgan) — kartada "Tadbirkor · Blogger" bo'lib chiqadi.
+     */
+    authorAbout:
+      toShortBioItems(meta?.short_bio ?? null).join(" · ") ||
+      stripCandidateMarkers(meta?.activity_field ?? null).trim() ||
+      null,
     // Belgilar va havola manzillari so'z bo'lib sanalmasin.
     readingMinutes: readingMinutes(richTextToPlain(content)),
     seoTitle: (data.seo_title as string | null) ?? null,
