@@ -116,7 +116,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Royal Navy",
     mood: "Davlat, diplomatiya, institut",
     description:
-      "Chuqur dengiz ko'ki, oq va o'lchovli tilla detal. To'liq kenglikdagi rasmiy tuzilma.",
+      "Qora-ko'k fazo, sekin oquvchi kobalt yorug'lik va suyuq shisha (liquid glass) panellar. Bento hero, portret ustida qo'lyozma iqtibos va oltin imzo, kengaytirilgan zamonaviy tipografiya.",
     premium: true,
     ready: true,
     suitedFor: "Davlat xizmati, diplomatiya",

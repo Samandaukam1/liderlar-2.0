@@ -88,6 +88,9 @@ export function themeExtrasFor(key: ThemeKey): ThemeExtrasNeeds {
   if (key === "emerald-legacy") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
+  if (key === "royal-navy") {
+    return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
+  }
   if (key === "silver-executive") {
     return { ...NO_EXTRAS, journalArticles: true, podcasts: true };
   }
@@ -120,7 +123,7 @@ export function ThemeRenderer({
     case "silver-executive":
       return <SilverExecutive profile={profile} extras={extras} />;
     case "royal-navy":
-      return <RoyalNavy profile={profile} />;
+      return <RoyalNavy profile={profile} extras={extras} />;
     case "monochrome-signature":
       return <MonochromeSignature profile={profile} />;
     case "emerald-legacy":
