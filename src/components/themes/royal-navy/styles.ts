@@ -32,7 +32,7 @@ const themeCss = (p: RnPalette) => /* css */ `
   --rn-text:${p.text};--rn-text-2:#b6c2da;--rn-text-3:#8592ae;--rn-text-4:#5d6984;
   --rn-line:rgba(170,200,255,.12);--rn-line-2:rgba(170,200,255,.22);
   --rn-ok:#5eead4;--rn-up:#6ee7b7;--rn-down:#fca5a5;
-  /* Oltin — faqat ism va imzoda: sovuq paneldagi yagona iliq metall. */
+  /* Oltin — faqat ismda: sovuq paneldagi yagona iliq metall. */
   --rn-gold:linear-gradient(100deg,#a8792f 0%,#e9c983 22%,#fff1cc 36%,#d8ad5f 52%,#a8792f 70%,#f0d595 88%,#c49243 100%);
   --rn-ease:cubic-bezier(.22,1,.36,1);--rn-spring:cubic-bezier(.34,1.4,.64,1);
   --rn-r:28px;--rn-gap:14px;--rn-sticky:72px;--rn-gutter:clamp(1rem,4vw,3rem);
@@ -170,35 +170,10 @@ const themeCss = (p: RnPalette) => /* css */ `
 .rn-portrait__mono{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-size:clamp(5rem,14vw,9rem);color:transparent;
   background:linear-gradient(180deg,#ffffff,#6f9cff);-webkit-background-clip:text;background-clip:text;opacity:.85}
 .rn-portrait__shade{position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(180deg,transparent 40%,rgba(3,6,16,.42) 60%,rgba(3,6,16,.86) 100%)}
+  background:linear-gradient(180deg,transparent 55%,rgba(3,6,16,.65) 100%)}
 
-/* Pastki qism: oltin imzo va suzuvchi shisha — bitta ustunda. */
-.rn-portrait__foot{position:absolute;left:12px;right:12px;bottom:12px;z-index:2;display:flex;flex-direction:column;gap:1.15rem}
-/* O'ng tomonga tashlangan: imzo o'ng chetga tekislanadi. */
-.rn-words{position:relative;isolation:isolate;padding:0 .5rem 0 0;text-align:right;pointer-events:none;container-type:inline-size}
-/*
- * TUTUN SHISHA — imzo ortida. Oq ko'ylak va kostyum ustida yozuv yo'qolib
- * ketardi: bu qatlam ortini qoraytiradi va xiralashtiradi,
- * chetlari esa niqob bilan yumshoq eriydi — to'rtburchak chegara ko'rinmaydi.
- */
-.rn-words::before{content:"";position:absolute;inset:-1.6rem -1.2rem -1.1rem -1.2rem;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,rgba(3,7,18,.62),rgba(3,7,18,.78));
-  -webkit-backdrop-filter:blur(12px) saturate(115%);backdrop-filter:blur(12px) saturate(115%);
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 16%,#000 94%,transparent),linear-gradient(180deg,transparent,#000 24%,#000 84%,transparent);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(90deg,transparent,#000 16%,#000 94%,transparent),linear-gradient(180deg,transparent,#000 24%,#000 84%,transparent);
-  mask-composite:intersect}
-.rn-words__sign{position:relative;margin:.15rem 0 0;line-height:1;transform:rotate(-4deg);transform-origin:100% 50%}
-/*
- * IMZO BITTA QATORDA: o'lcham ustun kengligidan va imzo uzunligidan
- * hisoblanadi (Great Vibes'da o'rtacha ~0.4em/belgi, chekka bezaklar bilan).
- */
-.rn-words__sign span{display:inline-block;padding:.12em .4em .22em;font-family:var(--rn-script),cursive;font-weight:400;white-space:nowrap;
-  font-size:clamp(1.7rem,calc(100cqi / (var(--rn-sl,14) * .5 + 1.4)),3.1rem);line-height:1.05;color:transparent;
-  background:var(--rn-gold);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;
-  filter:drop-shadow(0 3px 14px rgba(0,0,0,.55)) drop-shadow(0 0 18px rgba(216,173,95,.25))}
-.rn-words__sign::after{content:"";display:block;width:min(52%,13rem);height:1px;margin:-.1rem .3rem 0 auto;transform-origin:right;
-  background:linear-gradient(90deg,transparent,rgba(233,201,131,.85) 70%,rgba(233,201,131,.2))}
+/* Pastki qism: suzuvchi shisha panel. */
+.rn-portrait__foot{position:absolute;left:12px;right:12px;bottom:12px;z-index:2}
 
 .rn-cap{position:relative;--rn-r:20px;margin:0;
   display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.8rem 1.2rem;padding:.95rem 1.1rem}
@@ -460,8 +435,6 @@ const themeCss = (p: RnPalette) => /* css */ `
 @keyframes rn-drift-b{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-9%,7%,0) scale(.9)}}
 @keyframes rn-drift-c{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(6%,-8%,0)}}
 @keyframes rn-failsafe{to{opacity:1;transform:none}}
-/* Imzo qo'lda yozilayotgandek — chapdan o'ngga ochiladi. */
-@keyframes rn-write{from{clip-path:inset(-30% 100% -40% 0)}to{clip-path:inset(-30% 0 -40% 0)}}
 @keyframes rn-shine{from{background-position:100% 0}to{background-position:0 0}}
 
 @media (prefers-reduced-motion:no-preference){
@@ -479,8 +452,6 @@ const themeCss = (p: RnPalette) => /* css */ `
   .rn-meter i{animation:rn-fill 1.8s var(--rn-ease) 1s backwards}
   .rn-name__line:nth-child(2)>span{animation:rn-rise 1.2s var(--rn-ease) backwards,rn-shine 2.6s var(--rn-ease) 1.2s backwards;
     animation-delay:calc(.4s + var(--i,0) * .1s),1.3s}
-  .rn-words__sign span{animation:rn-write 2.4s cubic-bezier(.45,.05,.25,1) 1.1s backwards,rn-shine 3s var(--rn-ease) 1.9s backwards}
-  .rn-words__sign::after{animation:rn-fill 1.6s var(--rn-ease) 2.7s backwards}
   .rn-pill i,.rn-index>i{animation:rn-pulse 3.2s ease-in-out infinite}
   .rn-aurora--a{animation:rn-drift-a 28s ease-in-out infinite}
   .rn-aurora--b{animation:rn-drift-b 34s ease-in-out infinite}

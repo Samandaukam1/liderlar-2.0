@@ -16,7 +16,7 @@ import {
 import type { ThemeExtras, ThemeProfile, ThemeProps } from "@/lib/themes/types";
 import type { PortraitCutout } from "@/lib/themes/portrait-cutout";
 import { RnDock, RnMotion, RnPromo, RnShare } from "./client";
-import { rnDisplay, rnMono, rnSans, rnScript } from "./fonts";
+import { rnDisplay, rnMono, rnSans } from "./fonts";
 import { royalNavyCss } from "./styles";
 
 /**
@@ -26,7 +26,7 @@ import { royalNavyCss } from "./styles";
  * kobalt va muzdek moviy yorug'lik ("aurora"), uning ustida SUYUQ SHISHA
  * (liquid glass) panellar — fonni xiralashtiradi, chetida sindiradi va
  * yuqori qirrasida yorug'likni aks ettiradi. Naqsh va bezak yo'q; oltin
- * faqat ism va imzoda — sovuq paneldagi yagona iliq metall.
+ * faqat ismda — sovuq paneldagi yagona iliq metall.
  *
  * KOMPOZITSIYA BOSHQA DIZAYNLARDAN TUBDAN FARQ QILADI (§9):
  *
@@ -62,7 +62,7 @@ export default function RoyalNavyTheme({ profile, extras }: ThemeProps) {
   const story = storyParts(profile);
 
   return (
-    <div data-rn-root className={`rn ${rnDisplay.variable} ${rnSans.variable} ${rnMono.variable} ${rnScript.variable}`}>
+    <div data-rn-root className={`rn ${rnDisplay.variable} ${rnSans.variable} ${rnMono.variable}`}>
       <style
         dangerouslySetInnerHTML={{
           __html: royalNavyCss({ void: VOID, cobalt: COBALT, electric: ELECTRIC, ice: ICE, text: TEXT }),
@@ -273,9 +273,6 @@ function Hero({
  * Kesma yo'q bo'lsa — profil rasmi plitkani to'liq egallaydi. Rasm umuman
  * yo'q bo'lsa — monogramma.
  *
- * PORTRET USTIDA — OLTIN IMZO: ism va familiya qo'lyozma (Great Vibes)
- * shriftida, o'ng tomonda, xuddi qo'lda yozilgandek chapdan o'ngga ochiladi.
- *
  * PASTDA SUZUVCHI SHISHA: yo'nalish va hudud, o'ng tomonda promo kod yoki
  * biografiyaga havola. U portretning o'zini sindiradi — suyuq shishaning
  * eng yaqqol ko'rinadigan joyi.
@@ -293,7 +290,6 @@ function Portrait({
 }) {
   const facts = [profile.category?.name, profile.region?.name].filter((v): v is string => Boolean(v?.trim()));
   const hasSide = Boolean(promoCode) || storyMinutes !== null;
-  const signature = signatureOf(profile.full_name);
 
   return (
     <figure className="rn-tile rn-tile--portrait" data-rn-tilt style={{ "--i": 1 } as Vars}>
@@ -313,17 +309,8 @@ function Portrait({
       )}
       <span className="rn-portrait__shade" aria-hidden />
 
-      <div className="rn-portrait__foot">
-        {/* Imzo — bezak: ism `h1` da to'liq turibdi. */}
-        {signature && (
-          <div className="rn-words" aria-hidden>
-            <p className="rn-words__sign" style={{ "--rn-sl": signature.length } as Vars}>
-              <span>{signature}</span>
-            </p>
-          </div>
-        )}
-
-        {(facts.length > 0 || hasSide) && (
+      {(facts.length > 0 || hasSide) && (
+        <div className="rn-portrait__foot">
           <figcaption className="rn-cap rn-glass rn-lens">
             {facts.length > 0 && (
               <div className="rn-cap__main">
@@ -347,23 +334,10 @@ function Portrait({
               )
             )}
           </figcaption>
-        )}
-      </div>
+        </div>
+      )}
     </figure>
   );
-}
-
-/**
- * Imzo matni: "Ism Familiya" — odam o'zini shunday imzolaydi (bazada
- * "Familiya Ism Otasining-ismi" tartibida). Katta-kichik harf bazada har
- * xil kelishi mumkin ("OCHILOVA BARNO"), imzo uchun bir xillashtiriladi.
- */
-function signatureOf(fullName: string): string {
-  const [family, given] = splitName(fullName).primary.map((word) => {
-    const [first = "", ...rest] = Array.from(word.toLocaleLowerCase("uz"));
-    return first.toLocaleUpperCase("uz") + rest.join("");
-  });
-  return [given, family].filter(Boolean).join(" ");
 }
 
 function longestWord(words: string[]): number {
