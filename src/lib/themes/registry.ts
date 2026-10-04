@@ -136,7 +136,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Ivory Editorial",
     mood: "Premium jurnal, biografiya",
     description:
-      "Suyak rangi, qora va iliq kulrang, bosiq burgundiya urg'u. Jurnal muqovasiga o'xshash kompozitsiya, katta iqtiboslar.",
+      "Suyak rangidagi qog'oz, chuqur ko'k va qora tipografiya. Jurnal muqovasi: chapda katta Didone ism, markazda portret, ortida ichi ko'k monoxrom suratli ulkan harflar va qiya kesiklar.",
     premium: true,
     ready: true,
     suitedFor: "Jurnalistlar, yozuvchilar, tadqiqotchilar",

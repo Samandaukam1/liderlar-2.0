@@ -88,6 +88,9 @@ export function themeExtrasFor(key: ThemeKey): ThemeExtrasNeeds {
   if (key === "emerald-legacy") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
+  if (key === "ivory-editorial") {
+    return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
+  }
   if (key === "obsidian") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
@@ -122,7 +125,7 @@ export function ThemeRenderer({
     case "obsidian":
       return <Obsidian profile={profile} extras={extras} />;
     case "ivory-editorial":
-      return <IvoryEditorial profile={profile} />;
+      return <IvoryEditorial profile={profile} extras={extras} />;
     case "silver-executive":
       return <SilverExecutive profile={profile} extras={extras} />;
     case "royal-navy":
