@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordAudit } from "@/lib/vip/audit-log";
 import { requireEntitlement } from "@/lib/vip/entitlement-service";
 import { resolveOwnCandidate } from "./edit-service";
-import { checkSection, sectionPolicy, type SectionInput } from "./field-policy";
+import { checkSection, type SectionInput } from "./field-policy";
 
 /**
  * BIOGRAFIYANING MATNLI BO'LIMLARI — A'ZONING O'ZI TAHRIRLAYDI.
@@ -14,8 +14,20 @@ import { checkSection, sectionPolicy, type SectionInput } from "./field-policy";
  * yaratilmaydi, aks holda ikki matn ajralib ketardi va qaysi biri
  * ommada turganini hech kim bilmasdi.
  *
- * KO'RIK HOLATI QATORNING O'ZIDA (`review_state`) — tuzilgan
- * yozuvlardagi bilan bir xil naqsh (`entry-service.ts`).
+ * MATN DARHOL NASHR BO'LADI — KO'RIK YO'Q (2026-10-04, egasining
+ * qarori): "ma'lumot to'g'riligiga nomzodning o'zi javobgar".
+ *
+ * Bu O'ZINI TAQDIM ETISH matni, tekshirib bo'ladigan da'volar emas:
+ * mukofot, lavozim va sertifikat alohida jadvallarda qoladi va
+ * ULAR hamon ko'rikdan o'tadi (`entry-service.ts`,
+ * `certificate-service.ts`). Ya'ni platformaning tasdig'i hech
+ * qayerda bepul tarqalmaydi.
+ *
+ * `review_state` ustuni SAQLANADI va `published` yoziladi: ommaviy
+ * so'rov ham, RLS ham shu shartni tekshiradi, ya'ni ustunni olib
+ * tashlash ikkala joyni ham buzardi. Qoladigan foydasi — kerak
+ * bo'lsa ko'rikni qaytarish bitta qatorlik o'zgarish bo'ladi, va
+ * eski `pending_review` qatorlar (bo'lsa) ommaga chiqib ketmaydi.
  *
  * Qoidalar `field-policy.ts` da va ular testlangan. Bu yerda: huquq,
  * egalik, yozish.
@@ -82,9 +94,7 @@ export async function loadOwnSections(candidateId: string): Promise<SectionRow[]
  * QO'SHISH
  * ========================================================================= */
 
-export async function createSection(
-  input: SectionInput,
-): Promise<(SectionResult & { reviewNeeded?: boolean })> {
+export async function createSection(input: SectionInput): Promise<SectionResult> {
   const entitled = await requireEntitlement("profile.self_edit");
   if (!entitled.ok) return { ok: false, error: entitled.error };
 
@@ -116,12 +126,13 @@ export async function createSection(
   }
 
   /*
-   * KO'RIK KERAKMI — SIYOSAT HAL QILADI, foydalanuvchi emas.
+   * HOLAT O'ZGARMAS QIYMAT — brauzerdan QABUL QILINMAYDI (§43).
    *
-   * Brauzerdan `review_state` qabul qilinsa, odam tekshirilmagan
-   * da'voni darhol nashr qilib yuborardi (§43).
+   * Hozir u har doim `published`, lekin baribir shu yerda yoziladi:
+   * kiritmadan olinsa, kelajakda ko'rik qaytarilganda uni chetlab
+   * o'tish yo'li ochiq qolardi.
    */
-  const reviewState = sectionPolicy(check.value.title) === "review" ? "pending_review" : "published";
+  const reviewState = "published";
 
   const { data: inserted, error } = await admin
     .from("candidate_sections")
@@ -149,7 +160,7 @@ export async function createSection(
     metadata: { section_id: (inserted?.id as string | undefined) ?? null },
   });
 
-  return { ok: true, reviewNeeded: reviewState === "pending_review" };
+  return { ok: true };
 }
 
 /* ========================================================================= *
@@ -159,7 +170,7 @@ export async function createSection(
 export async function updateSection(
   sectionId: string,
   input: SectionInput,
-): Promise<(SectionResult & { reviewNeeded?: boolean })> {
+): Promise<SectionResult> {
   const entitled = await requireEntitlement("profile.self_edit");
   if (!entitled.ok) return { ok: false, error: entitled.error };
 
@@ -191,14 +202,14 @@ export async function updateSection(
   if (!previous) return { ok: false, error: "Bo'lim topilmadi." };
 
   /*
-   * TASDIQLANGAN MATNNI O'ZGARTIRISH TASDIQNI BEKOR QILADI (§6).
+   * O'ZGARISH DARHOL OMMAVIY SAHIFADA.
    *
-   * Tahririyat tayyorlagan biografiya fakt-tekshiruvidan o'tgan. Uni
-   * jimgina almashtirish platformaning tasdig'ini tekshirilmagan
-   * matnga ko'chirardi — shuning uchun o'zgargan matn qaytadan
-   * ko'rikka boradi va ommaviy sahifadan VAQTINCHA chiqadi.
+   * Tahririyat tayyorlagan matnni o'zgartirganda ham kutish yo'q:
+   * matn egasiniki va u uchun javobgar ham o'zi. Eski qiymat
+   * JURNALDA qoladi (quyida) — ya'ni "nima o'zgardi, kim
+   * o'zgartirdi" savoliga javob bor.
    */
-  const reviewState = sectionPolicy(check.value.title) === "review" ? "pending_review" : "published";
+  const reviewState = "published";
 
   const { data, error } = await admin
     .from("candidate_sections")
@@ -245,7 +256,7 @@ export async function updateSection(
     metadata: { section_id: sectionId },
   });
 
-  return { ok: true, reviewNeeded: reviewState === "pending_review" };
+  return { ok: true };
 }
 
 /* ========================================================================= *

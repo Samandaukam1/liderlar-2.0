@@ -296,11 +296,14 @@ test("bo'lim xizmatida huquq va egalik tekshiruvi bor", () => {
   }
 });
 
-test("ko'rik holatini FOYDALANUVCHI tanlamaydi", () => {
+test("bo'lim holatini FOYDALANUVCHI tanlamaydi", () => {
   /*
-   * `review_state` brauzerdan kelgan qiymatdan OLINMAYDI: aks holda
-   * odam tekshirilmagan matnni darhol `published` qilib yuborardi
-   * (§43). U faqat `sectionPolicy` natijasidan kelib chiqadi.
+   * Biografiya matni DARHOL nashr bo'ladi (egasining qarori): matn
+   * o'zini taqdim etish, tekshirib bo'ladigan da'vo emas.
+   *
+   * Lekin holat baribir XIZMATNING O'ZIDA yoziladi, kiritmadan
+   * olinmaydi — aks holda ko'rik qaytarilgan kunda uni chetlab
+   * o'tish yo'li ochiq qolardi (§43).
    */
   const source = readFileSync("src/lib/profile-editor/section-service.ts", "utf8");
   const assignments = [...source.matchAll(/review_state: ([A-Za-z0-9_."]+)/g)].map((m) => m[1]);
@@ -309,11 +312,9 @@ test("ko'rik holatini FOYDALANUVCHI tanlamaydi", () => {
   for (const value of assignments) {
     assert.equal(value, "reviewState", `review_state kutilmagan qiymatdan: ${value}`);
   }
-  assert.match(
-    source,
-    /const reviewState =\s*\n?\s*sectionPolicy\(/,
-    "ko'rik holati siyosatdan olinmaydi",
-  );
+  // O'zgarmas qiymat — `input` dan emas.
+  assert.match(source, /const reviewState = "published";/);
+  assert.equal(/review_state:\s*input/.test(source), false, "holat kiritmadan olinadi");
 });
 
 test("ommaviy biografiya FAQAT nashr bo'lgan bo'limni oladi", () => {

@@ -123,30 +123,29 @@ export async function saveGalleryAltText(
 /* ========================================================================= *
  * BIOGRAFIYA MATNI — BO'LIMLAR
  *
- *    Ommaviy biografiyadagi matn aynan shu bo'limlardan yig'iladi.
- *    `review_state` HECH QAYERDA parametr emas: ko'rik kerakmi — buni
- *    siyosat hal qiladi, foydalanuvchi emas (§43).
+ *    Ommaviy biografiyadagi matn aynan shu bo'limlardan yig'iladi va
+ *    o'zgarish DARHOL sahifada ko'rinadi — matn egasiniki, to'g'riligi
+ *    uchun javobgar ham o'zi.
+ *
+ *    `review_state` baribir HECH QAYERDA parametr emas: holatni
+ *    xizmatning o'zi yozadi (§43).
  * ========================================================================= */
 
 export async function addSection(
   input: SectionInput,
-): Promise<{ ok: boolean; error?: string; reviewNeeded?: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
   const result = await createSection(input);
   if (result.ok) refresh();
-  return result.ok
-    ? { ok: true, reviewNeeded: result.reviewNeeded }
-    : { ok: false, error: result.error };
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
 
 export async function editSection(
   sectionId: string,
   input: SectionInput,
-): Promise<{ ok: boolean; error?: string; reviewNeeded?: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
   const result = await updateSection(sectionId, input);
   if (result.ok) refresh();
-  return result.ok
-    ? { ok: true, reviewNeeded: result.reviewNeeded }
-    : { ok: false, error: result.error };
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
 
 export async function removeSection(

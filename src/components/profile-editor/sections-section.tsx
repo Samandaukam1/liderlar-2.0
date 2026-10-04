@@ -13,12 +13,14 @@ import type { SectionRow } from "@/lib/profile-editor/section-service";
  * BIOGRAFIYA MATNI — BO'LIMLAR.
  *
  * Ommaviy biografiyadagi uzun matn shu bo'limlardan yig'iladi, ya'ni
- * bu yerda tahrirlangan narsa AYNAN sahifadagi matn. Boshqa
- * bo'limlardagi naqsh saqlanadi (§5): yopiq turadi, namuna
- * ko'rsatadi, ko'rik holatini halol aytadi.
+ * bu yerda tahrirlangan narsa AYNAN sahifadagi matn.
+ *
+ * OCHIQ HOLATDA BOSHLANADI — boshqa bo'limlardan farqli. Bu sahifaning
+ * asosiy ishi va u yopiq tursa, odam uni umuman ko'rmasdi; qolgan
+ * bo'limlar esa "qo'shimcha kiritish" va yopiq turgani to'g'ri (§5).
  */
 export function SectionsSection({ sections }: { sections: SectionRow[] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -50,21 +52,19 @@ export function SectionsSection({ sections }: { sections: SectionRow[] }) {
       {open && (
         <div className="border-t border-brand-soft px-4 py-3">
           {/*
-            MATN HALOL: "hammasi tekshiruvdan o'tadi" deyish YOLG'ON bo'lardi.
+            MATN DARHOL CHIQADI — KUTISH YO'Q.
 
-            Siyosat (`sectionPolicy`) o'zini TAQDIM ETISH bo'limlarini
-            ("Men haqimda", "Qiziqishlarim") darhol nashr qiladi — ularda
-            tekshirib bo'ladigan da'vo yo'q. Qolgan sarlavhalar ko'rikka
-            boradi. Har bo'limning haqiqiy holati o'z yorlig'ida ko'rinadi.
+            Egasining qarori (2026-10-04): "ma'lumot to'g'riligiga
+            nomzodning o'zi javobgar". Bu matn o'zini TAQDIM ETISH,
+            tekshirib bo'ladigan da'vo emas — mukofot, ta'lim va
+            sertifikat alohida bo'limlarda qoladi va ular hamon
+            tahririyat ko'rigidan o'tadi.
           */}
           <p className="mb-3 text-xs leading-relaxed text-ink-soft">
             Ommaviy biografiyangizdagi matn shu bo&apos;limlardan yig&apos;iladi.
-            &laquo;Men haqimda&raquo;, &laquo;Qiziqishlarim&raquo; kabi o&apos;zingiz
-            haqidagi bo&apos;limlar <b>darhol</b> joylanadi; qolganlari{" "}
-            <b>tahririyat tekshiruvidan</b> o&apos;tadi va tasdiqlangandan keyin
-            ko&apos;rinadi. Tahririyat tayyorlagan matnni o&apos;zgartirsangiz, u
-            qaytadan tekshiruvga boradi va shu vaqtda ommaviy sahifada
-            ko&apos;rinmaydi.
+            O&apos;zgarish <b>darhol</b>{" "}
+            profilingizda ko&apos;rinadi — matn to&apos;g&apos;riligi uchun
+            javobgarlik sizda.
           </p>
 
           {sections.length === 0 && !adding && (

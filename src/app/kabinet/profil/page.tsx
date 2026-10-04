@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Sparkles } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireEntitlement } from "@/lib/vip/entitlement-service";
 import { loadPendingEdits, resolveOwnCandidate } from "@/lib/profile-editor/edit-service";
@@ -17,9 +17,8 @@ import { CertificatesSection } from "@/components/profile-editor/certificates-se
 import { QuotesSection } from "@/components/profile-editor/quotes-section";
 import { EditRequestButton } from "@/components/kabinet/edit-request-button";
 import { loadOwnQuotes } from "@/lib/profile-editor/quote-service";
-import { ThemeGallery } from "@/components/profile-editor/theme-gallery";
 import { loadThemeSelection } from "@/lib/themes/preference-service";
-import { galleryThemes } from "@/lib/themes/registry";
+import { THEMES } from "@/lib/themes/registry";
 import { can } from "@/lib/vip/entitlement-service";
 
 export const metadata: Metadata = {
@@ -34,6 +33,22 @@ export const dynamic = "force-dynamic";
  *
  * §5: bitta katta forma emas, bo'limlarga ajratilgan. Har bo'lim
  * yopiq turadi va foydalanuvchi kerakligini ochadi.
+ *
+ * TUZILISH — IKKI USTUN (2026-10-04):
+ *
+ *   · BIOGRAFIYA MATNI eng tepada va keng ustunda. U ommaviy
+ *     sahifaning asosiy mazmuni; avval u o'nta yopiq bo'lim ostida
+ *     ko'rinmay yotardi.
+ *   · Qolgan bo'limlar YON ustunda, ixcham kartalar sifatida —
+ *     "qo'shimcha kiritish" ishi, asosiy ish emas.
+ *   · PREMIUM DIZAYNLAR yon ustunning TEPASIDA. Avval u sahifaning
+ *     eng ostida, o'nta bo'limdan keyin turardi va hech kim
+ *     ko'rmasdi. Bu yerda u ixcham karta: to'liq galereya o'z
+ *     sahifasida (`/kabinet/profil/dizayn`), ya'ni bitta galereya
+ *     ikki joyda saqlanmaydi.
+ *
+ * Telefon ekranida ustunlar ustma-ust tushadi va tartib shu bo'ladi:
+ * biografiya -> dizayn -> qolgan bo'limlar.
  *
  * HUQUQ SERVERDA TEKSHIRILADI. Sahifani ko'rsatmaslik yetarli emas —
  * server amallari ham o'z tekshiruvini bajaradi (§3). Ikkisi ham bor,
@@ -143,8 +158,10 @@ export default async function ProfileEditorPage() {
     );
   }
 
+  const publishedTheme = THEMES[themeSelection.published];
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <Link
         href="/kabinet"
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-liderlar-blue"
@@ -168,116 +185,118 @@ export default async function ProfileEditorPage() {
         </Link>
       )}
 
-      <p className="mt-4 rounded-lg border border-brand-soft bg-paper px-4 py-3 text-xs leading-relaxed text-ink-soft">
-        Bo&apos;limlarni bosib oching va kerakli joyni to&apos;ldiring. Ba&apos;zi
-        o&apos;zgarishlar <b>darhol</b> profilingizga joylanadi, mukofot va ta&apos;lim
-        kabi ma&apos;lumotlar esa <b>tahririyat tekshiruvidan</b> o&apos;tadi — bu
-        ensiklopediyadagi ma&apos;lumot ishonchli bo&apos;lishi uchun.
-      </p>
-
-      <Link
-        href="/kabinet/profil/dizayn"
-        className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-brand-soft px-3 py-2 text-xs font-semibold text-liderlar-blue transition hover:bg-ice/50"
-      >
-        Premium dizaynlar
-      </Link>
-
-      <div className="mt-5 space-y-3">
-        <BasicsSection
-          initial={{
-            fullName: (candidate.full_name as string | null) ?? "",
-            shortBio: (candidate.short_bio as string | null) ?? "",
-            phone: (candidate.phone as string | null) ?? "",
-            email: (candidate.email as string | null) ?? "",
-            birthDate: (candidate.birth_date as string | null) ?? "",
-            birthYear: (candidate.birth_year as string | null) ?? "",
-            birthPlace: (candidate.birth_place as string | null) ?? "",
-            currentLocation: (candidate.current_location as string | null) ?? "",
-            activityField: (candidate.activity_field as string | null) ?? "",
-            educationSummary: (candidate.education_summary as string | null) ?? "",
-            descriptionItems: ((candidate.description_items as string[] | null) ?? []).join("\n"),
-            languages: ((candidate.languages as string[] | null) ?? []).join("\n"),
-          }}
-          pending={pending.map((edit) => ({
-            label: edit.label,
-            afterValue: edit.afterValue,
-          }))}
-        />
-
-        <ImagesSection
-          avatarUrl={(candidate.avatar_url as string | null) ?? null}
-          gallery={gallery}
-        />
-
-        <CertificatesSection certificates={certificates} />
-
-        {ENTRY_KINDS.map((kind, index) => (
-          <EntrySection
-            key={kind}
-            kind={kind}
-            label={ENTRY_RULES[kind].label}
-            description={SECTION_COPY[kind].description}
-            example={SECTION_COPY[kind].example}
-            hasDates={ENTRY_RULES[kind].hasDates}
-            needsReview={ENTRY_RULES[kind].policy === "review"}
-            entries={entryLists[index] ?? []}
-          />
-        ))}
-
-        <QuotesSection quotes={quotes.map((q) => ({ id: q.id, text: q.text, status: q.status }))} />
-
-        {/*
-          UZUN BIOGRAFIYA MATNI — A'ZONING O'ZI BOSHQARADI.
-
-          Avval bu yerda faqat "tahrir so'rovi" tugmasi turardi, ya'ni
-          ommaviy sahifadagi eng katta mazmun muharrirda BOSHQARILMAYDIGAN
-          yagona narsa edi. Endi a'zo matnni o'zi yozadi va u tahririyat
-          ko'rigidan o'tib nashr bo'ladi — fakt-tekshiruvi saqlanadi,
-          lekin "sahifada bor, boshqarib bo'lmaydi" holati yo'q.
-        */}
-        <SectionsSection sections={sections} />
-
-        {/*
-          TAHRIR SO'ROVI QOLADI.
-
-          Bo'limlar muharriri matnni qamraydi, lekin undan tashqaridagi
-          narsalar (masalan ommaviy sahifadagi xato fakt, rasm yoki
-          havola) uchun odam tilidagi so'rov yagona yo'l.
-        */}
-        <section className="rounded-lg border border-brand-soft bg-white px-4 py-3">
-          <p className="font-semibold text-navy">Boshqa o&apos;zgarish kerak bo&apos;lsa</p>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            Muharrirda yo&apos;q narsani (masalan sahifadagi xato fakt yoki
-            havola) o&apos;zgartirish uchun tahririyatga yozing.
-          </p>
-          <div className="mt-2">
-            <EditRequestButton />
-          </div>
-        </section>
-      </div>
-
-      {/*
-        PREMIUM DIZAYNLAR — muharrirning o'zida. Har bir dizayn a'zoning
-        haqiqiy ma'lumotlari bilan jonli ko'rinishda; "Qo'llash" bosilmaguncha
-        ommaviy profil o'zgarmaydi.
-      */}
-      <section className="mt-8" aria-labelledby="premium-dizaynlar">
-        <h2 id="premium-dizaynlar" className="font-display text-xl font-bold text-navy">
-          Premium dizaynlar
-        </h2>
-        <p className="mt-1 text-xs text-ink-soft">Dizayn faqat ko&apos;rinishni o&apos;zgartiradi — ma&apos;lumot va havola o&apos;zgarmaydi.</p>
-        <div className="mt-4">
-          <ThemeGallery
-            themes={galleryThemes()}
-            published={themeSelection.published}
-            draft={themeSelection.draft}
-            slug={candidate.slug as string}
-            hasPremium={hasPremium}
-            isPublished={candidate.status === "published"}
-            hideSiteHeader={themeSelection.hideSiteHeader}
-          />
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23rem]">
+        {/* ============================================ ASOSIY USTUN */}
+        <div className="min-w-0">
+          <SectionsSection sections={sections} />
         </div>
-      </section>
+
+        {/* ============================================ YON USTUN */}
+        <aside className="min-w-0 space-y-3">
+          {/*
+            PREMIUM DIZAYNLAR — YON USTUNNING TEPASIDA.
+
+            To'liq galereya BU YERDA EMAS: u o'z sahifasida va a'zoning
+            haqiqiy ma'lumotlari bilan jonli ko'rinishni talab qiladi,
+            23rem ustunga sig'maydi. Bu yerda — hozirgi dizayn va
+            havola, ya'ni odam uning borligini darhol ko'radi.
+          */}
+          <section className="rounded-lg border border-liderlar-blue/25 bg-ice/50 px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-navy">Premium dizaynlar</p>
+                <p className="mt-0.5 truncate text-xs text-ink-soft">
+                  Hozirgi: {publishedTheme.label}
+                </p>
+              </div>
+              <Sparkles className="h-5 w-5 shrink-0 text-liderlar-blue" aria-hidden />
+            </div>
+
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+              Dizayn faqat ko&apos;rinishni o&apos;zgartiradi — ma&apos;lumotlaringiz
+              va profil havolangiz o&apos;zgarmaydi.
+            </p>
+
+            <Link
+              href="/kabinet/profil/dizayn"
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-liderlar-blue px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              {hasPremium ? "Dizaynni tanlash" : "Dizaynlarni ko'rish"}
+            </Link>
+          </section>
+
+          <div className="pt-1">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+              Qo&apos;shimcha ma&apos;lumot
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+              Kerakli kartani bosib oching. Mukofot, ta&apos;lim va sertifikat
+              kabi <b>tasdiqlanadigan</b> ma&apos;lumotlar tahririyat
+              tekshiruvidan o&apos;tadi.
+            </p>
+          </div>
+
+          <BasicsSection
+            initial={{
+              fullName: (candidate.full_name as string | null) ?? "",
+              shortBio: (candidate.short_bio as string | null) ?? "",
+              phone: (candidate.phone as string | null) ?? "",
+              email: (candidate.email as string | null) ?? "",
+              birthDate: (candidate.birth_date as string | null) ?? "",
+              birthYear: (candidate.birth_year as string | null) ?? "",
+              birthPlace: (candidate.birth_place as string | null) ?? "",
+              currentLocation: (candidate.current_location as string | null) ?? "",
+              activityField: (candidate.activity_field as string | null) ?? "",
+              educationSummary: (candidate.education_summary as string | null) ?? "",
+              descriptionItems: ((candidate.description_items as string[] | null) ?? []).join("\n"),
+              languages: ((candidate.languages as string[] | null) ?? []).join("\n"),
+            }}
+            pending={pending.map((edit) => ({
+              label: edit.label,
+              afterValue: edit.afterValue,
+            }))}
+          />
+
+          <ImagesSection
+            avatarUrl={(candidate.avatar_url as string | null) ?? null}
+            gallery={gallery}
+          />
+
+          <CertificatesSection certificates={certificates} />
+
+          {ENTRY_KINDS.map((kind, index) => (
+            <EntrySection
+              key={kind}
+              kind={kind}
+              label={ENTRY_RULES[kind].label}
+              description={SECTION_COPY[kind].description}
+              example={SECTION_COPY[kind].example}
+              hasDates={ENTRY_RULES[kind].hasDates}
+              needsReview={ENTRY_RULES[kind].policy === "review"}
+              entries={entryLists[index] ?? []}
+            />
+          ))}
+
+          <QuotesSection quotes={quotes.map((q) => ({ id: q.id, text: q.text, status: q.status }))} />
+
+          {/*
+            TAHRIR SO'ROVI QOLADI.
+
+            Bo'limlar muharriri biografiya matnini qamraydi, lekin undan
+            tashqaridagi narsalar (masalan ommaviy sahifadagi xato fakt
+            yoki havola) uchun odam tilidagi so'rov yagona yo'l.
+          */}
+          <section className="rounded-lg border border-brand-soft bg-white px-4 py-3">
+            <p className="font-semibold text-navy">Boshqa o&apos;zgarish kerak bo&apos;lsa</p>
+            <p className="mt-0.5 text-xs text-ink-soft">
+              Muharrirda yo&apos;q narsani o&apos;zgartirish uchun tahririyatga yozing.
+            </p>
+            <div className="mt-2">
+              <EditRequestButton />
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
