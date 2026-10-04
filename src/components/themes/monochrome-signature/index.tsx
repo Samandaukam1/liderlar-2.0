@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -33,6 +34,8 @@ export default function MonochromeSignatureTheme({ profile }: ThemeProps) {
       <Hero profile={profile} />
 
       <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+        <Ranking profile={profile} />
+
         <Row label="Haqida">
           <Biography profile={profile} />
         </Row>
@@ -119,6 +122,43 @@ function Row({
       </h2>
       <div className="min-w-0">{children}</div>
     </section>
+  );
+}
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    `Row` tuzilishida — yorliq chapda, raqam o'ngda. SHARTSIZ
+ *    ko'rsatiladi: 0,0 ham haqiqiy ball.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <Row label={ranking.label}>
+      <p className="flex items-end gap-2">
+        <span className="font-display text-5xl font-bold tabular-nums leading-none">
+          {ranking.score}
+        </span>
+        <span className="pb-1 text-sm" style={{ color: GREY }}>
+          {ranking.scoreUnit}
+        </span>
+      </p>
+      <p className="mt-2 text-[11px] uppercase tracking-[0.25em]" style={{ color: GREY }}>
+        {ranking.rank ? (
+          <>
+            <span style={{ color: INK }}>{ranking.rank}</span> · {ranking.rankLabel}
+          </>
+        ) : (
+          ranking.rankNote
+        )}
+      </p>
+    </Row>
   );
 }
 

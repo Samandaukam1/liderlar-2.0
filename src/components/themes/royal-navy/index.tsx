@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -34,6 +35,7 @@ export default function RoyalNavyTheme({ profile }: ThemeProps) {
   return (
     <div style={{ backgroundColor: NAVY, color: WHITE }} className="min-h-screen">
       <Hero profile={profile} />
+      <Ranking profile={profile} />
       <Biography profile={profile} />
       <Service profile={profile} />
       <Achievements profile={profile} />
@@ -124,6 +126,47 @@ function Band({
         {children}
       </div>
     </section>
+  );
+}
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    Yo'lak uslubida, markazlashgan — bu dizaynning asosiy tuzilishi.
+ *    SHARTSIZ ko'rsatiladi: 0,0 ham haqiqiy ball va uni yashirish
+ *    nomzodga "reyting yo'q" degan yolg'on taassurot berardi.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <Band title={ranking.label} alt>
+      <p className="flex items-end justify-center gap-2">
+        <span className="font-display text-6xl font-bold tabular-nums leading-none">
+          {ranking.score}
+        </span>
+        <span className="pb-1.5 text-sm" style={{ color: MUTED }}>
+          {ranking.scoreUnit}
+        </span>
+      </p>
+      <p
+        className="mt-4 text-center text-[11px] uppercase tracking-[0.3em]"
+        style={{ color: MUTED }}
+      >
+        {ranking.rank ? (
+          <>
+            <span style={{ color: GOLD }}>{ranking.rank}</span> · {ranking.rankLabel}
+          </>
+        ) : (
+          ranking.rankNote
+        )}
+      </p>
+    </Band>
   );
 }
 

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -56,6 +57,7 @@ export default function AuroraGlassTheme({ profile }: ThemeProps) {
 
       <div className="relative mx-auto max-w-4xl px-4 py-12 sm:px-6">
         <Hero profile={profile} />
+        <Ranking profile={profile} />
         <Panel title="Haqida">
           <Biography profile={profile} />
         </Panel>
@@ -125,6 +127,52 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       </h2>
       {children}
     </section>
+  );
+}
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    Shisha panel uslubida. SHARTSIZ ko'rsatiladi: 0,0 ham haqiqiy
+ *    ball va uni yashirish nomzodga "reyting yo'q" degan yolg'on
+ *    taassurot berardi.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <Panel title={ranking.label}>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <p className="flex items-end gap-2">
+          <span
+            className="font-display text-5xl font-bold tabular-nums leading-none"
+            style={{ color: CYAN }}
+          >
+            {ranking.score}
+          </span>
+          <span className="pb-1 text-sm" style={{ color: FROST_SOFT }}>
+            {ranking.scoreUnit}
+          </span>
+        </p>
+        <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: FROST_SOFT }}>
+          {ranking.rank ? (
+            <>
+              <span className="text-base tracking-normal" style={{ color: FROST }}>
+                {ranking.rank}
+              </span>{" "}
+              {ranking.rankLabel}
+            </>
+          ) : (
+            ranking.rankNote
+          )}
+        </p>
+      </div>
+    </Panel>
   );
 }
 

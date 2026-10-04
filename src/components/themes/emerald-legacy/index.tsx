@@ -4,7 +4,15 @@ import type { CSSProperties, ReactNode } from "react";
 import { readingMinutes, toParagraphs } from "@/components/ui/article-body";
 import { formatDateUz, formatNumber, rankDelta } from "@/lib/utils";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year, type TimelineItem } from "@/lib/themes/shape";
-import { chapterNumber, monogram, rankingView, scoreText, splitName, withoutPortrait } from "@/lib/themes/profile-compose";
+import {
+  chapterNumber,
+  monogram,
+  RANKING_SCORE_UNIT,
+  rankingView,
+  scoreText,
+  splitName,
+  withoutPortrait,
+} from "@/lib/themes/profile-compose";
 import type { ThemeExtras, ThemeProfile, ThemeProps } from "@/lib/themes/types";
 import type { PortraitCutout } from "@/lib/themes/portrait-cutout";
 import { ElMotion, ElPromo, ElRail, ElShare } from "./client";
@@ -312,7 +320,7 @@ function longestWord(words: string[]): number {
 }
 
 function Modules({ profile }: { profile: ThemeProfile }) {
-  const ranking = rankingView(profile.position, profile.total_score);
+  const ranking = rankingView(profile.position, profile.total_score, profile.ranking.hasRow);
   const delta = ranking.kind === "position" ? rankDelta(profile.position, profile.previous_position) : 0;
 
   return (
@@ -347,7 +355,11 @@ function Modules({ profile }: { profile: ThemeProfile }) {
           </svg>
           Reyting balli
         </p>
-        <p className="el-mod__v">{scoreText(profile.total_score)}</p>
+        {/* MAXRAJ BILAN: raqam o'z shkalasi bilan ma'noga ega. */}
+        <p className="el-mod__v">
+          {scoreText(profile.total_score)}
+          <i>{RANKING_SCORE_UNIT}</i>
+        </p>
       </div>
 
       <div className="el-mod" style={{ "--i": 2 } as Vars}>

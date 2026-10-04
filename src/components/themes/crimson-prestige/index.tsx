@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -41,6 +42,7 @@ export default function CrimsonPrestigeTheme({ profile }: ThemeProps) {
           Bu dizayn yutuq uchun: ularni pastga tushirish uning
           ma'nosini yo'qotardi.
         */}
+        <Ranking profile={profile} />
         <Achievements profile={profile} />
         <Biography profile={profile} />
         <Quotes profile={profile} />
@@ -115,6 +117,55 @@ function Hero({ profile }: ThemeProps) {
 /* ========================================================================= *
  * YUTUQLAR — ASOSIY BO'LIM
  * ========================================================================= */
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    Yutuqlardan OLDIN: bu dizayn tan olinish uchun va reyting balli
+ *    uning eng qisqa ifodasi. SHARTSIZ ko'rsatiladi — 0,0 ham
+ *    haqiqiy ball.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <section className="pt-16">
+      <h2 className="mb-5 font-display text-2xl font-bold" style={{ color: BURGUNDY }}>
+        {ranking.label}
+      </h2>
+      <div
+        className="flex flex-wrap items-end justify-between gap-4 border-l-4 px-5 py-4"
+        style={{ borderColor: BRONZE, backgroundColor: CREAM_DEEP }}
+      >
+        <p className="flex items-end gap-2">
+          <span className="font-display text-5xl font-bold tabular-nums leading-none">
+            {ranking.score}
+          </span>
+          <span className="pb-1 text-sm" style={{ color: BURGUNDY }}>
+            {ranking.scoreUnit}
+          </span>
+        </p>
+        <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: BURGUNDY }}>
+          {ranking.rank ? (
+            <>
+              <span className="font-display text-2xl font-bold tracking-normal" style={{ color: COAL }}>
+                {ranking.rank}
+              </span>{" "}
+              {ranking.rankLabel}
+            </>
+          ) : (
+            ranking.rankNote
+          )}
+        </p>
+      </div>
+    </section>
+  );
+}
 
 function Achievements({ profile }: ThemeProps) {
   const items = toTimeline(profile.achievements ?? []);

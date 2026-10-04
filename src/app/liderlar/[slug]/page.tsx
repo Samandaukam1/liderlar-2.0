@@ -21,7 +21,6 @@ import { ProfileViewTracker as ThemeViewTracker } from "@/components/profile/pro
 import {
   getCandidatePodcasts,
   getCandidateJournalArticles,
-  getCandidateRankingBreakdown,
 } from "@/lib/data/profile-extra";
 import { resolveSiteUrl } from "@/lib/site-url";
 import { formatDateUz, gradientFor, formatNumber } from "@/lib/utils";
@@ -174,10 +173,17 @@ export default async function LeaderProfilePage({
     );
   }
 
-  const [podcasts, journalArticles, rankingBreakdown, similar, promoCode] = await Promise.all([
+  /*
+   * REYTING TAQSIMOTI ALOHIDA SO'ROV QILINMAYDI.
+   *
+   * Avval shu yerda `getCandidateRankingBreakdown` chaqirilardi va u
+   * anon rol bilan o'qigani uchun RLS tufayli BO'SH qaytardi. Endi
+   * taqsimot nomzod bilan birga, reyting sahifasi bilan bir xil
+   * manbadan keladi (`candidate.ranking`).
+   */
+  const [podcasts, journalArticles, similar, promoCode] = await Promise.all([
     getCandidatePodcasts(candidate.id).catch(() => []),
     getCandidateJournalArticles(candidate.id).catch(() => []),
-    getCandidateRankingBreakdown(candidate.id).catch(() => []),
     getSimilarCandidates(candidate.id, candidate.category?.slug ?? null).catch(() => []),
     getPublicReferralCode(candidate.id).catch(() => null),
   ]);
@@ -226,7 +232,10 @@ export default async function LeaderProfilePage({
   const scoreText = new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 2 }).format(candidate.total_score);
   const rankingFact =
     candidate.position === null
-      ? { label: "Reytingdagi o'rni", value: "hisoblanmoqda" }
+      ? {
+          label: "Reytingdagi o'rni",
+          value: candidate.ranking.hasRow ? "hali shakllanmagan" : "hisoblanmoqda",
+        }
       : candidate.total_score > 0
         ? { label: "Umumiy reytingda", value: `${formatNumber(candidate.position)}-o'rin` }
         : { label: "Reytingdagi o'rni", value: "hali shakllanmagan" };
@@ -672,7 +681,13 @@ export default async function LeaderProfilePage({
 
         {/* ---------------------------------------------------------------- SIDEBAR */}
         <aside className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
-          <RankingMiniCard rows={rankingBreakdown} totalScore={candidate.total_score} />
+          <RankingMiniCard
+            rows={candidate.ranking.rows}
+            totalScore={candidate.ranking.totalScore}
+            position={candidate.ranking.position}
+            previousPosition={candidate.ranking.previousPosition}
+            hasRow={candidate.ranking.hasRow}
+          />
 
           {candidate.socialLinks.length > 4 && (
             <div className="rounded-xl border border-brand-soft bg-paper p-5 shadow-card">

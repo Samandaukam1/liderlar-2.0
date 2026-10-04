@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -36,6 +37,7 @@ export default function IvoryEditorialTheme({ profile }: ThemeProps) {
       <Cover profile={profile} />
 
       <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+        <Ranking profile={profile} />
         <Biography profile={profile} />
         <Quotes profile={profile} />
         <Path profile={profile} />
@@ -130,6 +132,60 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
         {title}
       </h2>
       {children}
+    </section>
+  );
+}
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    Jurnal "ma'lumot chizig'i" uslubida: katta raqam va yonida
+ *    maxraj. SHARTSIZ ko'rsatiladi — 0,0 ham haqiqiy ball va uni
+ *    yashirish nomzodga "reyting yo'q" degan yolg'on taassurot
+ *    berardi.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <section
+      className="mt-12 flex flex-wrap items-end justify-between gap-4 border-y py-5"
+      style={{ borderColor: RULE }}
+    >
+      <div>
+        <p
+          className="text-[11px] font-semibold uppercase tracking-[0.3em]"
+          style={{ color: BURGUNDY }}
+        >
+          {ranking.label}
+        </p>
+        <p className="mt-2 flex items-end gap-2">
+          <span className="font-display text-5xl font-bold tabular-nums leading-none">
+            {ranking.score}
+          </span>
+          <span className="pb-1 text-sm" style={{ color: SOFT }}>
+            {ranking.scoreUnit}
+          </span>
+        </p>
+      </div>
+
+      <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: SOFT }}>
+        {ranking.rank ? (
+          <>
+            <span className="font-display text-2xl font-bold tracking-normal" style={{ color: INK }}>
+              {ranking.rank}
+            </span>{" "}
+            {ranking.rankLabel}
+          </>
+        ) : (
+          ranking.rankNote
+        )}
+      </p>
     </section>
   );
 }

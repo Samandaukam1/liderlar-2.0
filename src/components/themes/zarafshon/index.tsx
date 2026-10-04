@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -38,6 +39,7 @@ export default function ZarafshonTheme({ profile }: ThemeProps) {
       <Hero profile={profile} />
 
       <div className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
+        <Ranking profile={profile} />
         <Biography profile={profile} />
         <Path profile={profile} />
         <Achievements profile={profile} />
@@ -137,6 +139,50 @@ function Hero({ profile }: ThemeProps) {
 /* ========================================================================= *
  * BIOGRAFIYA
  * ========================================================================= */
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    Markazlashgan va naqsh bilan ajratilgan — bu dizaynning ritmi.
+ *    SHARTSIZ ko'rsatiladi: 0,0 ham haqiqiy ball.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <section className="pt-12 text-center">
+      <p
+        className="text-[11px] font-semibold uppercase tracking-[0.3em]"
+        style={{ color: TURQUOISE }}
+      >
+        {ranking.label}
+      </p>
+      <p className="mt-3 flex items-end justify-center gap-2">
+        <span className="font-display text-5xl font-bold tabular-nums leading-none">
+          {ranking.score}
+        </span>
+        <span className="pb-1 text-sm" style={{ color: TEXT_MUTED }}>
+          {ranking.scoreUnit}
+        </span>
+      </p>
+      <p className="mt-2 text-[11px] uppercase tracking-[0.25em]" style={{ color: TEXT_MUTED }}>
+        {ranking.rank ? (
+          <>
+            <span style={{ color: GOLD_SOFT }}>{ranking.rank}</span> · {ranking.rankLabel}
+          </>
+        ) : (
+          ranking.rankNote
+        )}
+      </p>
+      <Ornament />
+    </section>
+  );
+}
 
 function Biography({ profile }: ThemeProps) {
   const hasBio = Boolean(profile.short_bio?.trim());

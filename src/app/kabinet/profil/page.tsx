@@ -5,11 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireEntitlement } from "@/lib/vip/entitlement-service";
 import { loadPendingEdits, resolveOwnCandidate } from "@/lib/profile-editor/edit-service";
 import { loadOwnEntries } from "@/lib/profile-editor/entry-service";
+import { loadOwnSections } from "@/lib/profile-editor/section-service";
 import { loadGallery } from "@/lib/profile-editor/upload-service";
 import { loadOwnCertificates } from "@/lib/profile-editor/certificate-service";
 import { ENTRY_KINDS, ENTRY_RULES } from "@/lib/profile-editor/field-policy";
 import { BasicsSection } from "@/components/profile-editor/basics-section";
 import { EntrySection } from "@/components/profile-editor/entry-section";
+import { SectionsSection } from "@/components/profile-editor/sections-section";
 import { ImagesSection } from "@/components/profile-editor/images-section";
 import { CertificatesSection } from "@/components/profile-editor/certificates-section";
 import { QuotesSection } from "@/components/profile-editor/quotes-section";
@@ -116,7 +118,7 @@ export default async function ProfileEditorPage() {
    * §49: bo'limlar ketma-ket yuklansa, sahifa oltita so'rovni navbat
    * bilan kutardi. Ular bir-biriga bog'liq emas.
    */
-  const [candidateResult, pending, gallery, certificates, quotes, themeSelection, hasPremium, ...entryLists] = await Promise.all([
+  const [candidateResult, pending, gallery, certificates, quotes, themeSelection, hasPremium, sections, ...entryLists] = await Promise.all([
     admin
       .from("candidates")
       .select("slug, full_name, short_bio, phone, email, birth_date, birth_year, birth_place, current_location, activity_field, education_summary, description_items, languages, status, avatar_url")
@@ -128,6 +130,7 @@ export default async function ProfileEditorPage() {
     loadOwnQuotes(candidateId),
     loadThemeSelection(candidateId),
     can("profile.premium_themes"),
+    loadOwnSections(candidateId),
     ...ENTRY_KINDS.map((kind) => loadOwnEntries(candidateId, kind)),
   ]);
 
@@ -224,17 +227,28 @@ export default async function ProfileEditorPage() {
         <QuotesSection quotes={quotes.map((q) => ({ id: q.id, text: q.text, status: q.status }))} />
 
         {/*
-          UZUN BIOGRAFIYA MATNI VA QO'SHIMCHA BO'LIMLAR.
+          UZUN BIOGRAFIYA MATNI — A'ZONING O'ZI BOSHQARADI.
 
-          Ular tahririyat tayyorlagan maqola (fakt-tekshiruvi bilan) — a'zo
-          matnni to'g'ridan-to'g'ri o'zgartirmaydi, TAHRIR SO'ROVI yuboradi.
-          Shu tariqa biografiyadagi har bir ma'lumotning boshqaruv yo'li bor.
+          Avval bu yerda faqat "tahrir so'rovi" tugmasi turardi, ya'ni
+          ommaviy sahifadagi eng katta mazmun muharrirda BOSHQARILMAYDIGAN
+          yagona narsa edi. Endi a'zo matnni o'zi yozadi va u tahririyat
+          ko'rigidan o'tib nashr bo'ladi — fakt-tekshiruvi saqlanadi,
+          lekin "sahifada bor, boshqarib bo'lmaydi" holati yo'q.
+        */}
+        <SectionsSection sections={sections} />
+
+        {/*
+          TAHRIR SO'ROVI QOLADI.
+
+          Bo'limlar muharriri matnni qamraydi, lekin undan tashqaridagi
+          narsalar (masalan ommaviy sahifadagi xato fakt, rasm yoki
+          havola) uchun odam tilidagi so'rov yagona yo'l.
         */}
         <section className="rounded-lg border border-brand-soft bg-white px-4 py-3">
-          <p className="font-semibold text-navy">Biografiya matni va qo&apos;shimcha bo&apos;limlar</p>
+          <p className="font-semibold text-navy">Boshqa o&apos;zgarish kerak bo&apos;lsa</p>
           <p className="mt-0.5 text-xs text-ink-soft">
-            Uzun biografiya maqolasi tahririyat tomonidan tayyorlanadi. Nimani o&apos;zgartirish kerakligini yozing —
-            tahririyat yangilaydi.
+            Muharrirda yo&apos;q narsani (masalan sahifadagi xato fakt yoki
+            havola) o&apos;zgartirish uchun tahririyatga yozing.
           </p>
           <div className="mt-2">
             <EditRequestButton />

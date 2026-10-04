@@ -387,6 +387,47 @@ export function sectionPolicy(title: string | null | undefined): FieldPolicy {
     : "review";
 }
 
+export interface SectionInput {
+  title?: unknown;
+  content?: unknown;
+}
+
+export interface SectionCheck {
+  ok: boolean;
+  /** Yozishga tayyor qiymatlar. Bazada ikkisi ham `not null`. */
+  value: { title: string; content: string };
+  errors: string[];
+}
+
+/**
+ * Biografiya bo'limini tekshiradi va tozalaydi.
+ *
+ * `sort_order` QABUL QILINMAYDI: tartib alohida amal — bu yozuvlardagi
+ * bilan bir xil qoida (`checkEntry`).
+ *
+ * SARLAVHA YOKI MATN — KAMIDA BIRI BO'LSIN. Bazadagi shart aynan
+ * shunday (`char_length(trim(title)) > 0 or char_length(trim(content)) > 0`),
+ * ya'ni tekshirmasak so'rov baza xatosi bilan yiqilardi va foydalanuvchi
+ * tushunarsiz xabar ko'rardi.
+ */
+export function checkSection(input: SectionInput): SectionCheck {
+  const errors: string[] = [];
+  const title = typeof input.title === "string" ? input.title.trim() : "";
+  const content = typeof input.content === "string" ? input.content.trim() : "";
+
+  if (title === "" && content === "") {
+    errors.push("Sarlavha yoki matn kiritilsin.");
+  }
+  if (title.length > SECTION_TITLE_MAX) {
+    errors.push(`Sarlavha ${SECTION_TITLE_MAX} belgidan oshmasin.`);
+  }
+  if (content.length > SECTION_CONTENT_MAX) {
+    errors.push(`Matn ${SECTION_CONTENT_MAX} belgidan oshmasin.`);
+  }
+
+  return { ok: errors.length === 0, value: { title, content }, errors };
+}
+
 /* ========================================================================= *
  * O'ZGARISHNI FILTRLASH
  * ========================================================================= */

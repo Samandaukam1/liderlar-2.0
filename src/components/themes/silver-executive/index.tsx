@@ -20,7 +20,14 @@ import {
 import { readingMinutes, toParagraphs } from "@/components/ui/article-body";
 import { formatDateUz, formatNumber, rankDelta } from "@/lib/utils";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year, type TimelineItem } from "@/lib/themes/shape";
-import { rankingView, scoreText, splitName, withoutPortrait, monogram } from "@/lib/themes/profile-compose";
+import {
+  RANKING_SCORE_UNIT,
+  rankingView,
+  scoreText,
+  splitName,
+  withoutPortrait,
+  monogram,
+} from "@/lib/themes/profile-compose";
 import type { ThemeExtras, ThemeProfile, ThemeProps } from "@/lib/themes/types";
 import { SeMotion, SeNav, SePortrait, SeShare } from "./client";
 import { seSans } from "./fonts";
@@ -188,7 +195,7 @@ function Hero({ profile, quote, hasBio }: { profile: ThemeProfile; quote: string
  * ========================================================================= */
 
 function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras | undefined }) {
-  const ranking = rankingView(profile.position, profile.total_score);
+  const ranking = rankingView(profile.position, profile.total_score, profile.ranking.hasRow);
   const delta = ranking.kind === "position" ? rankDelta(profile.position, profile.previous_position) : 0;
   const items: { icon: LucideIcon; value: ReactNode; label: string }[] = [
     {
@@ -204,7 +211,17 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
           <i>{ranking.kind === "pending" ? "hisoblanmoqda" : "hali shakllanmagan"}</i>
         ),
     },
-    { icon: Star, label: "Reyting balli", value: scoreText(profile.total_score) },
+    {
+      icon: Star,
+      label: "Reyting balli",
+      // MAXRAJ BILAN: "7" emas, "7.0 / 100 ball" — raqam shkalasiz ma'nosiz.
+      value: (
+        <>
+          {scoreText(profile.total_score)}
+          <small>{RANKING_SCORE_UNIT}</small>
+        </>
+      ),
+    },
     { icon: Eye, label: "Profil ko‘rishlari", value: formatNumber(profile.view_count) },
   ];
   const counts: [LucideIcon, number, string][] = [

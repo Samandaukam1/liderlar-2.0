@@ -11,8 +11,30 @@ type Row = {
   previous_position: number | null;
 };
 
-export function RankingMiniCard({ rows, totalScore }: { rows: Row[]; totalScore: number }) {
-  const overall = rows.find((r) => r.category === "overall");
+/**
+ * UMUMIY REYTING BLOKI.
+ *
+ * BALL HAR DOIM KO'RSATILADI — `0` ni "yo'q" deb yashirmaydi.
+ * Yashirilsa, nomzod o'z sahifasida reyting borligini bilmasdi va
+ * raqamning yo'qligi "tizim ishlamayapti" degan taassurot qoldirardi.
+ *
+ * O'RIN esa SHARTLI: ball 0 bo'lganda nollar orasidagi tartib
+ * raqami hech narsani anglatmaydi, qator yo'q bo'lsa esa hisob hali
+ * o'tmagan. Uchala holat o'z nomi bilan aytiladi (§22).
+ */
+export function RankingMiniCard({
+  rows,
+  totalScore,
+  position,
+  previousPosition,
+  hasRow,
+}: {
+  rows: Row[];
+  totalScore: number;
+  position: number | null;
+  previousPosition: number | null;
+  hasRow: boolean;
+}) {
   const others = rows.filter((r) => r.category !== "overall");
 
   return (
@@ -24,15 +46,22 @@ export function RankingMiniCard({ rows, totalScore }: { rows: Row[]; totalScore:
           </span>
           <span className="font-display text-sm font-bold uppercase tracking-wide text-navy">Umumiy reyting</span>
         </div>
-        {overall && <RankDeltaBadge delta={rankDelta(overall.position, overall.previous_position)} />}
+        {position !== null && <RankDeltaBadge delta={rankDelta(position, previousPosition)} />}
       </div>
 
       <div className="flex items-end gap-2">
         <span className="font-display text-4xl font-bold text-navy">{totalScore.toFixed(1)}</span>
         <span className="pb-1 text-sm text-ink-soft">/ 100 ball</span>
       </div>
-      {overall?.position && (
-        <p className="mt-1 text-sm text-ink-soft">Umumiy reytingda {overall.position}-o&apos;rin</p>
+
+      {position !== null && totalScore > 0 ? (
+        <p className="mt-1 text-sm text-ink-soft">
+          <span className="font-semibold text-navy">#{position}</span> — umumiy reytingda
+        </p>
+      ) : (
+        <p className="mt-1 text-sm text-ink-soft">
+          {hasRow ? "O'rin hali shakllanmagan" : "Reyting hisoblanmoqda"}
+        </p>
       )}
 
       {others.length > 0 && (

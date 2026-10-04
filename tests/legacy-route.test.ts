@@ -205,7 +205,7 @@ test("search finds legacy posts and sends them to their own URLs", () => {
   assert.match(resultObject, /legacyPosts,/);
   assert.match(
     resultObject,
-    /candidates: \(candidates\.data \?\? \[\]\)\.map\(normalizeCandidateRow\)/,
+    /candidates: await toCandidateCards\(candidates\.data \?\? \[\]\)/,
     "the candidate list is built only from the candidates query",
   );
   assert.match(page, /href=\{post\.legacy_path\}/);

@@ -8,7 +8,13 @@ import {
   reorderEntries,
   updateEntry,
 } from "@/lib/profile-editor/entry-service";
-import type { EntryInput } from "@/lib/profile-editor/field-policy";
+import type { EntryInput, SectionInput } from "@/lib/profile-editor/field-policy";
+import {
+  createSection,
+  deleteSection,
+  reorderSections,
+  updateSection,
+} from "@/lib/profile-editor/section-service";
 import {
   removeGalleryImage,
   updateGalleryAltText,
@@ -112,6 +118,51 @@ export async function saveGalleryAltText(
   const result = await updateGalleryAltText(mediaId, altText);
   if (result.ok) refresh();
   return result;
+}
+
+/* ========================================================================= *
+ * BIOGRAFIYA MATNI — BO'LIMLAR
+ *
+ *    Ommaviy biografiyadagi matn aynan shu bo'limlardan yig'iladi.
+ *    `review_state` HECH QAYERDA parametr emas: ko'rik kerakmi — buni
+ *    siyosat hal qiladi, foydalanuvchi emas (§43).
+ * ========================================================================= */
+
+export async function addSection(
+  input: SectionInput,
+): Promise<{ ok: boolean; error?: string; reviewNeeded?: boolean }> {
+  const result = await createSection(input);
+  if (result.ok) refresh();
+  return result.ok
+    ? { ok: true, reviewNeeded: result.reviewNeeded }
+    : { ok: false, error: result.error };
+}
+
+export async function editSection(
+  sectionId: string,
+  input: SectionInput,
+): Promise<{ ok: boolean; error?: string; reviewNeeded?: boolean }> {
+  const result = await updateSection(sectionId, input);
+  if (result.ok) refresh();
+  return result.ok
+    ? { ok: true, reviewNeeded: result.reviewNeeded }
+    : { ok: false, error: result.error };
+}
+
+export async function removeSection(
+  sectionId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await deleteSection(sectionId);
+  if (result.ok) refresh();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function saveSectionOrder(
+  orderedIds: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await reorderSections(orderedIds);
+  if (result.ok) refresh();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
 
 /* ========================================================================= *

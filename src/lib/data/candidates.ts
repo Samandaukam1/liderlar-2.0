@@ -1,6 +1,7 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
+import { getCandidateRanking, getOverallRankings } from "@/lib/data/candidate-ranking";
 import { splitPipeValues, stripCandidateMarkers, toShortBioItems } from "@/lib/candidates/text";
 import type { CandidateCardData, CandidateSectionData } from "@/lib/types";
 
@@ -43,6 +44,42 @@ export function normalizeCandidateRow(row: any): CandidateCardData {
     region: one(row.region),
     category: one(row.category),
   };
+}
+
+/**
+ * Qatorlarni kartaga aylantiradi VA ballni ishonchli manbadan qo'yadi.
+ *
+ * `normalizeCandidateRow` ballni ichma-ich so'rovdan oladi
+ * (`scores:ranking_scores(...)`), u esa anon rol bilan o'qiladi va
+ * `ranking_scores` ustidagi ommaviy RLS siyosatiga tushadi: siyosat
+ * davr E'LON QILINGAN bo'lishini talab qiladi, joriy davrda esa u
+ * bo'sh edi — natijada BARCHA kartada "0" turardi va reyting
+ * bo'yicha saralash alifboga aylanib qolardi.
+ *
+ * Shuning uchun ball reyting sahifasi bilan BIR XIL manbadan
+ * (`service_role`) qo'yiladi — bitta ma'lumot ikki xil javob
+ * bermasligi uchun. Qo'shimcha so'rov BITTA va faqat shu sahifadagi
+ * nomzodlar uchun.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function toCandidateCards(rows: readonly any[]): Promise<CandidateCardData[]> {
+  const items = rows.map(normalizeCandidateRow);
+  if (items.length === 0) return items;
+
+  const rankings = await getOverallRankings(items.map((item) => item.id));
+  if (rankings.size === 0) return items;
+
+  return items.map((item) => {
+    const ranking = rankings.get(item.id);
+    return ranking
+      ? {
+          ...item,
+          total_score: ranking.totalScore,
+          position: ranking.position,
+          previous_position: ranking.previousPosition,
+        }
+      : item;
+  });
 }
 
 export type CandidateFilters = {
@@ -106,7 +143,7 @@ export async function getCandidates(filters: CandidateFilters = {}) {
   const { data, error } = await query.range(0, 4999);
   if (error) throw error;
 
-  let items = (data ?? []).map(normalizeCandidateRow);
+  let items = await toCandidateCards(data ?? []);
   if (filters.sort === "reyting" || !filters.sort) {
     items.sort((a, b) => b.total_score - a.total_score || a.full_name.localeCompare(b.full_name, "uz"));
   } else if (filters.sort === "eng-kop-oqilgan" && items.length > 0) {
@@ -143,7 +180,7 @@ export async function getFeaturedCandidates(limit = 6) {
     .order("top100_position", { ascending: true, nullsFirst: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []).map(normalizeCandidateRow);
+  return toCandidateCards(data ?? []);
 }
 
 export async function getTopCandidates(limit = 8) {
@@ -188,7 +225,7 @@ export async function getRecentCandidates(limit = 8) {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []).map(normalizeCandidateRow);
+  return toCandidateCards(data ?? []);
 }
 
 export async function getCandidateBySlug(slug: string) {
@@ -224,7 +261,7 @@ export async function getCandidateBySlug(slug: string) {
       ? integrationKeyResult.data.integration_key
       : null;
   const admin = createAdminClient();
-  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, views, adabiyotXItems] =
+  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, views, adabiyotXItems, ranking] =
     await Promise.all([
       /*
        * `review_state = 'published'` — TEKSHIRUVDAGI YOZUV OMMAGA
@@ -278,10 +315,19 @@ export async function getCandidateBySlug(slug: string) {
         .eq("status", "published")
         .is("deleted_at", null)
         .order("published_at", { ascending: false }),
+      /*
+       * `review_state = 'published'` — TEKSHIRUVDAGI MATN OMMAGA
+       * CHIQMAYDI.
+       *
+       * A'zo biografiya bo'limini o'zgartirsa, u tasdiqlanmaguncha shu
+       * yerda ko'rinmaydi (§6). RLS siyosati ham shu shartni tekshiradi
+       * — ikkisi ham bor, chunki RLS ilovadan mustaqil ishlashi kerak.
+       */
       supabase
         .from("candidate_sections")
         .select("id, title, content, sort_order")
         .eq("candidate_id", data.id)
+        .eq("review_state", "published")
         .order("sort_order")
         .order("created_at"),
       admin
@@ -290,6 +336,18 @@ export async function getCandidateBySlug(slug: string) {
         .eq("candidate_id", data.id)
         .eq("is_counted", true),
       getCandidateAdabiyotXItems(integrationKey),
+      /*
+       * REYTING — YAGONA MANBADAN, KARTA SO'ROVIDAN EMAS.
+       *
+       * `CANDIDATE_CARD_SELECT` ichidagi `scores:ranking_scores(...)`
+       * anon rol bilan o'qiladi va u RLS siyosatiga tushadi: davr
+       * e'lon qilinmagan bo'lsa, NOLTA qator qaytadi va biografiyada
+       * "0 ball" turadi. Reyting sahifasi esa shu jadvalni
+       * `service_role` bilan o'qib, to'g'ri raqamni ko'rsatadi.
+       * Bitta ma'lumot ikki xil javob bermasligi uchun biografiya
+       * ham reyting sahifasi bilan BIR XIL manbaga ulandi.
+       */
+      getCandidateRanking(data.id as string),
     ]);
 
   const publicMedia = (media.data ?? []).map((item) => ({
@@ -323,6 +381,17 @@ export async function getCandidateBySlug(slug: string) {
 
   return {
     ...normalized,
+    /*
+     * BALL VA O'RIN KARTA SO'ROVIDAGI QIYMATNI BOSADI.
+     *
+     * `normalizeCandidateRow` ularni anon rol ko'rgan ichma-ich
+     * so'rovdan oladi; u RLS sababli bo'sh bo'lishi mumkin. Shuning
+     * uchun ustiga ishonchli manbadagi qiymat yoziladi.
+     */
+    total_score: ranking.totalScore,
+    position: ranking.position,
+    previous_position: ranking.previousPosition,
+    ranking,
     birth_date: data.birth_date as string | null,
     description_items: descriptionItems,
     birth_year_display: stripCandidateMarkers(data.birth_year as string | null) || birthYearFromDate,
@@ -363,5 +432,5 @@ export async function getSimilarCandidates(candidateId: string, directionSlug: s
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []).map(normalizeCandidateRow);
+  return toCandidateCards(data ?? []);
 }

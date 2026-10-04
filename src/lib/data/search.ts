@@ -1,5 +1,5 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
-import { CANDIDATE_CARD_SELECT, normalizeCandidateRow } from "@/lib/data/candidates";
+import { CANDIDATE_CARD_SELECT, toCandidateCards } from "@/lib/data/candidates";
 import { searchLegacyPosts } from "@/lib/data/legacy-posts";
 
 /**
@@ -44,7 +44,8 @@ export async function globalSearch(query: string) {
 
   return {
     legacyPosts,
-    candidates: (candidates.data ?? []).map(normalizeCandidateRow),
+    // Ball ishonchli manbadan — kartada "0" turib qolmasin.
+    candidates: await toCandidateCards(candidates.data ?? []),
     articles: articles.data ?? [],
     podcasts: (podcasts.data ?? []).map((podcast) => ({ ...podcast, slug: podcast.id })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

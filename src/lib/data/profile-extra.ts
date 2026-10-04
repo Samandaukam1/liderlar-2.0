@@ -49,13 +49,13 @@ export async function getCandidateJournalArticles(candidateId: string) {
     });
 }
 
-export async function getCandidateRankingBreakdown(candidateId: string) {
-  const supabase = await createServerSupabase();
-  const { data } = await supabase
-    .from("ranking_scores")
-    .select("category, total_score, position, previous_position")
-    .eq("candidate_id", candidateId)
-    .eq("is_current", true);
-
-  return data ?? [];
-}
+/*
+ * REYTING TAQSIMOTI BU YERDA EMAS.
+ *
+ * Avval shu faylda `getCandidateRankingBreakdown` turardi va u anon
+ * rol bilan o'qirdi. `ranking_scores` ustidagi ommaviy RLS siyosati
+ * davr e'lon qilingan bo'lishini talab qiladi, shuning uchun u
+ * amalda HAR DOIM bo'sh massiv qaytarardi — biografiyadagi "0 ball"
+ * aynan shundan edi. Yagona o'qish joyi:
+ * `lib/data/candidate-ranking.ts`.
+ */

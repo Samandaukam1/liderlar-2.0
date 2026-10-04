@@ -8,6 +8,7 @@ import {
   trustLabel,
   year,
 } from "@/lib/themes/shape";
+import { rankingDisplay } from "@/lib/themes/profile-compose";
 import type { ThemeProps } from "@/lib/themes/types";
 
 /**
@@ -44,6 +45,7 @@ export default function ObsidianTheme({ profile }: ThemeProps) {
 
       <div className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
         <Intro profile={profile} />
+        <Ranking profile={profile} />
         <Numbers profile={profile} />
         <Sections profile={profile} />
         <Path profile={profile} />
@@ -175,6 +177,49 @@ function Numbers({ profile }: ThemeProps) {
         </div>
       ))}
     </dl>
+  );
+}
+
+/* ========================================================================= *
+ * UMUMIY REYTING
+ *
+ *    `Numbers` dan ALOHIDA va SHARTSIZ: u yerda nol ko'rsatkich
+ *    yashiriladi ("0 yutuq" odamni kamsitadi), reyting balli esa
+ *    har doim ko'rsatiladi. 0,0 — "reyting yo'q" degani emas,
+ *    "hisobda turadi, ball hali yig'ilmagan" degani; yashirilsa,
+ *    nomzod sahifasida reyting borligini bilmasdi.
+ * ========================================================================= */
+
+function Ranking({ profile }: ThemeProps) {
+  const ranking = rankingDisplay(
+    profile.position,
+    profile.total_score,
+    profile.ranking.hasRow,
+  );
+
+  return (
+    <section className="mt-16 border-t pt-10" style={{ borderColor: LINE }}>
+      <h2 className="mb-5 text-[11px] uppercase tracking-[0.3em]" style={{ color: MUTED }}>
+        {ranking.label}
+      </h2>
+      <p className="flex items-end gap-2">
+        <span className="font-display text-6xl font-bold tabular-nums leading-none sm:text-7xl">
+          {ranking.score}
+        </span>
+        <span className="pb-1.5 text-sm tracking-wide" style={{ color: MUTED }}>
+          {ranking.scoreUnit}
+        </span>
+      </p>
+      <p className="mt-3 text-[11px] uppercase tracking-[0.25em]" style={{ color: MUTED }}>
+        {ranking.rank ? (
+          <>
+            <span style={{ color: PLATINUM }}>{ranking.rank}</span> · {ranking.rankLabel}
+          </>
+        ) : (
+          ranking.rankNote
+        )}
+      </p>
+    </section>
   );
 }
 

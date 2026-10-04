@@ -65,19 +65,93 @@ export type RankingView =
  * Standart sahifadagi qoida bilan BIR XIL (§ "halol holat, jimgina 0 emas"):
  *
  *   · o'rin bor va ball > 0 -> "N-o‘rin";
- *   · o'rin hali yo'q       -> "hisoblanmoqda" (keyingi soatlik hisob);
- *   · ball 0                -> "hali shakllanmagan" (nollar orasidagi
+ *   · qator yo'q            -> "hisoblanmoqda" (keyingi soatlik hisob);
+ *   · qator bor, ball 0     -> "hali shakllanmagan" (nollar orasidagi
  *                              tartib raqami hech narsani anglatmaydi).
  */
-export function rankingView(position: number | null, totalScore: number): RankingView {
-  if (position === null) return { kind: "pending" };
+export function rankingView(
+  position: number | null,
+  totalScore: number,
+  /**
+   * Reyting qatori umuman bormi.
+   *
+   * `position === null` ikki xil ma'noga ega va ular ARALASHTIRILMASLIGI
+   * kerak: qator yo'q — hisob hali o'tmagan ("hisoblanmoqda"); qator bor,
+   * lekin ball 0 — hisobga kirgan, o'rin hali ma'nosiz ("shakllanmagan").
+   * Standart `false` — eski chaqiruvlar xatti-harakatini saqlaydi.
+   */
+  hasRow = false,
+): RankingView {
+  if (position === null) return hasRow ? { kind: "forming" } : { kind: "pending" };
   if (!(totalScore > 0)) return { kind: "forming" };
   return { kind: "position", value: new Intl.NumberFormat("uz-UZ").format(position) };
 }
 
-/** Ball kasr bo'lishi mumkin (ko'rishlardan): 0,07 "0" bo'lib ko'rinmasin. */
+/**
+ * Ball matni — BITTA KASR XONA.
+ *
+ * Maxraj 100 ("/ 100 ball"), shuning uchun bir xona o'qishga qulay.
+ * Kasrni butunlab tashlasak, ko'rishlardan yig'ilgan 0,4 "0" bo'lib
+ * ko'rinardi; nol esa "0.0" bo'lib ko'rinadi — ya'ni ball yo'qligi
+ * ham RAQAM bilan aytiladi, bo'sh joy bilan emas.
+ */
 export function scoreText(totalScore: number): string {
-  return new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 2 }).format(totalScore);
+  return (Number.isFinite(totalScore) ? totalScore : 0).toFixed(1);
+}
+
+/* ------------------------------------------------------------------ *
+ * UMUMIY REYTING — BARCHA DIZAYNLAR UCHUN BIR XIL MATN
+ * ------------------------------------------------------------------ */
+
+export interface RankingDisplay {
+  /**
+   * Ball. HAR DOIM bor — `0` ham haqiqiy qiymat va "0.0" bo'lib
+   * ko'rsatiladi. Nolni yashirish nomzodga "reyting yo'q" degan
+   * yolg'on taassurot berardi, holbuki u hisobda turadi.
+   */
+  score: string;
+  /** Maxraj: ball 100 ballik shkalada. */
+  scoreUnit: string;
+  /** "#24" — o'rin bor va ball > 0 bo'lganda. */
+  rank: string | null;
+  /** O'rin ko'rsatilmasa — SABABI, jim bo'shliq emas (§22). */
+  rankNote: string | null;
+  /** Yorliqlar — har dizayn o'zicha yozmasin. */
+  label: string;
+  rankLabel: string;
+}
+
+export const RANKING_SCORE_UNIT = "/ 100 ball";
+
+/**
+ * Reyting blokining matni — O'NTA DIZAYN UCHUN BITTA.
+ *
+ * NEGA UMUMIY MODULDA: har dizayn bu matnni o'zicha yozsa, biri nolni
+ * yashirib qo'yardi, boshqasi ball 0 bo'lganda ham o'rin ko'rsatardi
+ * (nollar orasidagi tartib raqami hech narsani anglatmaydi). Qoida
+ * `rankingView` da va u testlangan — bu funksiya faqat uni MATNGA
+ * aylantiradi.
+ */
+export function rankingDisplay(
+  position: number | null,
+  totalScore: number,
+  hasRow: boolean,
+): RankingDisplay {
+  const view = rankingView(position, totalScore, hasRow);
+
+  return {
+    score: scoreText(totalScore),
+    scoreUnit: RANKING_SCORE_UNIT,
+    rank: view.kind === "position" ? `#${view.value}` : null,
+    rankNote:
+      view.kind === "position"
+        ? null
+        : view.kind === "pending"
+          ? "Reyting hisoblanmoqda"
+          : "O‘rin hali shakllanmagan",
+    label: "Umumiy reyting",
+    rankLabel: "Umumiy reytingda",
+  };
 }
 
 /* ========================================================================= *

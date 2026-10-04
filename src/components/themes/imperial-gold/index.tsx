@@ -17,6 +17,7 @@ import type { PortraitCutout } from "@/lib/themes/portrait-cutout";
 import {
   chapterNumber,
   monogram,
+  RANKING_SCORE_UNIT,
   rankingView,
   roman,
   scoreText,
@@ -131,7 +132,7 @@ function Hero({
     { label: "Hudud", value: profile.current_location },
     { label: "Tug‘ilgan yili", value: profile.birth_year_display },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
-  const ranking = rankingView(profile.position, profile.total_score);
+  const ranking = rankingView(profile.position, profile.total_score, profile.ranking.hasRow);
 
   return (
     <section className="ig-hero" aria-label={profile.full_name}>
@@ -213,7 +214,11 @@ function Hero({
             </div>
             <div className="ig-stat">
               <dt className="ig-stat__label">Reyting balli</dt>
-              <dd className="ig-stat__value">{scoreText(profile.total_score)}</dd>
+              <dd className="ig-stat__value">
+                {scoreText(profile.total_score)}
+                {/* MAXRAJ — "7" emas, "7.0 / 100": raqam o'z shkalasi bilan ma'noga ega. */}
+                <span className="ig-stat__unit"> {RANKING_SCORE_UNIT}</span>
+              </dd>
             </div>
             <div className="ig-stat">
               <dt className="ig-stat__label">Ko‘rishlar</dt>

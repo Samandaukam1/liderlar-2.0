@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import {
   CANDIDATE_FIELDS,
   checkEntry,
+  checkSection,
   ENTRY_KINDS,
   ENTRY_RULES,
   EDIT_STATE_TEXT,
@@ -221,6 +222,113 @@ test("bo'sh va yo'q sarlavha ko'rikka boradi", () => {
   assert.equal(sectionPolicy(null), "review");
   assert.equal(sectionPolicy(undefined), "review");
   assert.equal(sectionPolicy("   "), "review");
+});
+
+test("bo'sh bo'lim rad etiladi — sarlavha yoki matn kerak", () => {
+  /*
+   * Bazadagi shart aynan shunday. Tekshirmasak, so'rov baza xatosi
+   * bilan yiqilardi va odam tushunarsiz xabar ko'rardi.
+   */
+  assert.equal(checkSection({}).ok, false);
+  assert.equal(checkSection({ title: "   ", content: "  " }).ok, false);
+});
+
+test("sarlavhasiz, faqat matnli bo'lim QABUL qilinadi", () => {
+  /*
+   * Biografiyaning birinchi xatboshisi odatda sarlavhasiz bo'ladi —
+   * sahifa ham shunday chizadi (`section.title && <h2>`).
+   */
+  const check = checkSection({ content: "1990-yilda Samarqandda tug'ilgan." });
+  assert.equal(check.ok, true);
+  assert.equal(check.value.title, "");
+  assert.match(check.value.content, /Samarqandda/);
+});
+
+test("bo'lim matni va sarlavhasi tozalanadi", () => {
+  const check = checkSection({ title: "  Hayot yo'li  ", content: "  matn  " });
+  assert.deepEqual(check.value, { title: "Hayot yo'li", content: "matn" });
+});
+
+test("juda uzun bo'lim rad etiladi", () => {
+  assert.equal(checkSection({ title: "a".repeat(241), content: "b" }).ok, false);
+  assert.equal(checkSection({ title: "a", content: "b".repeat(50_001) }).ok, false);
+  assert.equal(checkSection({ title: "a", content: "b".repeat(50_000) }).ok, true);
+});
+
+test("bo'lim `sort_order` ni QABUL QILMAYDI", () => {
+  /*
+   * Tartib alohida amal. Oddiy saqlash bilan birga qabul qilinsa,
+   * odam boshqa bo'limlarning tartibini bilmasdan o'zgartirib
+   * qo'yardi.
+   */
+  const check = checkSection({ title: "a", content: "b", sort_order: 5 } as never);
+  assert.deepEqual(Object.keys(check.value).sort(), ["content", "title"]);
+});
+
+/* ------------------------------------------------------------------ *
+ * BO'LIM XIZMATI — HUQUQ, EGALIK, KO'RIK
+ * ------------------------------------------------------------------ */
+
+test("bo'lim xizmatida huquq va egalik tekshiruvi bor", () => {
+  /*
+   * ENG MUHIM HIMOYA, VA U FRONTENDDA EMAS.
+   *
+   * Server amali to'g'ridan-to'g'ri chaqirilishi mumkin, shuning
+   * uchun har bir yozish:
+   *   · `requireEntitlement("profile.self_edit")` — faol VIP;
+   *   · `resolveOwnCandidate()` — kimning profili (brauzerdan
+   *     `candidate_id` OLINMAYDI);
+   *   · `.eq("candidate_id", …)` — yozishdagi egalik sharti, ya'ni
+   *     VIP a'zo BOSHQA nomzodning biografiyasiga tegib ko'rolmaydi.
+   */
+  const source = readFileSync("src/lib/profile-editor/section-service.ts", "utf8");
+
+  const writers = source.split(/export async function /).slice(1);
+  assert.ok(writers.length >= 4, "xizmat funksiyalari topilmadi");
+
+  for (const fn of writers) {
+    const name = fn.slice(0, fn.indexOf("("));
+    if (name === "loadOwnSections") continue;
+
+    assert.match(fn, /requireEntitlement\("profile\.self_edit"\)/, `${name}: huquq tekshiruvi yo'q`);
+    assert.match(fn, /resolveOwnCandidate\(\)/, `${name}: egalik aniqlanmaydi`);
+    assert.match(fn, /\.eq\("candidate_id", resolved\.owned\.candidateId\)/, `${name}: egalik sharti yo'q`);
+  }
+});
+
+test("ko'rik holatini FOYDALANUVCHI tanlamaydi", () => {
+  /*
+   * `review_state` brauzerdan kelgan qiymatdan OLINMAYDI: aks holda
+   * odam tekshirilmagan matnni darhol `published` qilib yuborardi
+   * (§43). U faqat `sectionPolicy` natijasidan kelib chiqadi.
+   */
+  const source = readFileSync("src/lib/profile-editor/section-service.ts", "utf8");
+  const assignments = [...source.matchAll(/review_state: ([A-Za-z0-9_."]+)/g)].map((m) => m[1]);
+
+  assert.ok(assignments.length >= 2, "review_state yozilmaydi");
+  for (const value of assignments) {
+    assert.equal(value, "reviewState", `review_state kutilmagan qiymatdan: ${value}`);
+  }
+  assert.match(
+    source,
+    /const reviewState =\s*\n?\s*sectionPolicy\(/,
+    "ko'rik holati siyosatdan olinmaydi",
+  );
+});
+
+test("ommaviy biografiya FAQAT nashr bo'lgan bo'limni oladi", () => {
+  /*
+   * Ilova filtri va RLS — IKKISI ham bor. RLS ilovadan mustaqil
+   * ishlashi kerak, ilova filtri esa niyatni kodda ko'rinadigan
+   * qiladi va so'rovni tejaydi.
+   */
+  const source = readFileSync("src/lib/data/candidates.ts", "utf8");
+  const query = source.slice(source.indexOf('.from("candidate_sections")'));
+  assert.match(
+    query.slice(0, 400),
+    /\.eq\("review_state", "published"\)/,
+    "tekshiruvdagi matn ommaga chiqib ketadi",
+  );
 });
 
 /* ------------------------------------------------------------------ *
@@ -549,6 +657,36 @@ test("mavjud yozuvlar default bo'yicha ommaviy qoladi", () => {
     "utf8",
   );
   assert.match(sql, /review_state text not null default 'published'/);
+});
+
+test("biografiya bo'limlarida ham ko'rik holati va qayta ta'riflangan siyosat bor", () => {
+  /*
+   * `candidate_sections` — ommaviy biografiyadagi UZUN MATN. Unda
+   * ko'rik holati yo'q edi, ya'ni a'zo matnni muharrirdan boshqara
+   * olmasdi. Qo'shilganda ikki xato mumkin edi:
+   *
+   *   · default `pending_review` — barcha tahririyat matni ommaviy
+   *     biografiyalardan YO'QOLARDI;
+   *   · yangi nomli RLS siyosati — eski siyosat (u `review_state` ni
+   *     bilmaydi) OR bilan qo'shilib, tekshiruvdagi matnni BARIBIR
+   *     ko'rsatardi.
+   */
+  const sql = readFileSync(
+    "../liderlar-admin/supabase/migrations/20261004120000_candidate_section_review.sql",
+    "utf8",
+  );
+
+  assert.match(sql, /review_state text not null default 'published'/);
+  assert.match(sql, /drop policy if exists "published candidate sections are public"/);
+  assert.match(sql, /create policy "published candidate sections are public"/);
+
+  const policyBlock = sql.slice(
+    sql.indexOf('create policy "published candidate sections are public"'),
+  );
+  assert.match(policyBlock.slice(0, 600), /review_state = 'published'/);
+
+  // Egasi o'zining kutayotgan matnini ko'radi — alohida siyosat.
+  assert.match(sql, /c\.user_id = auth\.uid\(\)/);
 });
 
 /* ------------------------------------------------------------------ *
