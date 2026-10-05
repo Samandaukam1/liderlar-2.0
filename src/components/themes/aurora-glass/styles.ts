@@ -80,20 +80,24 @@ const themeCss = (p: AuPalette) => /* css */ `
 
 /* ===================================================== HERO */
 .au-hero{position:relative}
-.au-stage{position:relative;max-width:1600px;margin:0 auto;height:clamp(620px,calc(100svh - 76px - 132px),880px)}
+/* Chap ustun grid'da: ism yuqorida, iqtibos va tugmalar pastda. Matn qancha
+   uzun bo'lmasin ular ustma-ust tushmaydi — kerak bo'lsa sahna o'sadi. */
+.au-stage{position:relative;box-sizing:border-box;max-width:1600px;margin:0 auto;min-height:clamp(620px,calc(100svh - 76px - 132px),880px);
+  display:grid;grid-template-columns:minmax(0,min(36%,32rem)) minmax(0,1fr);grid-template-rows:auto minmax(1.5rem,1fr) auto;
+  padding:clamp(1.5rem,4vh,2.6rem) var(--au-gutter) clamp(1.2rem,3.6vh,2.2rem)}
 
-.au-intro{position:absolute;left:var(--au-gutter);top:clamp(1.5rem,4vh,2.6rem);z-index:5;width:min(33%,32rem);container-type:inline-size}
+.au-intro{position:relative;z-index:5;grid-column:1;grid-row:1;min-width:0;container-type:inline-size}
 .au-micro{margin:0;padding:0 0 0 1rem;list-style:none;position:relative;
   font-size:.66rem;font-weight:600;letter-spacing:.3em;line-height:1.95;text-transform:uppercase;color:var(--au-ink-3)}
 .au-micro::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:2px;border-radius:2px;background:linear-gradient(180deg,var(--au-sky),var(--au-lavender),var(--au-pink))}
 .au-name{margin:clamp(1.4rem,4.6vh,2.8rem) 0 0;font-family:var(--au-display),ui-sans-serif,system-ui,sans-serif;font-weight:800;
-  font-size:min(clamp(3rem,1.9rem + 4.4vw,6.8rem),calc(100cqi / (var(--au-n,8) * .7)));line-height:1;letter-spacing:-.04em;color:var(--au-ink)}
+  font-size:min(clamp(3rem,1.9rem + 4.4vw,6.8rem),calc(100cqi / var(--au-w,6) * .97));line-height:1;letter-spacing:-.04em;color:var(--au-ink)}
 .au-name__line{display:block;overflow:hidden;padding:0 0 .12em;margin-bottom:-.1em}
 .au-name__line>span{display:block}
 .au-name__line--aurora>span{color:transparent;background:var(--au-aurora);background-size:160% 100%;-webkit-background-clip:text;background-clip:text}
 
 .au-visual{position:absolute;inset:0;z-index:1}
-/* Egilgan shisha panellar — portret ortida va oldida. */
+/* Egilgan shisha panellar — portret ortida. */
 .au-pane{position:absolute;display:block;border-radius:30px;pointer-events:none;
   background:linear-gradient(155deg,rgba(255,255,255,.62),rgba(255,255,255,.18));
   -webkit-backdrop-filter:blur(10px) saturate(150%);backdrop-filter:blur(10px) saturate(150%);
@@ -107,14 +111,11 @@ const themeCss = (p: AuPalette) => /* css */ `
   background:linear-gradient(155deg,rgba(214,236,255,.85),rgba(228,222,254,.45))}
 .au-pane--b{left:52%;top:4%;width:22%;height:72%;transform:rotate(11deg);overflow:hidden;
   background:linear-gradient(165deg,rgba(228,222,254,.75),rgba(214,236,255,.35) 55%,rgba(255,220,236,.5))}
-.au-pane--photo::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:.5;
-  background:linear-gradient(165deg,rgba(214,236,255,.55),rgba(255,220,236,.45)),var(--au-scene) center/cover no-repeat;
-  filter:saturate(.7) contrast(.95);mix-blend-mode:multiply}
+.au-pane--photo::after{content:"";position:absolute;inset:-12px;opacity:.38;
+  background:linear-gradient(165deg,rgba(214,236,255,.6),rgba(255,220,236,.5)),var(--au-scene) center/cover no-repeat;
+  filter:blur(5px) saturate(.75);mix-blend-mode:multiply}
 .au-pane--c{left:28%;bottom:4%;width:24%;height:42%;transform:rotate(9deg);
   background:linear-gradient(160deg,rgba(255,220,236,.7),rgba(255,230,214,.4))}
-/* Oldingi shisha — yarmi portret chetida, yarmi fonda: sinish ko'rinib turadi. */
-.au-pane--front{left:62%;bottom:-3%;z-index:4;width:13%;height:21%;border-radius:32px;transform:rotate(-8deg);
-  background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(240,236,255,.72) 55%,rgba(255,228,240,.7))}
 .au-orb{position:absolute;left:58%;top:34%;z-index:2;display:block;width:clamp(4.5rem,8vw,7.5rem);aspect-ratio:1;border-radius:50%;pointer-events:none;
   background:radial-gradient(circle at 34% 28%,#fff 0,rgba(255,255,255,.95) 7%,rgba(214,236,255,.7) 26%,rgba(169,155,255,.45) 52%,rgba(255,159,203,.4) 74%,rgba(255,191,152,.35) 92%);
   box-shadow:inset -6px -10px 22px rgba(169,155,255,.35),inset 4px 6px 12px rgba(255,255,255,.8),0 20px 40px -24px rgba(120,100,220,.6)}
@@ -135,14 +136,12 @@ const themeCss = (p: AuPalette) => /* css */ `
 
 /* Suzuvchi ma'lumot kartalari. */
 .au-float{display:flex;align-items:center;gap:.85rem;min-width:0;padding:.85rem 1.05rem;--au-r:18px}
-.au-float p{min-width:0;margin:0;font-size:.86rem;font-weight:500;line-height:1.35;color:var(--au-ink);overflow-wrap:break-word;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.au-float p{min-width:0;margin:0;font-size:.86rem;font-weight:500;line-height:1.35;color:var(--au-ink);overflow-wrap:break-word}
+.au-float__value{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .au-float small{display:block;margin-top:.15rem;font-size:.72rem;font-weight:500;color:var(--au-ink-3)}
-/* O'ng ustunga tegmaydi: o'ng cheti kartalar ustunining chap chetiga bog'langan. */
-.au-float--place{position:absolute;right:calc(var(--au-gutter) + min(21%,19rem) + 1.25rem);top:54%;z-index:4;max-width:min(15.5rem,21%)}
-.au-cards{position:absolute;right:var(--au-gutter);top:30%;z-index:5;display:grid;gap:.75rem;width:min(21%,19rem);margin:0;padding:0;list-style:none}
+.au-cards{position:absolute;right:var(--au-gutter);top:50%;translate:0 -50%;z-index:5;display:grid;gap:.75rem;width:min(21%,19rem);margin:0;padding:0;list-style:none}
 
-.au-notes{position:absolute;left:var(--au-gutter);bottom:clamp(1.2rem,3.6vh,2.2rem);z-index:5;width:min(29%,26rem)}
+.au-notes{position:relative;z-index:5;grid-column:1;grid-row:3;min-width:0;max-width:min(26rem,88%)}
 .au-quote{position:relative;margin:0 0 1.3rem;padding:0 0 0 3.2rem;font-size:clamp(1rem,.95rem + .25vw,1.12rem);line-height:1.55;color:var(--au-ink-2);text-wrap:pretty}
 .au-quote span{position:absolute;left:0;top:-.35rem;font-family:var(--au-display),sans-serif;font-weight:800;font-size:3.6rem;line-height:1;
   color:transparent;background:var(--au-aurora);-webkit-background-clip:text;background-clip:text;opacity:.7}
@@ -184,18 +183,23 @@ const themeCss = (p: AuPalette) => /* css */ `
 .au-stat div{min-width:0}
 .au-stat b{display:block;font-family:var(--au-display),sans-serif;font-size:1.35rem;font-weight:700;line-height:1.1;letter-spacing:-.02em;color:var(--au-ink);font-variant-numeric:tabular-nums}
 .au-stat__soft{font-family:var(--au-sans),sans-serif;font-size:.95rem;font-weight:600;letter-spacing:0;color:var(--au-ink-2)}
-.au-stat span{display:block;margin-top:.2rem;font-size:.76rem;line-height:1.3;color:var(--au-ink-3)}
+.au-stat__label{display:block;margin-top:.2rem;font-size:.76rem;line-height:1.3;color:var(--au-ink-3)}
 .au-stat em{margin-left:.45rem;font-style:normal;font-weight:700}
 .au-up{color:#22a06b}
 .au-down{color:#d9534f}
-.au-stat__icon{display:grid;place-items:center;flex:none;width:2.9rem;height:2.9rem;border-radius:16px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 0 0 1px rgba(255,255,255,.6)}
-.au-stat__icon svg{width:1.35rem;height:1.35rem}
-.au-stat__icon--lavender{background:linear-gradient(150deg,rgba(169,155,255,.28),rgba(169,155,255,.1));color:#7a68f2}
-.au-stat__icon--sky{background:linear-gradient(150deg,rgba(124,196,255,.32),rgba(124,196,255,.1));color:#3b8fe0}
-.au-stat__icon--pink{background:linear-gradient(150deg,rgba(255,159,203,.34),rgba(255,159,203,.1));color:#de4f95}
-.au-stat__icon--peach{background:linear-gradient(150deg,rgba(255,191,152,.4),rgba(255,191,152,.12));color:#df7536}
-.au-stat__icon--cyan{background:linear-gradient(150deg,rgba(143,227,232,.42),rgba(143,227,232,.12));color:#1a9ea7}
+/* Rangli shisha chip: to'yingan pastel gradient, oq belgi, yuqorisida yaltiroq aks. */
+.au-chip{position:relative;display:grid;place-items:center;flex:none;width:3rem;height:3rem;border-radius:16px;color:#fff;
+  background:var(--au-chip);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -8px 14px -8px rgba(40,30,110,.28),0 12px 22px -12px var(--au-chip-glow)}
+.au-chip::after{content:"";position:absolute;inset:1px 1px 50%;border-radius:15px 15px 10px 10px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0))}
+.au-chip svg{position:relative;z-index:1;width:1.4rem;height:1.4rem;filter:drop-shadow(0 1px 1.5px rgba(40,30,110,.28))}
+.au-chip--lavender{--au-chip:linear-gradient(150deg,#b9abff 0%,#8c79f6 55%,#7360ee 100%);--au-chip-glow:rgba(115,96,238,.6)}
+.au-chip--sky{--au-chip:linear-gradient(150deg,#a3d8ff 0%,#5fa9f6 55%,#3f8ae8 100%);--au-chip-glow:rgba(63,138,232,.55)}
+.au-chip--pink{--au-chip:linear-gradient(150deg,#ffb3d5 0%,#f280b5 55%,#e15c9c 100%);--au-chip-glow:rgba(225,92,156,.55)}
+.au-chip--peach{--au-chip:linear-gradient(150deg,#ffcfab 0%,#f8a272 55%,#ef834f 100%);--au-chip-glow:rgba(239,131,79,.55)}
+.au-chip--cyan{--au-chip:linear-gradient(150deg,#a8efe9 0%,#5ccfd2 55%,#33b2bf 100%);--au-chip-glow:rgba(51,178,191,.55)}
+.au-chip--violet{--au-chip:linear-gradient(150deg,#ddb6ff 0%,#b77df3 55%,#9b5ce6 100%);--au-chip-glow:rgba(155,92,230,.55)}
 .au-stat:last-child:nth-child(odd){grid-column:1/-1}
 @media (min-width:760px){
   .au-stats__row{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -278,7 +282,7 @@ const themeCss = (p: AuPalette) => /* css */ `
 .au-floating__item>div{min-width:0}
 .au-floating__year{margin:0 0 .3rem;font-size:.72rem;font-weight:700;letter-spacing:.14em;color:#8f86f5}
 .au-floating__item b{display:block;font-family:var(--au-display),sans-serif;font-size:1.1rem;font-weight:700;line-height:1.3;letter-spacing:-.015em}
-.au-floating__item span{display:block;margin-top:.25rem;font-size:.88rem;color:var(--au-ink-3)}
+.au-floating__sub{display:block;margin-top:.25rem;font-size:.88rem;color:var(--au-ink-3)}
 .au-floating__item p{margin:.55rem 0 0;font-size:.92rem;line-height:1.65;color:var(--au-ink-2);white-space:pre-line}
 .au-floating__item .au-go{margin-top:.8rem}
 @media (min-width:960px){.au-floating__item:nth-child(3n+2){transform:translateY(2.2rem)}.au-floating__item:nth-child(3n+2):hover{transform:translateY(1.9rem)}}
@@ -288,7 +292,7 @@ const themeCss = (p: AuPalette) => /* css */ `
 .au-cert{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.7rem 1.5rem;padding:1.15rem 0;border-bottom:1px solid var(--au-line)}
 .au-cert:last-child{border-bottom:0}
 .au-cert b{display:block;font-family:var(--au-display),sans-serif;font-size:1.05rem;font-weight:700;line-height:1.3}
-.au-cert span{display:block;margin-top:.2rem;font-size:.86rem;color:var(--au-ink-3)}
+.au-cert__sub{display:block;margin-top:.2rem;font-size:.86rem;color:var(--au-ink-3)}
 .au-cert__end{display:flex;align-items:center;gap:1rem}
 .au-pill{display:inline-flex;align-items:center;height:1.75rem;padding:0 .8rem;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.06em;color:var(--au-ink-3);background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 1px var(--au-line)}
 .au-pill--ok{color:#1d8c5f;background:rgba(214,247,231,.9);box-shadow:inset 0 0 0 1px rgba(34,160,107,.25)}
@@ -306,7 +310,11 @@ const themeCss = (p: AuPalette) => /* css */ `
 .au-press__body{display:block;margin:-2.4rem .8rem 0;padding:1rem 1.1rem 1.1rem;--au-r:20px}
 .au-press__meta{display:block;font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8f86f5}
 .au-press__card b{display:block;margin-top:.4rem;font-family:var(--au-display),sans-serif;font-size:1.05rem;font-weight:700;line-height:1.3;letter-spacing:-.015em}
-@media (min-width:960px){.au-press li:first-child{grid-column:span 2}.au-press li:first-child .au-press__shot{aspect-ratio:16/8}}
+@media (min-width:960px){
+  .au-press li:first-child:nth-last-child(n+3){grid-column:span 2}
+  .au-press li:only-child{grid-column:1/-1}
+  .au-press li:first-child:nth-last-child(n+3) .au-press__shot,.au-press li:only-child .au-press__shot{aspect-ratio:16/8}
+}
 
 /* KITOBLAR */
 .au-library{display:grid;gap:2.4rem}
@@ -317,15 +325,16 @@ const themeCss = (p: AuPalette) => /* css */ `
 .au-book:hover .au-book__cover img{transform:scale(1.04)}
 .au-book__blank{position:absolute;inset:0;display:grid;place-items:center;padding:.8rem;text-align:center;font-size:.86rem;font-weight:700;color:var(--au-ink-2)}
 .au-book b{display:block;margin-top:.65rem;font-size:.86rem;font-weight:700;line-height:1.35}
-.au-book span{display:block;font-size:.78rem;color:var(--au-ink-3)}
+.au-book__author{display:block;font-size:.78rem;color:var(--au-ink-3)}
 .au-list{margin:0;padding:.4rem 1.4rem;list-style:none;--au-r:22px}
 .au-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.3rem 1rem;padding:.9rem 0;border-bottom:1px solid var(--au-line)}
 .au-list li:last-child{border-bottom:0}
 .au-list b{font-weight:700}
-.au-list span{font-size:.86rem;color:var(--au-ink-3)}
+.au-list__sub{font-size:.86rem;color:var(--au-ink-3)}
 
 /* GALEREYA */
 .au-gallery{columns:2;column-gap:1rem;margin:0;padding:0;list-style:none}
+.au-gallery--1{columns:1;max-width:30rem}
 .au-gallery li{break-inside:avoid;margin-bottom:1rem}
 .au-shot{position:relative;margin:0;overflow:hidden;border-radius:24px;aspect-ratio:4/5;background:var(--au-aurora-soft);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.8),0 24px 44px -32px rgba(80,80,170,.6)}
@@ -333,7 +342,7 @@ const themeCss = (p: AuPalette) => /* css */ `
 .au-shot img{object-fit:cover;object-position:50% 25%;transition:transform 1.2s var(--au-ease)}
 .au-shot:hover img{transform:scale(1.04)}
 .au-shot figcaption{position:absolute;left:.7rem;right:.7rem;bottom:.7rem;padding:.55rem .8rem;font-size:.78rem;line-height:1.4;--au-r:14px}
-@media (min-width:900px){.au-gallery{columns:3;column-gap:1.3rem}.au-gallery--1{columns:1;max-width:36rem}.au-gallery--2{columns:2;max-width:56rem}}
+@media (min-width:900px){.au-gallery{columns:3;column-gap:1.3rem}.au-gallery--1{columns:1}.au-gallery--2{columns:2;max-width:56rem}}
 
 /* IQTIBOSLAR */
 .au-sayings{display:grid;gap:1rem;margin:0;padding:0;list-style:none}
@@ -353,20 +362,18 @@ const themeCss = (p: AuPalette) => /* css */ `
 
 /* ===================================================== TELEFON */
 @media (max-width:959.98px){
-  .au-stage{height:auto;display:flex;flex-direction:column;padding:1.2rem var(--au-gutter) 1.4rem}
+  .au-stage{min-height:0;display:flex;flex-direction:column;padding:1.2rem var(--au-gutter) 1.4rem}
   .au-intro{position:relative;inset:auto;width:100%}
-  .au-name{margin-top:1rem;font-size:min(4.4rem,calc(100cqi / (var(--au-n,8) * .7)))}
+  .au-name{margin-top:1rem;font-size:min(4.6rem,calc(100cqi / var(--au-w,6) * .97))}
   .au-visual{position:relative;inset:auto;height:clamp(400px,112vw,560px);margin:.4rem calc(var(--au-gutter) * -1) 0}
   .au-pane--a{left:6%;top:6%;width:30%;height:30%}
   .au-pane--b{left:52%;top:2%;width:40%;height:70%}
   .au-pane--c{left:4%;bottom:6%;width:46%;height:38%}
-  .au-pane--front{left:70%;width:26%;height:18%}
   .au-orb{left:72%;top:42%}
   .au-figure{left:50%;width:92%;height:98%}
-  .au-float--place{left:var(--au-gutter);right:auto;top:auto;bottom:1rem;max-width:62%}
-  .au-cards{position:relative;inset:auto;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:1rem}
-  .au-cards li:first-child{grid-column:1/-1}
-  .au-notes{position:relative;inset:auto;width:100%;margin-top:1.4rem}
+  .au-cards{position:relative;inset:auto;translate:none;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:1rem}
+  .au-cards li:first-child,.au-cards li:nth-child(even):last-child{grid-column:1/-1}
+  .au-notes{max-width:none;margin-top:1.4rem}
 }
 @media (max-width:420px){.au-cards{grid-template-columns:minmax(0,1fr)}}
 
@@ -391,11 +398,9 @@ const themeCss = (p: AuPalette) => /* css */ `
   .au-pane--a{animation-delay:.3s}
   .au-pane--b{animation-delay:.4s}
   .au-pane--c{animation-delay:.5s}
-  .au-pane--front{animation-delay:.9s}
   .au-figure{animation:au-portrait 1.6s var(--au-ease) .55s backwards}
   .au-orb{animation:au-fade 1.4s var(--au-ease) .9s backwards,au-bob 9s ease-in-out 2s infinite}
   .au-float{animation:au-up 1s var(--au-ease) backwards,au-bob 8s ease-in-out infinite;animation-delay:calc(1s + var(--i,0) * .12s),calc(2.4s + var(--i,0) * .9s)}
-  .au-float--place{animation-delay:.95s,2s}
   .au-notes{animation:au-up 1.1s var(--au-ease) 1.1s backwards}
   .au-stats__row{animation:au-up 1s var(--au-ease) 1.25s backwards}
   .au-blob--a{animation:au-drift-a 26s ease-in-out infinite}

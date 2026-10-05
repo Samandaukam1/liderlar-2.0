@@ -1,6 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import {
+  Award,
+  BadgeCheck,
+  CalendarDays,
+  Eye,
+  FileText,
+  Globe,
+  GraduationCap,
+  MapPin,
+  Star,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { readingMinutes, toParagraphs } from "@/components/ui/article-body";
 import { formatDateUz, formatNumber, rankDelta } from "@/lib/utils";
 import { isVerified, range, safeUrl, toTimeline, trustLabel, year, type TimelineItem } from "@/lib/themes/shape";
@@ -224,12 +237,13 @@ function Hero({
   const place = profile.current_location ?? profile.region?.name ?? null;
   const education = toTimeline(profile.education ?? [])[0]?.title || profile.education_summary;
   const languages = (profile.languages ?? []).join(", ");
-  const allCards: { key: string; icon: InfoIcon; value: string | null; label: string }[] = [
-    { key: "edu", icon: "cap", value: education, label: "Ta’lim" },
-    { key: "born", icon: "calendar", value: profile.birth_year_display, label: "Tug‘ilgan yili" },
-    { key: "lang", icon: "globe", value: languages, label: "Tillar" },
+  const allCards: { key: string; icon: LucideIcon; value: string | null; label: string }[] = [
+    { key: "edu", icon: GraduationCap, value: education, label: "Ta’lim" },
+    { key: "born", icon: CalendarDays, value: profile.birth_year_display, label: "Tug‘ilgan yili" },
+    { key: "lang", icon: Globe, value: languages, label: "Tillar" },
+    { key: "place", icon: MapPin, value: place, label: "Hudud" },
   ];
-  const cards = allCards.filter((card): card is { key: string; icon: InfoIcon; value: string; label: string } => Boolean(card.value?.trim()));
+  const cards = allCards.filter((card): card is { key: string; icon: LucideIcon; value: string; label: string } => Boolean(card.value?.trim()));
   const hasStory = profile.sections.length > 0 || profile.articles.length > 0;
 
   return (
@@ -243,7 +257,7 @@ function Hero({
               ))}
             </ul>
           )}
-          <h1 className="au-name" style={{ "--au-n": Math.max(6, first.length, last.length) } as Vars}>
+          <h1 className="au-name" style={{ "--au-w": Math.max(3, nameEm(first), nameEm(last)).toFixed(3) } as Vars}>
             <span className="au-name__line">
               <span>{first}</span>
             </span>
@@ -280,17 +294,6 @@ function Hero({
               </span>
             )}
           </div>
-          <span className="au-pane au-pane--front au-lens" aria-hidden />
-
-          {place && (
-            <div className="au-float au-float--place au-glass au-lens">
-              <IconBox icon="pin" />
-              <p>
-                {place}
-                <small>Hudud</small>
-              </p>
-            </div>
-          )}
         </div>
 
         {cards.length > 0 && (
@@ -299,7 +302,9 @@ function Hero({
               <li key={card.key} className="au-float au-glass au-lens" style={{ "--i": index } as Vars}>
                 <IconBox icon={card.icon} />
                 <p>
-                  {card.value}
+                  <span className="au-float__value" title={card.value}>
+                    {card.value}
+                  </span>
                   <small>{card.label}</small>
                 </p>
               </li>
@@ -333,23 +338,37 @@ function Hero({
   );
 }
 
+/* ------------------------------------------------- ISM O'LCHAMI */
+
+/*
+ * Sora 800 harflarining kengligi (em × 1000), brauzerda o'lchangan.
+ * Ism konteynerga ANIQ sig'adigan eng katta o'lchamda chiziladi: keng
+ * "Muhammadyusuf" ham chetga chiqmaydi, ixcham ism ham keraksiz kichik
+ * qolmaydi. Jadvalda yo'q belgi (kirill va h.k.) keng deb olinadi.
+ */
+const SORA_UPPER = [790, 696, 802, 778, 592, 560, 833, 798, 338, 644, 777, 562, 988, 885, 864, 676, 864, 740, 659, 626, 771, 750, 1080, 730, 658, 645];
+const SORA_LOWER = [600, 708, 613, 708, 628, 383, 690, 656, 342, 346, 661, 324, 988, 656, 682, 708, 708, 424, 562, 436, 650, 609, 946, 614, 577, 506];
+const SORA_MARKS: Record<string, number> = { "'": 270, "‘": 278, "’": 278, "ʻ": 234, "ʼ": 250, "`": 300, "-": 510, ".": 276, " ": 204 };
+/** `.au-name` dagi letter-spacing bilan bir xil. */
+const NAME_TRACKING = -0.04;
+
+function nameEm(text: string): number {
+  let width = 0;
+  for (const char of text) {
+    const code = char.charCodeAt(0);
+    const glyph =
+      code >= 65 && code <= 90 ? SORA_UPPER[code - 65] : code >= 97 && code <= 122 ? SORA_LOWER[code - 97] : (SORA_MARKS[char] ?? 720);
+    width += glyph / 1000 + NAME_TRACKING;
+  }
+  return width;
+}
+
 /* ------------------------------------------------- IKONKALAR */
 
-type InfoIcon = "pin" | "calendar" | "cap" | "globe";
-
-const ICON_PATH: Record<InfoIcon, string> = {
-  pin: "M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 12.2a2.6 2.6 0 100-5.2 2.6 2.6 0 000 5.2z",
-  calendar: "M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4M8 14h2M12 14h2M16 14h0M8 17h2M12 17h2",
-  cap: "M2.5 9.5L12 5l9.5 4.5L12 14zM6.5 11.5v4.5c1.5 1.6 3.3 2.5 5.5 2.5s4-.9 5.5-2.5v-4.5M21.5 9.5v5",
-  globe: "M12 3a9 9 0 110 18 9 9 0 010-18zM3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3z",
-};
-
-function IconBox({ icon }: { icon: InfoIcon }) {
+function IconBox({ icon: Icon }: { icon: LucideIcon }) {
   return (
     <span className="au-icon" aria-hidden>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d={ICON_PATH[icon]} />
-      </svg>
+      <Icon strokeWidth={1.8} />
     </span>
   );
 }
@@ -455,11 +474,11 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
   const achievements = (profile.achievements ?? []).length;
   const certificates = (profile.certificates ?? []).length;
 
-  const items: { key: string; tint: string; icon: string; value: ReactNode; label: ReactNode }[] = [
+  const items: { key: string; tint: string; icon: LucideIcon; value: ReactNode; label: ReactNode }[] = [
     {
       key: "rank",
       tint: "lavender",
-      icon: "M7 3.5h10v4a5 5 0 01-10 0zM7 5H4v1.5a3.5 3.5 0 003.5 3.5M17 5h3v1.5a3.5 3.5 0 01-3.5 3.5M9 20.5h6M12 12.5v8",
+      icon: Trophy,
       value: ranking.kind === "position" ? `#${ranking.value}` : <span className="au-stat__soft">{ranking.kind === "pending" ? "Hisoblanmoqda" : "Shakllanmoqda"}</span>,
       label: (
         <>
@@ -471,25 +490,25 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
     {
       key: "score",
       tint: "sky",
-      icon: "M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.5l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z",
+      icon: Star,
       value: scoreText(profile.total_score),
       label: `Reyting balli ${RANKING_SCORE_UNIT}`,
     },
     {
       key: "views",
       tint: "pink",
-      icon: "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12zM12 9a3 3 0 100 6 3 3 0 000-6z",
+      icon: Eye,
       value: compact(profile.view_count),
       label: "Profil ko‘rishlari",
     },
     ...(articles > 0
-      ? [{ key: "articles", tint: "cyan", icon: "M6 3h8.5L19 7.5V21H6zM14 3v5h5M9 12h7M9 15.5h7M9 9h3", value: formatNumber(articles), label: "Maqolalari" }]
+      ? [{ key: "articles", tint: "cyan", icon: FileText, value: formatNumber(articles), label: "Maqolalari" }]
       : []),
     ...(achievements > 0
-      ? [{ key: "achievements", tint: "peach", icon: "M12 2.5a6.5 6.5 0 110 13 6.5 6.5 0 010-13zM8.5 14.5L7 21.5l5-2.7 5 2.7-1.5-7", value: formatNumber(achievements), label: "Yutuqlari" }]
+      ? [{ key: "achievements", tint: "peach", icon: Award, value: formatNumber(achievements), label: "Yutuqlari" }]
       : []),
     ...(certificates > 0
-      ? [{ key: "certificates", tint: "sky", icon: "M4 4.5h16v11H4zM8 19.5l1-4M16 19.5l-1-4M8 8.5h8M8 11.5h5", value: formatNumber(certificates), label: "Sertifikatlari" }]
+      ? [{ key: "certificates", tint: "violet", icon: BadgeCheck, value: formatNumber(certificates), label: "Sertifikatlari" }]
       : []),
   ];
 
@@ -497,16 +516,14 @@ function Stats({ profile, extras }: { profile: ThemeProfile; extras: ThemeExtras
     <section className="au-stats" aria-label="Ko‘rsatkichlar">
       <div className="au-wrap">
         <ul className="au-stats__row au-glass au-lens au-lens--wide" style={{ "--au-cols": items.length } as Vars}>
-          {items.map((item) => (
-            <li key={item.key} className="au-stat">
-              <span className={`au-stat__icon au-stat__icon--${item.tint}`} aria-hidden>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={item.icon} />
-                </svg>
+          {items.map(({ key, tint, icon: Icon, value, label }) => (
+            <li key={key} className="au-stat">
+              <span className={`au-chip au-chip--${tint}`} aria-hidden>
+                <Icon strokeWidth={2} />
               </span>
               <div>
-                <b>{item.value}</b>
-                <span>{item.label}</span>
+                <b>{value}</b>
+                <span className="au-stat__label">{label}</span>
               </div>
             </li>
           ))}
@@ -715,15 +732,13 @@ function Floating({ items }: { items: TimelineItem[] }) {
         const url = safeUrl(item.url);
         return (
           <li key={item.id} className="au-floating__item au-glass">
-            <span className={`au-stat__icon au-stat__icon--${tints[index % tints.length]}`} aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2.5a6.5 6.5 0 110 13 6.5 6.5 0 010-13zM8.5 14.5L7 21.5l5-2.7 5 2.7-1.5-7" />
-              </svg>
+            <span className={`au-chip au-chip--${tints[index % tints.length]}`} aria-hidden>
+              <Award strokeWidth={2} />
             </span>
             <div>
               {item.from && <p className="au-floating__year">{year(item.from)}</p>}
               <b>{item.title}</b>
-              {item.subtitle && <span>{item.subtitle}</span>}
+              {item.subtitle && <span className="au-floating__sub">{item.subtitle}</span>}
               {item.description && <p>{item.description}</p>}
               {url && <External href={url} label="Manba" />}
             </div>
@@ -756,7 +771,9 @@ function certificates(profile: ThemeProfile): Section | null {
               <div>
                 <b>{certificate.title}</b>
                 {(certificate.issuer || certificate.issued_on) && (
-                  <span>{[certificate.issuer, year(certificate.issued_on as string | null)].filter(Boolean).join(" · ")}</span>
+                  <span className="au-cert__sub">
+                    {[certificate.issuer, year(certificate.issued_on as string | null)].filter(Boolean).join(" · ")}
+                  </span>
                 )}
               </div>
               <div className="au-cert__end">
@@ -813,7 +830,8 @@ function media(profile: ThemeProfile, extras: ThemeExtras | undefined): Section 
     kicker: "Maqolalar va media",
     title: "Nashrlar",
     meta: `${cards.length} ta material`,
-    layout: "stack",
+    // 1–2 ta material — sarlavha yonida; ko'p bo'lsa — keng qator.
+    layout: cards.length <= 2 ? "split" : "stack",
     body: (
       <ul className="au-press">
         {cards.map((card) => (
@@ -857,7 +875,7 @@ function books(profile: ThemeProfile): Section | null {
             {manual.map((book) => (
               <li key={String(book.id)}>
                 <b>{String(book.title ?? "")}</b>
-                {book.subtitle && <span>{String(book.subtitle)}</span>}
+                {book.subtitle && <span className="au-list__sub">{String(book.subtitle)}</span>}
               </li>
             ))}
           </ul>
@@ -887,7 +905,7 @@ function Shelf({ label, items }: { label: string; items: ThemeProfile["adabiyotX
                 )}
               </span>
               <b>{item.title}</b>
-              {item.authorName && <span>{item.authorName}</span>}
+              {item.authorName && <span className="au-book__author">{item.authorName}</span>}
             </>
           );
           return (
@@ -919,7 +937,7 @@ function gallery(profile: ThemeProfile): Section | null {
     kicker: "Galereya",
     title: "Lahzalar",
     meta: `${items.length} ta surat`,
-    layout: "stack",
+    layout: items.length <= 2 ? "split" : "stack",
     body: (
       <ul className={`au-gallery au-gallery--${Math.min(items.length, 3)}`}>
         {items.map((item) => (
