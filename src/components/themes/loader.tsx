@@ -88,6 +88,9 @@ export function themeExtrasFor(key: ThemeKey): ThemeExtrasNeeds {
   if (key === "emerald-legacy") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
+  if (key === "aurora-glass") {
+    return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
+  }
   if (key === "ivory-editorial") {
     return { portraitCutout: true, promoCode: true, journalArticles: true, podcasts: true };
   }
@@ -135,7 +138,7 @@ export function ThemeRenderer({
     case "emerald-legacy":
       return <EmeraldLegacy profile={profile} extras={extras} />;
     case "aurora-glass":
-      return <AuroraGlass profile={profile} />;
+      return <AuroraGlass profile={profile} extras={extras} />;
     case "zarafshon":
       return <Zarafshon profile={profile} />;
     case "crimson-prestige":

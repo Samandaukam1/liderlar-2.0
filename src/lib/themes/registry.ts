@@ -146,7 +146,7 @@ export const THEMES: Readonly<Record<ThemeKey, ThemeMeta>> = {
     label: "Aurora Glass",
     mood: "Kelajak yetakchiligi, texnologiya",
     description:
-      "Qorong'u dengiz ko'ki, shaffof shisha qatlamlar, o'lchovli moviy va binafsha yorug'lik.",
+      "Toza oq-sadaf fon, yumshoq aurora (osmon ko'ki, lavanda, pushti, shaftoli) va suyuq shisha qatlamlar. Markazda portret, atrofida suzuvchi haqiqiy ma'lumot kartalari.",
     premium: true,
     ready: true,
     suitedFor: "Texnologiya, startap",
