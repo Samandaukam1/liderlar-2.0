@@ -24,7 +24,17 @@ const nextConfig: NextConfig = {
    * page against itself in search results.
    */
   async redirects() {
-    return [{ source: "/oferta", destination: "/ommaviy_ofertasi", permanent: true }];
+    return [
+      { source: "/oferta", destination: "/ommaviy_ofertasi", permanent: true },
+      /**
+       * Ariza formasi /ariza da. Admin paneldagi burchak videosi tugmasi
+       * (`corner_video_settings.button_url`) esa /ariza_qoldirish ga
+       * yo'naltirilgan edi va "sahifa topilmadi" chiqarardi. Redirect shu
+       * va tarqalib ketgan boshqa eski havolalarni ham ishlatib turadi;
+       * `?ref=` kabi so'rov parametrlari o'zi o'tib ketadi.
+       */
+      { source: "/ariza_qoldirish", destination: "/ariza", permanent: true },
+    ];
   },
   /**
    * `/favicon.ico` — STATIK FAYL EMAS.
