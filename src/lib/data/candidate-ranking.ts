@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/data/paged-rows";
 
 /**
  * NOMZODNING REYTING BALLI — YAGONA O'QISH JOYI.
@@ -124,13 +125,35 @@ export interface OverallRanking {
  */
 const IN_FILTER_LIMIT = 200;
 
+const OVERALL_SELECT = "candidate_id, total_score, position, previous_position";
+
+type OverallRow = {
+  candidate_id: string;
+  total_score: number | string | null;
+  position: number | null;
+  previous_position: number | null;
+};
+
 /**
- * PostgREST qatorlar sonini o'zidan cheklaydi (`db-max-rows`).
+ * Joriy umumiy reytingning HAMMA qatori.
  *
- * Oraliq ko'rsatilmasa, javob jimgina qirqilardi va katalogning
- * oxiridagi nomzodlar yana "0 ball" bo'lib qolardi.
+ * PostgREST javobni 1000 qatorga qirqadi va `.range(0, 19999)` buni
+ * yengmaydi (avval shunday deb o'ylangan edi): 3160 qatordan 1000 tasi
+ * kelardi va katalogdagi qolgan nomzodlarda "0 ball" turardi. Endi
+ * sahifama-sahifa, `count` bilan solishtirib o'qiladi (`paged-rows.ts`).
  */
-const MAX_ROWS = 20_000;
+export async function getAllOverallRankingRows(): Promise<OverallRow[]> {
+  const admin = createAdminClient();
+  return fetchAllRows<OverallRow>((from, to) =>
+    admin
+      .from("ranking_scores")
+      .select(OVERALL_SELECT, { count: "exact" })
+      .eq("category", "overall")
+      .eq("is_current", true)
+      .order("id")
+      .range(from, to),
+  );
+}
 
 export async function getOverallRankings(
   ids: readonly string[],
@@ -144,19 +167,27 @@ export async function getOverallRankings(
   if (ids.length === 0) return result;
 
   const wanted = new Set(ids);
-  const admin = createAdminClient();
 
-  let query = admin
-    .from("ranking_scores")
-    .select("candidate_id, total_score, position, previous_position")
-    .eq("category", "overall")
-    .eq("is_current", true);
+  let data: OverallRow[] | null = null;
+  let error: { message: string } | null = null;
 
   if (ids.length <= IN_FILTER_LIMIT) {
-    query = query.in("candidate_id", ids as string[]);
+    const response = await createAdminClient()
+      .from("ranking_scores")
+      .select(OVERALL_SELECT)
+      .eq("category", "overall")
+      .eq("is_current", true)
+      .in("candidate_id", ids as string[]);
+    data = response.data as OverallRow[] | null;
+    error = response.error;
+  } else {
+    try {
+      data = await getAllOverallRankingRows();
+    } catch (caught) {
+      if (strict) throw caught;
+      error = { message: String((caught as { message?: unknown })?.message ?? caught) };
+    }
   }
-
-  const { data, error } = await query.range(0, MAX_ROWS - 1);
 
   if (error) {
     if (strict) throw error;

@@ -1,28 +1,28 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOverallRankings, type OverallRanking } from "@/lib/data/candidate-ranking";
 import type { GroundingCandidate } from "@/lib/ai/system-prompt";
 
 type CandidateRow = {
+  id: string;
   slug: string;
   full_name: string;
   short_bio: string | null;
   status: string;
   region: { name: string } | { name: string }[] | null;
   category: { name: string } | { name: string }[] | null;
-  scores: { category: string; total_score: number; is_current: boolean }[];
 };
 
-function toGrounding(row: CandidateRow): GroundingCandidate {
+function toGrounding(row: CandidateRow, overall: OverallRanking | undefined): GroundingCandidate {
   const region = Array.isArray(row.region) ? row.region[0] : row.region;
   const category = Array.isArray(row.category) ? row.category[0] : row.category;
-  const overall = row.scores?.find((score) => score.category === "overall" && score.is_current);
   return {
     slug: row.slug,
     full_name: row.full_name,
     headline: row.short_bio,
     region: region?.name ?? null,
     direction: category?.name ?? null,
-    total_score: Number(overall?.total_score ?? 0),
+    total_score: overall?.totalScore ?? 0,
     is_verified: row.status === "published",
   };
 }
@@ -42,8 +42,14 @@ export async function retrieveGroundingCandidates(query: string): Promise<Ground
     .filter((w) => w.length >= 3)
     .slice(0, 6);
 
+  /*
+   * No nested ranking_scores embed: with no index on
+   * ranking_scores(candidate_id) it scanned the table once per candidate
+   * (EXPLAIN, generic plan: 2034 -> 955 buffers, 11 -> 6 ms). The score for
+   * the 5–6 matches comes from the same source as /reyting.
+   */
   const baseSelect =
-    "slug, full_name, short_bio, status, region:regions(name), category:categories(name), scores:ranking_scores(category,total_score,is_current)";
+    "id, slug, full_name, short_bio, status, region:regions(name), category:categories(name)";
 
   if (words.length > 0) {
     const orFilter = words
@@ -59,7 +65,7 @@ export async function retrieveGroundingCandidates(query: string): Promise<Ground
       .limit(6);
 
     if (data && data.length > 0) {
-      return (data as unknown as CandidateRow[]).map(toGrounding);
+      return withScores(data as unknown as CandidateRow[]);
     }
   }
 
@@ -70,5 +76,10 @@ export async function retrieveGroundingCandidates(query: string): Promise<Ground
     .order("created_at", { ascending: false })
     .limit(5);
 
-  return ((fallback as unknown as CandidateRow[]) ?? []).map(toGrounding);
+  return withScores((fallback as unknown as CandidateRow[]) ?? []);
+}
+
+async function withScores(rows: CandidateRow[]): Promise<GroundingCandidate[]> {
+  const rankings = await getOverallRankings(rows.map((row) => row.id));
+  return rows.map((row) => toGrounding(row, rankings.get(row.id)));
 }
