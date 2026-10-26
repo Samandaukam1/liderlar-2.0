@@ -90,7 +90,8 @@ export function rankingView(
 /**
  * Ball matni — BITTA KASR XONA.
  *
- * Maxraj 100 ("/ 100 ball"), shuning uchun bir xona o'qishga qulay.
+ * 2026-10-26 dan ball 100 bilan cheklanmaydi (ko'rish va boshqa
+ * to'g'ridan-to'g'ri ballar chegarasiz qo'shiladi); bir xona yetarli.
  * Kasrni butunlab tashlasak, ko'rishlardan yig'ilgan 0,4 "0" bo'lib
  * ko'rinardi; nol esa "0.0" bo'lib ko'rinadi — ya'ni ball yo'qligi
  * ham RAQAM bilan aytiladi, bo'sh joy bilan emas.
@@ -110,7 +111,7 @@ export interface RankingDisplay {
    * yolg'on taassurot berardi, holbuki u hisobda turadi.
    */
   score: string;
-  /** Maxraj: ball 100 ballik shkalada. */
+  /** Birlik ("ball"). Ball chegarasiz — "/ 100" yozilmaydi. */
   scoreUnit: string;
   /** "#24" — o'rin bor va ball > 0 bo'lganda. */
   rank: string | null;
@@ -121,7 +122,7 @@ export interface RankingDisplay {
   rankLabel: string;
 }
 
-export const RANKING_SCORE_UNIT = "/ 100 ball";
+export const RANKING_SCORE_UNIT = "ball";
 
 /**
  * Reyting blokining matni — O'NTA DIZAYN UCHUN BITTA.

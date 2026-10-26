@@ -42,8 +42,9 @@ test("ball bitta kasr xona bilan, maxraj bilan birga", () => {
   // Ko'rishlardan yig'ilgan kichik ball "0" bo'lib ko'rinmasin.
   assert.equal(scoreText(0.07), "0.1");
   assert.equal(scoreText(7), "7.0");
-  assert.equal(RANKING_SCORE_UNIT, "/ 100 ball");
-  assert.equal(rankingDisplay(1, 78.42, true).scoreUnit, "/ 100 ball");
+  // 2026-10-26: ball 100 bilan cheklanmaydi — "/ 100" yozilmaydi.
+  assert.equal(RANKING_SCORE_UNIT, "ball");
+  assert.equal(rankingDisplay(1, 78.42, true).scoreUnit, "ball");
 });
 
 test("buzilgan qiymat ham sahifani yiqitmaydi", () => {
@@ -131,4 +132,22 @@ test("standart sahifa ballni ishonchli manbadan oladi", () => {
 
   const loader = readFileSync("src/lib/data/candidates.ts", "utf8");
   assert.match(loader, /getCandidateRanking\(/, "nomzod yuklovchisi reytingni o'qimaydi");
+});
+
+/* ------------------------------------------------------------------ *
+ * TO'G'RIDAN-TO'G'RI BALLAR (2026-10-26) — matn formulaga mos bo'lsin
+ * ------------------------------------------------------------------ */
+
+test("reyting tushuntirishi to'g'ridan-to'g'ri ballarni aytadi, ko'rishga chegara yozmaydi", () => {
+  const explainer = readFileSync("src/components/ranking/ranking-explainer.tsx", "utf8");
+  for (const rule of ["promo kod", "VIP panelda chop etilgan har maqola: 3 ball", "o‘z kitobi: 10 ball, o‘z maqolasi: 2 ball", "tasdiqlagan har yutuq: 2 ball"]) {
+    assert.ok(explainer.includes(rule), rule);
+  }
+  assert.doesNotMatch(explainer, /pointsCap/, "ko'rish balli chegarasiz");
+});
+
+test("kabinetdagi ko'rish bali reyting bilan bir xil: chegarasiz", () => {
+  const stats = readFileSync("src/lib/analytics/profile-stats.ts", "utf8");
+  assert.match(stats, /const viewPoints = enabled \? totalViews \/ viewsPerPoint : 0;/);
+  assert.doesNotMatch(readFileSync("src/components/profile/ranking-mini-card.tsx", "utf8"), /\/ 100 ball/);
 });

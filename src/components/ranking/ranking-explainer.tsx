@@ -38,9 +38,6 @@ export function RankingExplainer({ rules, todayIso }: { rules: RankingRules; tod
       weight: weights.activeLeadership,
       counts: [
         "Tahririyat tasdiqlagan liderlik hodisalari.",
-        views?.enabled
-          ? `Profil sahifasining sanalgan ko‘rishlari: har ${fmt.format(views.viewsPerPoint)} ko‘rish = 1 ball, ko‘pi bilan ${fmt.format(views.pointsCap)} ball.`
-          : "Profil ko‘rishlari hozir reytingga qo‘shilmaydi.",
         "Podkast mehmoni bo‘lish: har biri 5 ball, ko‘pi bilan 15.",
         "Jurnalda chop etilgan maqola: har biri 5 ball, ko‘pi bilan 15.",
       ],
@@ -48,12 +45,27 @@ export function RankingExplainer({ rules, todayIso }: { rules: RankingRules; tod
     },
   ];
 
+  /*
+   * TO'G'RIDAN-TO'G'RI BALLAR — `recalculate_rankings()` dagi `direct` bilan
+   * aynan bir xil (2026-10-26): og'irliksiz, chegarasiz, butun tarix bo'yicha.
+   */
+  const directPoints = [
+    views?.enabled
+      ? `Profil sahifasining sanalgan ko‘rishlari: har ${fmt.format(views.viewsPerPoint)} ko‘rish = 1 ball.`
+      : "Profil ko‘rishlari hozir reytingga qo‘shilmaydi.",
+    "Shaxsiy promo kod bilan kelib, to‘lov qilgan va ensiklopediyaga chiqqan har nomzod: 1 ball.",
+    "VIP panelda chop etilgan har maqola: 3 ball.",
+    "AdabiyotX’da o‘z kitobi: 10 ball, o‘z maqolasi: 2 ball.",
+    "Tahririyat tasdiqlagan har yutuq: 2 ball.",
+  ];
+
   return (
     <section className="rounded-2xl border border-brand-soft bg-paper p-5 shadow-card sm:p-6">
       <h2 className="font-display text-xl font-bold text-navy">Reyting qanday shakllanadi</h2>
       <p className="mt-2 text-sm leading-relaxed text-ink-soft">
         Liderlar.uz reytingi platformadagi tasdiqlangan faoliyat va natijalar asosida shakllanadi. Uch
-        yo‘nalish bo‘yicha ball yig‘iladi, so‘ng og‘irliklar bilan umumiy ballga aylanadi (ko‘pi bilan 100).
+        yo‘nalish bo‘yicha ball yig‘iladi va og‘irliklar bilan umumiy ballga aylanadi (ko‘pi bilan 100). Unga
+        quyidagi to‘g‘ridan-to‘g‘ri ballar chegarasiz qo‘shiladi.
       </p>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -79,6 +91,18 @@ export function RankingExplainer({ rules, todayIso }: { rules: RankingRules; tod
       </div>
 
       <div className="mt-4 rounded-xl border border-brand-soft bg-white p-4">
+        <h3 className="text-sm font-semibold text-navy">To‘g‘ridan-to‘g‘ri ballar (chegarasiz)</h3>
+        <ul className="mt-2 grid gap-2 text-sm text-ink sm:grid-cols-2">
+          {directPoints.map((line) => (
+            <li key={line} className="flex gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-brand-soft bg-white p-4">
         <h3 className="text-sm font-semibold text-navy">Reytingga qo‘shilmaydi</h3>
         <ul className="mt-2 grid gap-2 text-sm text-ink sm:grid-cols-2">
           {[
@@ -98,13 +122,14 @@ export function RankingExplainer({ rules, todayIso }: { rules: RankingRules; tod
       <p className="mt-4 flex gap-2 text-xs leading-relaxed text-ink-soft">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>
-          Umumiy ball = yutuqlar × {fmt.format(weights.achievements)}% + oylik faollik ×{" "}
-          {fmt.format(weights.monthlyActivity)}% + faol liderlik × {fmt.format(weights.activeLeadership)}%. Reyting
-          har soatda qayta hisoblanadi. Teng ballda tartib o‘zgarmas ichki identifikator bo‘yicha.
+          Umumiy ball = (yutuqlar × {fmt.format(weights.achievements)}% + oylik faollik ×{" "}
+          {fmt.format(weights.monthlyActivity)}% + faol liderlik × {fmt.format(weights.activeLeadership)}%) +
+          to‘g‘ridan-to‘g‘ri ballar. Reyting har soatda qayta hisoblanadi. Teng ballda tartib o‘zgarmas ichki identifikator bo‘yicha.
           {period && (
             <>
               {" "}Joriy davr: {period.name} ({formatDay(period.startsOn)} — {formatDay(period.endsOn)}).
-              {periodEnded && " Davr yakunlangan: undan keyingi faoliyat yangi davr ochilganda hisoblanadi."}
+              {periodEnded &&
+                " Davr yakunlangan: tahririyat hodisalari yangi davr ochilganda hisoblanadi; to‘g‘ridan-to‘g‘ri ballar davrga bog‘liq emas."}
             </>
           )}
         </span>

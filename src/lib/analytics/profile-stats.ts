@@ -99,13 +99,11 @@ export async function loadProfileStats(candidateId: string): Promise<ProfileStat
 
   /*
    * Ko'rish balli reytingdagi formula bilan AYNAN bir xil
-   * hisoblanadi: jami ko'rish / nisbat, chegaragacha.
+   * hisoblanadi: jami ko'rish / nisbat, CHEGARASIZ (2026-10-26).
    * Boshqacha hisoblasak, kabinetdagi son reytingdagi son
    * bilan mos kelmay qolardi.
    */
-  const viewPoints = enabled
-    ? Math.min(totalViews / viewsPerPoint, viewPointsCap)
-    : 0;
+  const viewPoints = enabled ? totalViews / viewsPerPoint : 0;
 
   return {
     totalViews,

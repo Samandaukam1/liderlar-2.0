@@ -51,7 +51,7 @@ export function RankingMiniCard({
 
       <div className="flex items-end gap-2">
         <span className="font-display text-4xl font-bold text-navy">{totalScore.toFixed(1)}</span>
-        <span className="pb-1 text-sm text-ink-soft">/ 100 ball</span>
+        <span className="pb-1 text-sm text-ink-soft">ball</span>
       </div>
 
       {position !== null && totalScore > 0 ? (

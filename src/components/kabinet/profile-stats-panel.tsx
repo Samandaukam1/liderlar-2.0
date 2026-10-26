@@ -60,14 +60,6 @@ export function ProfileStatsPanel({ stats }: { stats: ProfileStats }) {
         />
       </div>
 
-      {stats.viewPointsEnabled && stats.viewPoints >= stats.viewPointsCap && (
-        <p className="mt-3 text-xs text-ink-soft">
-          Ko&apos;rishlardan olinadigan ball yuqori chegaraga yetgan
-          ({stats.viewPointsCap}). Bu chegara reytingni bir tomonlama
-          og&apos;dirmaslik uchun.
-        </p>
-      )}
-
       <p className="mt-3 text-xs text-ink-soft">
         Ko&apos;rishlar kuniga bir marta hisoblanadi: sahifani qayta yuklash yangi
         ko&apos;rish bermaydi. O&apos;z sahifangizni ochganingiz ham hisobga
