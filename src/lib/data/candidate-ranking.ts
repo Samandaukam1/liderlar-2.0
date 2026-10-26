@@ -61,7 +61,11 @@ export const EMPTY_CANDIDATE_RANKING: CandidateRanking = {
   hasRow: false,
 };
 
-export async function getCandidateRanking(candidateId: string): Promise<CandidateRanking> {
+export async function getCandidateRanking(
+  candidateId: string,
+  /** `strict` — xatoda bo'sh natija o'rniga xato (keshga yozilmasligi uchun). */
+  { strict = false }: { strict?: boolean } = {},
+): Promise<CandidateRanking> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("ranking_scores")
@@ -70,6 +74,7 @@ export async function getCandidateRanking(candidateId: string): Promise<Candidat
     .eq("is_current", true);
 
   if (error) {
+    if (strict) throw error;
     console.error("[reyting] nomzod balli o'qilmadi:", error.message);
     return EMPTY_CANDIDATE_RANKING;
   }

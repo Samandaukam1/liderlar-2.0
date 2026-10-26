@@ -12,6 +12,7 @@ import {
   TITLE_MAX_LENGTH,
   type ArticleState,
 } from "./state";
+import { expireCandidateProfile } from "@/lib/data/profile-cache";
 
 /**
  * MAQOLA — MUALLIF TOMONI.
@@ -273,6 +274,7 @@ export async function saveArticle(
   }
 
   await writeRevision(articleId, patch, resolved.owned.profileId, autosave);
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -394,6 +396,7 @@ export async function setArticleHero(
     return { ok: false, error: "Maqola topilmadi yoki hozir tahrirlanmaydi." };
   }
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -478,6 +481,7 @@ export async function submitArticle(
     metadata: { candidate_id: resolved.owned.candidateId, title: article.title },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -532,5 +536,6 @@ export async function setArticleProfileVisibility(
     metadata: { candidate_id: resolved.owned.candidateId, slug: (data.slug as string | null) ?? null },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }

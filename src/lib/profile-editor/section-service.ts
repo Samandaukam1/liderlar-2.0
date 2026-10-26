@@ -4,6 +4,7 @@ import { recordAudit } from "@/lib/vip/audit-log";
 import { requireEntitlement } from "@/lib/vip/entitlement-service";
 import { resolveOwnCandidate } from "./edit-service";
 import { checkSection, type SectionInput } from "./field-policy";
+import { expireCandidateProfile } from "@/lib/data/profile-cache";
 
 /**
  * BIOGRAFIYANING MATNLI BO'LIMLARI — A'ZONING O'ZI TAHRIRLAYDI.
@@ -160,6 +161,7 @@ export async function createSection(input: SectionInput): Promise<SectionResult>
     metadata: { section_id: (inserted?.id as string | undefined) ?? null },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -256,6 +258,7 @@ export async function updateSection(
     metadata: { section_id: sectionId },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -304,6 +307,7 @@ export async function deleteSection(sectionId: string): Promise<SectionResult> {
     metadata: { section_id: sectionId },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -348,5 +352,6 @@ export async function reorderSections(orderedIds: readonly string[]): Promise<Se
     }
   }
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }

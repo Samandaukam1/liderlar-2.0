@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,7 +7,13 @@ import { PUBLIC_LIST_REVALIDATE_SECONDS } from "@/lib/data/public-cache";
 import { orderByRanking, pageRange, totalPagesFor, type CatalogOrderRow } from "@/lib/data/catalog-order";
 import { fetchAllRows } from "@/lib/data/paged-rows";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
-import { getAllOverallRankingRows, getCandidateRanking, getOverallRankings } from "@/lib/data/candidate-ranking";
+import {
+  EMPTY_CANDIDATE_RANKING,
+  getAllOverallRankingRows,
+  getCandidateRanking,
+  getOverallRankings,
+} from "@/lib/data/candidate-ranking";
+import { cachedForCandidate, PROFILE_BUNDLE_REVALIDATE_SECONDS, PROFILE_VIEWS_REVALIDATE_SECONDS } from "@/lib/data/profile-cache";
 import { isStoredHeroUrl } from "@/lib/articles/hero-rules";
 import { splitPipeValues, stripCandidateMarkers, toShortBioItems } from "@/lib/candidates/text";
 import type { CandidateCardData, CandidateSectionData } from "@/lib/types";
@@ -401,8 +408,87 @@ export async function getRecentCandidates(limit = 8) {
   return toCandidateCards(data ?? []);
 }
 
-export async function getCandidateBySlug(slug: string) {
-  const supabase = await createServerSupabase();
+/**
+ * OMMAVIY PROFIL.
+ *
+ * `slug -> id, updated_at` har so'rovda yangi o'qiladi (profil yashirilsa,
+ * o'chirilsa yoki slug o'zgarsa — darhol); qolgani keshdan
+ * (`profile-cache.ts`). `cache()` — `generateMetadata` va sahifa bitta
+ * so'rovda bir marta o'qiydi.
+ */
+export const getCandidateBySlug = cache(async (slug: string) => {
+  const { data: head, error } = await createPublicClient()
+    .from("candidates")
+    .select("id, updated_at")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw error;
+  if (!head) return null;
+  const candidateId = head.id as string;
+
+  const [bundle, ranking, viewCount] = await Promise.all([
+    // Kesh yiqilsa — avvalgidek keshsiz o'qiladi (sahifa ochilaveradi).
+    cachedForCandidate(
+      "bundle",
+      candidateId,
+      PROFILE_BUNDLE_REVALIDATE_SECONDS,
+      () => loadProfileBundle(candidateId, { strict: true }),
+      [slug, String(head.updated_at ?? "")],
+    ).catch(() => loadProfileBundle(candidateId)),
+    /*
+     * REYTING — YAGONA MANBADAN, KARTA SO'ROVIDAN EMAS.
+     *
+     * Karta so'rovida ball yo'q; avvalgi ichma-ich so'rov
+     * (`scores:ranking_scores(...)`) anon rol bilan RLS siyosatiga
+     * tushardi: davr e'lon qilinmagan bo'lsa, NOLTA qator qaytardi va
+     * biografiyada "0 ball" turardi. Reyting sahifasi esa shu jadvalni
+     * `service_role` bilan o'qib, to'g'ri raqamni ko'rsatadi.
+     * Bitta ma'lumot ikki xil javob bermasligi uchun biografiya
+     * ham reyting sahifasi bilan BIR XIL manbaga ulandi.
+     */
+    cachedForCandidate("ranking", candidateId, PUBLIC_LIST_REVALIDATE_SECONDS, () =>
+      getCandidateRanking(candidateId, { strict: true }),
+    ).catch(() => EMPTY_CANDIDATE_RANKING),
+    // Faqat KO'RSATILADIGAN son; ko'rishni sanash (`/api/profile-view`) keshlanmaydi.
+    cachedForCandidate("views", candidateId, PROFILE_VIEWS_REVALIDATE_SECONDS, () =>
+      countProfileViews(candidateId),
+    ).catch(() => 0),
+  ]);
+  if (!bundle) return null;
+
+  return {
+    ...bundle,
+    /*
+     * BALL VA O'RIN — ishonchli manbadan (karta so'rovida ball yo'q).
+     */
+    total_score: ranking.totalScore,
+    position: ranking.position,
+    previous_position: ranking.previousPosition,
+    ranking,
+    view_count: viewCount,
+  };
+});
+
+async function countProfileViews(candidateId: string): Promise<number> {
+  const { count, error } = await createAdminClient()
+    .from("profile_views")
+    .select("id", { count: "exact", head: true })
+    .eq("candidate_id", candidateId)
+    .eq("is_counted", true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/**
+ * Profilning keshlanadigan qismi — ball va ko'rishlar sonidan tashqari
+ * hammasi (`profile-cache.ts`). Cookie'siz anon mijoz: faqat chop etilgan,
+ * hamma ko'radigan ma'lumot. `strict` da birorta so'rov xato bersa natija
+ * qaytmaydi (keshga chala profil yozilmasin).
+ */
+async function loadProfileBundle(candidateId: string, { strict = false }: { strict?: boolean } = {}) {
+  const supabase = createPublicClient();
   const candidateRequest = supabase
     .from("candidates")
     .select(
@@ -410,14 +496,14 @@ export async function getCandidateBySlug(slug: string) {
        description_items, birth_year, birth_place, current_location,
        education_summary, activity_field, languages`
     )
-    .eq("slug", slug)
+    .eq("id", candidateId)
     .eq("status", "published")
     .is("deleted_at", null)
     .maybeSingle();
   const integrationKeyRequest = supabase
     .from("candidates")
     .select("integration_key")
-    .eq("slug", slug)
+    .eq("id", candidateId)
     .eq("status", "published")
     .is("deleted_at", null)
     .maybeSingle();
@@ -434,7 +520,7 @@ export async function getCandidateBySlug(slug: string) {
       ? integrationKeyResult.data.integration_key
       : null;
   const admin = createAdminClient();
-  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, views, adabiyotXItems, ranking, memberArticles] =
+  const [education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, adabiyotXItems, memberArticles] =
     await Promise.all([
       /*
        * `review_state = 'published'` — TEKSHIRUVDAGI YOZUV OMMAGA
@@ -503,24 +589,7 @@ export async function getCandidateBySlug(slug: string) {
         .eq("review_state", "published")
         .order("sort_order")
         .order("created_at"),
-      admin
-        .from("profile_views")
-        .select("id", { count: "exact", head: true })
-        .eq("candidate_id", data.id)
-        .eq("is_counted", true),
-      getCandidateAdabiyotXItems(integrationKey),
-      /*
-       * REYTING — YAGONA MANBADAN, KARTA SO'ROVIDAN EMAS.
-       *
-       * Karta so'rovida ball yo'q; avvalgi ichma-ich so'rov
-       * (`scores:ranking_scores(...)`) anon rol bilan RLS siyosatiga
-       * tushardi: davr e'lon qilinmagan bo'lsa, NOLTA qator qaytardi va
-       * biografiyada "0 ball" turardi. Reyting sahifasi esa shu jadvalni
-       * `service_role` bilan o'qib, to'g'ri raqamni ko'rsatadi.
-       * Bitta ma'lumot ikki xil javob bermasligi uchun biografiya
-       * ham reyting sahifasi bilan BIR XIL manbaga ulandi.
-       */
-      getCandidateRanking(data.id as string),
+      getCandidateAdabiyotXItems(integrationKey, { strict }),
       /*
        * A'ZONING O'Z MAQOLALARI — Liderlar Online'da nashr qilinganlari.
        *
@@ -541,6 +610,11 @@ export async function getCandidateBySlug(slug: string) {
         .order("published_at", { ascending: false })
         .limit(24),
     ]);
+
+  if (strict) {
+    const failed = [integrationKeyResult, education, workExperience, achievements, booksRead, events, socialLinks, certificates, media, quotes, articles, sections, memberArticles].find((result) => result.error);
+    if (failed?.error) throw failed.error;
+  }
 
   const publicMedia = (media.data ?? []).map((item) => ({
     ...item,
@@ -573,17 +647,6 @@ export async function getCandidateBySlug(slug: string) {
 
   return {
     ...normalized,
-    /*
-     * BALL VA O'RIN KARTA SO'ROVIDAGI QIYMATNI BOSADI.
-     *
-     * `normalizeCandidateRow` ularni anon rol ko'rgan ichma-ich
-     * so'rovdan oladi; u RLS sababli bo'sh bo'lishi mumkin. Shuning
-     * uchun ustiga ishonchli manbadagi qiymat yoziladi.
-     */
-    total_score: ranking.totalScore,
-    position: ranking.position,
-    previous_position: ranking.previousPosition,
-    ranking,
     birth_date: data.birth_date as string | null,
     description_items: descriptionItems,
     birth_year_display: stripCandidateMarkers(data.birth_year as string | null) || birthYearFromDate,
@@ -594,7 +657,6 @@ export async function getCandidateBySlug(slug: string) {
     languages: splitPipeValues(data.languages as string[] | null),
     sections: sectionRows,
     cover_url: publicMedia[0]?.url ?? null,
-    view_count: views.count ?? 0,
     education: education.data ?? [],
     workExperience: workExperience.data ?? [],
     achievements: achievements.data ?? [],

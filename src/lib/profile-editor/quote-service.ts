@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordAudit } from "@/lib/vip/audit-log";
 import { requireEntitlement } from "@/lib/vip/entitlement-service";
 import { resolveOwnCandidate } from "./edit-service";
+import { expireCandidateProfile } from "@/lib/data/profile-cache";
 
 /**
  * IQTIBOSLAR — VIP A'ZO O'ZI TAKLIF QILADI, TAHRIRIYAT CHOP ETADI.
@@ -118,5 +119,6 @@ export async function deleteOwnQuote(quoteId: string): Promise<{ ok: boolean; me
     entityId: candidateId,
     metadata: { kind: "quotes", entry_id: quoteId },
   });
+  expireCandidateProfile(candidateId);
   return { ok: true, message: "Iqtibos o'chirildi." };
 }

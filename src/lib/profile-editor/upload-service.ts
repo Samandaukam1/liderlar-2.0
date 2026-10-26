@@ -12,6 +12,7 @@ import {
   AVATAR_CHANGES_PER_DAY,
   AVATAR_LIMIT_TEXT,
 } from "./image-rules";
+import { expireCandidateProfile } from "@/lib/data/profile-cache";
 
 /**
  * PROFIL RASMLARINI YUKLASH.
@@ -312,6 +313,7 @@ export async function commitProfileUpload(input: {
     metadata: { media_id: (media?.id as string | undefined) ?? null, bucket, size_bytes: sizeBytes },
   });
 
+  expireCandidateProfile(candidateId);
   return { ok: true, url };
 }
 
@@ -414,6 +416,7 @@ export async function removeGalleryImage(
     metadata: { media_id: mediaId },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -480,5 +483,6 @@ export async function updateGalleryAltText(
     metadata: { media_id: mediaId },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }

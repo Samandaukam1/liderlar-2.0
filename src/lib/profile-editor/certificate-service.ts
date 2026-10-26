@@ -11,6 +11,7 @@ import {
   type CertificateInput,
   type TrustLevel,
 } from "./certificate-rules";
+import { expireCandidateProfile } from "@/lib/data/profile-cache";
 
 /**
  * SERTIFIKATLAR — BAZAGA TEGADIGAN QISM.
@@ -204,6 +205,7 @@ export async function createCertificate(
     metadata: { certificate_id: id },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true, id };
 }
 
@@ -298,6 +300,7 @@ export async function updateCertificate(
     metadata: { certificate_id: certificateId },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }
 
@@ -352,5 +355,6 @@ export async function deleteCertificate(
     metadata: { certificate_id: certificateId, had_evidence: evidence.path !== null },
   });
 
+  expireCandidateProfile(resolved.owned.candidateId);
   return { ok: true };
 }

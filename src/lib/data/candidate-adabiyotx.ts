@@ -111,7 +111,13 @@ const ADMIN_API_TIMEOUT_MS = 3000;
  * The integration key is the only cross-project candidate identifier.
  */
 export async function getCandidateAdabiyotXItems(
-  integrationKey: string | null | undefined
+  integrationKey: string | null | undefined,
+  /**
+   * `strict` — admin javob bermasa (vaqt chegarasi, 5xx, HTML) bo'sh ro'yxat
+   * o'rniga xato. Keshlanadigan profil uchun: "kitoblar yo'q" degan noto'g'ri
+   * natija bir soat saqlanib qolmasin.
+   */
+  { strict = false }: { strict?: boolean } = {},
 ): Promise<PublicCandidateAdabiyotXItem[]> {
   const baseUrl = process.env.LIDERLAR_ADMIN_API_BASE_URL?.trim();
   if (!baseUrl || !integrationKey || !UUID_PATTERN.test(integrationKey)) {
@@ -129,8 +135,9 @@ export async function getCandidateAdabiyotXItems(
     const optionalApiKey =
       process.env.LIDERLAR_PUBLIC_CONTENT_API_KEY?.trim();
 
-    // No caching: a book linked in the Admin panel has to show up on the next
-    // profile request, even though the rest of the page may be prerendered.
+    // The request itself is never cached. The public profile caches its result
+    // with the rest of the profile, and the Admin panel's AdabiyotX routes
+    // expire that cache, so a newly linked book shows on the next request.
     const response = await fetch(url, {
       headers: optionalApiKey
         ? { "x-liderlar-api-key": optionalApiKey }
@@ -142,13 +149,19 @@ export async function getCandidateAdabiyotXItems(
       signal: AbortSignal.timeout(ADMIN_API_TIMEOUT_MS),
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      if (strict) throw new Error(`AdabiyotX admin API: HTTP ${response.status}`);
+      return [];
+    }
 
     // An auth gate in front of the Admin API answers with an HTML login page
     // instead of JSON. Treat anything non-JSON as "no items" rather than
     // letting a parse error bubble into the profile page.
     const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) return [];
+    if (!contentType.includes("application/json")) {
+      if (strict) throw new Error("AdabiyotX admin API: JSON emas");
+      return [];
+    }
 
     const payload: unknown = await response.json();
     return payloadItems(payload)
@@ -157,7 +170,8 @@ export async function getCandidateAdabiyotXItems(
         (item): item is PublicCandidateAdabiyotXItem => item !== null
       )
       .sort((a, b) => a.sortOrder - b.sortOrder);
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return [];
   }
 }
