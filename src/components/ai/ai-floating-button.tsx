@@ -5,14 +5,11 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { AIChatPanel } from "@/components/ai/ai-chat-panel";
 import { JaxongirAiMedia } from "@/components/ai/jaxongir-ai-media";
 import {
   DEFAULT_AI_ASSISTANT_SETTINGS,
-  mapAiAssistantSettingsRow,
   type AiAssistantSettings,
-  type AiAssistantSettingsRow,
 } from "@/lib/ai/assistant-settings";
 
 const PANEL_VARIANTS: Record<AiAssistantSettings["openingAnimation"], Variants> = {
@@ -40,28 +37,16 @@ export function AIFloatingButton({ initialSettings }: { initialSettings?: AiAssi
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [awake, setAwake] = React.useState(false);
-  const [settings, setSettings] = React.useState<AiAssistantSettings>(
-    initialSettings ?? DEFAULT_AI_ASSISTANT_SETTINGS
-  );
-
-  React.useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("ai-assistant-settings-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ai_assistant_settings" },
-        (payload) => {
-          const row = (payload.new ?? payload.old) as Partial<AiAssistantSettingsRow> | null;
-          if (!row || Object.keys(row).length === 0) return;
-          setSettings((prev) => mapAiAssistantSettingsRow(row, prev));
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  /*
+   * REALTIME OBUNASI YO'Q — ataylab.
+   *
+   * Avval har tashrifchi har sahifada `ai_assistant_settings` ga
+   * `postgres_changes` kanalini ochardi. Sozlama oyda bir o'zgaradi, obuna
+   * esa har sahifa ochilishida `realtime.subscription` ga yozuv, ochiq
+   * WebSocket va baza qayta ishga tushganda hammasi birdan qayta ulanishi
+   * edi. Sozlama server render'dan keladi (2 daqiqalik kesh).
+   */
+  const settings = initialSettings ?? DEFAULT_AI_ASSISTANT_SETTINGS;
 
   React.useEffect(() => {
     if (!open) return;

@@ -1,5 +1,8 @@
+import { unstable_cache } from "next/cache";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
+import { paginate, PUBLIC_LIST_REVALIDATE_SECONDS } from "@/lib/data/public-cache";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
 import { getCandidateRanking, getOverallRankings } from "@/lib/data/candidate-ranking";
 import { isStoredHeroUrl } from "@/lib/articles/hero-rules";
@@ -12,10 +15,21 @@ const CANDIDATE_BASE_SELECT = `
   category:categories(name, slug, color)
 `;
 
-export const CANDIDATE_CARD_SELECT = `
-  ${CANDIDATE_BASE_SELECT},
-  scores:ranking_scores(total_score, position, previous_position, category, is_current)
-`;
+/**
+ * KARTA SO'ROVIDA `ranking_scores` YO'Q — ataylab.
+ *
+ * Avval bu yerda `scores:ranking_scores(...)` ichma-ich so'rovi turardi.
+ * `ranking_scores` da `candidate_id` bilan boshlanadigan indeks yo'q, shuning
+ * uchun Postgres HAR NOMZOD uchun jadvalni to'liq aylanardi: katalogda ~1000
+ * marta, reytingda ~3160 marta (LIMIT dan oldin). Reyting so'rovi shu sababli
+ * 3,5 s ishlardi (o'lchangan: 3,5 s -> 0,8 s).
+ *
+ * Natija esa baribir ishlatilmasdi: anon rol uni RLS sababli bo'sh ko'radi,
+ * ball esa hamma joyda ishonchli manbadan qo'yiladi — kartalarda
+ * `toCandidateCards` (getOverallRankings), biografiyada `getCandidateRanking`,
+ * reyting sahifasida qatorning o'z `total_score`/`position` i.
+ */
+export const CANDIDATE_CARD_SELECT = CANDIDATE_BASE_SELECT;
 
 // Supabase/PostgREST returns embedded to-one relations as an object, but the
 // generic types widen it to array-or-object — normalize defensively here.
@@ -50,24 +64,27 @@ export function normalizeCandidateRow(row: any): CandidateCardData {
 /**
  * Qatorlarni kartaga aylantiradi VA ballni ishonchli manbadan qo'yadi.
  *
- * `normalizeCandidateRow` ballni ichma-ich so'rovdan oladi
- * (`scores:ranking_scores(...)`), u esa anon rol bilan o'qiladi va
- * `ranking_scores` ustidagi ommaviy RLS siyosatiga tushadi: siyosat
- * davr E'LON QILINGAN bo'lishini talab qiladi, joriy davrda esa u
- * bo'sh edi — natijada BARCHA kartada "0" turardi va reyting
- * bo'yicha saralash alifboga aylanib qolardi.
+ * Karta so'rovida ball yo'q (`CANDIDATE_CARD_SELECT` izohiga qarang).
+ * Avval u ichma-ich so'rovdan (`scores:ranking_scores(...)`) olinardi,
+ * u esa anon rol bilan o'qilib, `ranking_scores` ustidagi ommaviy RLS
+ * siyosatiga tushardi: siyosat davr E'LON QILINGAN bo'lishini talab
+ * qiladi, joriy davrda esa u bo'sh edi — natijada BARCHA kartada "0"
+ * turardi va reyting bo'yicha saralash alifboga aylanib qolardi.
  *
  * Shuning uchun ball reyting sahifasi bilan BIR XIL manbadan
  * (`service_role`) qo'yiladi — bitta ma'lumot ikki xil javob
  * bermasligi uchun. Qo'shimcha so'rov BITTA va faqat shu sahifadagi
  * nomzodlar uchun.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function toCandidateCards(rows: readonly any[]): Promise<CandidateCardData[]> {
+export async function toCandidateCards(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: readonly any[],
+  options: { strict?: boolean } = {},
+): Promise<CandidateCardData[]> {
   const items = rows.map(normalizeCandidateRow);
   if (items.length === 0) return items;
 
-  const rankings = await getOverallRankings(items.map((item) => item.id));
+  const rankings = await getOverallRankings(items.map((item) => item.id), options);
   if (rankings.size === 0) return items;
 
   return items.map((item) => {
@@ -93,10 +110,41 @@ export type CandidateFilters = {
   perPage?: number;
 };
 
+/** Katalog ro'yxatini belgilovchi filtrlar — sahifa raqamisiz (kesh kaliti). */
+type CatalogQuery = Omit<CandidateFilters, "page" | "perPage">;
+
+/**
+ * Katalog sahifasi. Saralangan to'liq ro'yxat 5 daqiqa keshlanadi
+ * (`public-cache.ts`), sahifa esa keshdan tashqarida qirqiladi.
+ */
 export async function getCandidates(filters: CandidateFilters = {}) {
-  const supabase = await createServerSupabase();
-  const page = Math.max(1, filters.page ?? 1);
-  const perPage = filters.perPage ?? 12;
+  const query: CatalogQuery = {
+    q: filters.q,
+    regionSlug: filters.regionSlug,
+    directionSlug: filters.directionSlug,
+    birthYear: filters.birthYear,
+    sort: filters.sort,
+  };
+  const all = await getCachedCatalog(query);
+  return paginate(all, filters.page, filters.perPage ?? 12);
+}
+
+const getCachedCatalog = unstable_cache(
+  (filters: CatalogQuery) => loadCatalog(filters),
+  ["public-candidate-catalog"],
+  { revalidate: PUBLIC_LIST_REVALIDATE_SECONDS },
+);
+
+/**
+ * Katalogning to'liq, saralangan ro'yxati.
+ *
+ * Cookie'siz anon mijoz bilan o'qiydi: ro'yxat faqat chop etilgan
+ * nomzodlardan iborat va tashrifchiga bog'liq emas. Reyting `strict`
+ * rejimda olinadi — xato bo'lsa ro'yxat KESHGA TUSHMAYDI (aks holda
+ * 5 daqiqa davomida hamma kartada "0 ball" turardi).
+ */
+async function loadCatalog(filters: CatalogQuery): Promise<CandidateCardData[]> {
+  const supabase = createPublicClient();
 
   let query = supabase
     .from("candidates")
@@ -144,7 +192,7 @@ export async function getCandidates(filters: CandidateFilters = {}) {
   const { data, error } = await query.range(0, 4999);
   if (error) throw error;
 
-  let items = await toCandidateCards(data ?? []);
+  const items = await toCandidateCards(data ?? [], { strict: true });
   if (filters.sort === "reyting" || !filters.sort) {
     items.sort((a, b) => b.total_score - a.total_score || a.full_name.localeCompare(b.full_name, "uz"));
   } else if (filters.sort === "eng-kop-oqilgan" && items.length > 0) {
@@ -158,17 +206,7 @@ export async function getCandidates(filters: CandidateFilters = {}) {
     items.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0));
   }
 
-  const total = items.length;
-  const from = (page - 1) * perPage;
-  items = items.slice(from, from + perPage);
-
-  return {
-    items,
-    total,
-    page,
-    perPage,
-    totalPages: Math.max(1, Math.ceil(total / perPage)),
-  };
+  return items;
 }
 
 export async function getFeaturedCandidates(limit = 6) {
@@ -340,10 +378,10 @@ export async function getCandidateBySlug(slug: string) {
       /*
        * REYTING — YAGONA MANBADAN, KARTA SO'ROVIDAN EMAS.
        *
-       * `CANDIDATE_CARD_SELECT` ichidagi `scores:ranking_scores(...)`
-       * anon rol bilan o'qiladi va u RLS siyosatiga tushadi: davr
-       * e'lon qilinmagan bo'lsa, NOLTA qator qaytadi va biografiyada
-       * "0 ball" turadi. Reyting sahifasi esa shu jadvalni
+       * Karta so'rovida ball yo'q; avvalgi ichma-ich so'rov
+       * (`scores:ranking_scores(...)`) anon rol bilan RLS siyosatiga
+       * tushardi: davr e'lon qilinmagan bo'lsa, NOLTA qator qaytardi va
+       * biografiyada "0 ball" turardi. Reyting sahifasi esa shu jadvalni
        * `service_role` bilan o'qib, to'g'ri raqamni ko'rsatadi.
        * Bitta ma'lumot ikki xil javob bermasligi uchun biografiya
        * ham reyting sahifasi bilan BIR XIL manbaga ulandi.

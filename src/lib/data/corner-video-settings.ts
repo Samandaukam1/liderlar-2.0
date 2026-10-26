@@ -17,9 +17,9 @@ const SELECT_COLUMNS =
  * Reads the admin-configured corner video widget. Mirrors the AI assistant
  * settings loader: a plain anon-key client (not the cookie-bound server
  * client) wrapped in unstable_cache, so pulling this into the root layout
- * doesn't force every page to render dynamically. The widget subscribes to
- * Realtime client-side, so this cache window only affects how quickly a
- * *first server render* reflects an admin change.
+ * doesn't force every page to render dynamically. This is the widget's only
+ * source (it no longer subscribes to Realtime per visitor), so an admin
+ * change reaches visitors on their next page load, within this cache window.
  */
 const fetchCornerVideoSettings = unstable_cache(
   async (): Promise<CornerVideoSettings> => {

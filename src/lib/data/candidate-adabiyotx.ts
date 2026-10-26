@@ -103,6 +103,9 @@ function normalizeItem(
   };
 }
 
+/** Admin API odatda ~0,3 s da javob beradi; bu chegara faqat osilishga qarshi. */
+const ADMIN_API_TIMEOUT_MS = 3000;
+
 /**
  * Fetches sanitized public card metadata from the separate Admin project.
  * The integration key is the only cross-project candidate identifier.
@@ -134,6 +137,9 @@ export async function getCandidateAdabiyotXItems(
         : undefined,
       cache: "no-store",
       redirect: "follow",
+      // Admin (yoki baza) qotib qolsa, profil sahifasi funksiya muddati
+      // tugagunicha kutib turmasin — kitoblar bo'limi shunchaki chiqmaydi.
+      signal: AbortSignal.timeout(ADMIN_API_TIMEOUT_MS),
     });
 
     if (!response.ok) return [];

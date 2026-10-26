@@ -134,6 +134,11 @@ const MAX_ROWS = 20_000;
 
 export async function getOverallRankings(
   ids: readonly string[],
+  /**
+   * `strict` — xatoda bo'sh xarita o'rniga xato otiladi. Keshlanadigan
+   * ro'yxatlar uchun: "reyting o'qilmadi" holati keshga yozilmasligi kerak.
+   */
+  { strict = false }: { strict?: boolean } = {},
 ): Promise<Map<string, OverallRanking>> {
   const result = new Map<string, OverallRanking>();
   if (ids.length === 0) return result;
@@ -154,6 +159,7 @@ export async function getOverallRankings(
   const { data, error } = await query.range(0, MAX_ROWS - 1);
 
   if (error) {
+    if (strict) throw error;
     /*
      * XATODA BO'SH XARITA.
      *

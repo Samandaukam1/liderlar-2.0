@@ -17,10 +17,10 @@ const SELECT_COLUMNS =
  * Reads the admin-configured widget appearance. Deliberately avoids the
  * cookie-bound server client (which would taint every page as dynamic) —
  * this is public, non-user-specific data, so a plain anon-key client wrapped
- * in unstable_cache lets pages stay statically rendered/ISR'd. The widget
- * still gets live updates via its own Realtime subscription client-side, so
- * the cache window here only affects how fast a *first server render*
- * (before hydration) picks up an admin change.
+ * in unstable_cache lets pages stay statically rendered/ISR'd. This is the
+ * widget's only source: it no longer opens a Realtime subscription per
+ * visitor, so an admin change reaches visitors on their next page load,
+ * within the cache window below.
  */
 const fetchAiAssistantSettings = unstable_cache(
   async (): Promise<AiAssistantSettings> => {

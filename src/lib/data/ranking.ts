@@ -1,6 +1,8 @@
+import { unstable_cache } from "next/cache";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CANDIDATE_CARD_SELECT, normalizeCandidateRow } from "@/lib/data/candidates";
+import { PUBLIC_LIST_REVALIDATE_SECONDS } from "@/lib/data/public-cache";
 import type { RankingRow } from "@/lib/types";
 
 export async function getRankingCategories() {
@@ -37,12 +39,33 @@ export async function getPeriodForFilter(filter: PeriodFilter = "barcha-vaqt") {
   return data;
 }
 
+/**
+ * Reyting jadvali. `/reyting` va `/top-100` har ochilishda shu so'rovni
+ * yuborardi; natija esa faqat soatlik qayta hisobda o'zgaradi. Shuning
+ * uchun 5 daqiqa keshlanadi (`public-cache.ts`). Xato keshga tushmaydi.
+ */
 export async function getRankingLeaderboard(
   categoryCode: string,
   periodId: string,
   limit = 50,
   regionId: string | null = null,
 ) {
+  return getCachedLeaderboard(categoryCode, periodId, limit, regionId);
+}
+
+const getCachedLeaderboard = unstable_cache(
+  (categoryCode: string, periodId: string, limit: number, regionId: string | null) =>
+    loadRankingLeaderboard(categoryCode, periodId, limit, regionId),
+  ["public-ranking-leaderboard"],
+  { revalidate: PUBLIC_LIST_REVALIDATE_SECONDS },
+);
+
+async function loadRankingLeaderboard(
+  categoryCode: string,
+  periodId: string,
+  limit: number,
+  regionId: string | null,
+): Promise<RankingRow[]> {
   const supabase = createAdminClient();
   let query = supabase
     .from("ranking_scores")

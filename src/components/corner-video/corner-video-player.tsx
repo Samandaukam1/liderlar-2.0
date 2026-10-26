@@ -4,13 +4,10 @@ import * as React from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import {
   ASPECT_RATIO_VALUES,
   DEFAULT_CORNER_VIDEO_SETTINGS,
-  mapCornerVideoSettingsRow,
   type CornerVideoSettings,
-  type CornerVideoSettingsRow,
 } from "@/lib/corner-video/settings";
 
 const DISMISS_KEY = "corner-video-dismissed";
@@ -73,9 +70,12 @@ export function CornerVideoPlayer({
 }: {
   initialSettings?: CornerVideoSettings;
 }) {
-  const [settings, setSettings] = React.useState<CornerVideoSettings>(
-    initialSettings ?? DEFAULT_CORNER_VIDEO_SETTINGS
-  );
+  /*
+   * REALTIME OBUNASI YO'Q — ataylab (AI tugmasidagi izohga qarang):
+   * har tashrifchi uchun `postgres_changes` kanali ochilardi. Sozlama
+   * server render'dan keladi (2 daqiqalik kesh).
+   */
+  const settings = initialSettings ?? DEFAULT_CORNER_VIDEO_SETTINGS;
   const [expanded, setExpanded] = React.useState(false);
   const [dismissedNow, setDismissedNow] = React.useState(false);
   const dismissed = useSessionDismissed() || dismissedNow;
@@ -114,25 +114,6 @@ export function CornerVideoPlayer({
     } catch {
       /* private mode — hidden for this page view only */
     }
-  }, []);
-
-  React.useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("corner-video-settings-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "corner_video_settings" },
-        (payload) => {
-          const row = (payload.new ?? payload.old) as Partial<CornerVideoSettingsRow> | null;
-          if (!row || Object.keys(row).length === 0) return;
-          setSettings((prev) => mapCornerVideoSettingsRow(row, prev));
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   // Escape returns to the corner rather than closing the widget outright.

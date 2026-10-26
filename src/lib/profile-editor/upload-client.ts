@@ -155,6 +155,14 @@ export async function uploadProfileImage(
     .from(signBody.bucket)
     .uploadToSignedUrl(signBody.path, signBody.token, resized.blob, {
       contentType: resized.mimeType,
+      /*
+       * BRAUZER KESHI 1 YIL (standart 1 soat o'rniga).
+       *
+       * Manzilni server yasaydi (`upload-service.ts`, `buildPath` — har
+       * safar yangi UUID), ya'ni rasm almashtirilsa URL ham o'zgaradi va
+       * eski nusxa hech qachon ko'rsatilmaydi.
+       */
+      cacheControl: "31536000",
     });
 
   if (uploadError) {
