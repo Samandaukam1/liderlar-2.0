@@ -13,22 +13,3 @@
  * qoladi — baza qisqa uzilganda ham sahifa bo'sh qolmaydi.
  */
 export const PUBLIC_LIST_REVALIDATE_SECONDS = 300;
-
-/**
- * Tayyor ro'yxatdan bitta sahifani qirqadi.
- *
- * Kesh RO'YXATNI saqlaydi, sahifani emas: `?page=1…84` ning hammasi bitta
- * kesh yozuvini bo'lishadi, aks holda krauler har sahifa uchun to'liq
- * katalogni bazadan qayta tortardi.
- */
-export function paginate<T>(all: readonly T[], requestedPage: number | undefined, perPage: number) {
-  const page = Math.max(1, requestedPage ?? 1);
-  const from = (page - 1) * perPage;
-  return {
-    items: all.slice(from, from + perPage),
-    total: all.length,
-    page,
-    perPage,
-    totalPages: Math.max(1, Math.ceil(all.length / perPage)),
-  };
-}

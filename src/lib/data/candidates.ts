@@ -2,9 +2,11 @@ import { unstable_cache } from "next/cache";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
-import { paginate, PUBLIC_LIST_REVALIDATE_SECONDS } from "@/lib/data/public-cache";
+import { PUBLIC_LIST_REVALIDATE_SECONDS } from "@/lib/data/public-cache";
+import { orderByRanking, pageRange, totalPagesFor, type CatalogOrderRow } from "@/lib/data/catalog-order";
+import { fetchAllRows } from "@/lib/data/paged-rows";
 import { getCandidateAdabiyotXItems } from "@/lib/data/candidate-adabiyotx";
-import { getCandidateRanking, getOverallRankings } from "@/lib/data/candidate-ranking";
+import { getAllOverallRankingRows, getCandidateRanking, getOverallRankings } from "@/lib/data/candidate-ranking";
 import { isStoredHeroUrl } from "@/lib/articles/hero-rules";
 import { splitPipeValues, stripCandidateMarkers, toShortBioItems } from "@/lib/candidates/text";
 import type { CandidateCardData, CandidateSectionData } from "@/lib/types";
@@ -110,14 +112,30 @@ export type CandidateFilters = {
   perPage?: number;
 };
 
-/** Katalog ro'yxatini belgilovchi filtrlar — sahifa raqamisiz (kesh kaliti). */
+/** Katalog ro'yxatini belgilovchi filtrlar — sahifa raqamisiz. */
 type CatalogQuery = Omit<CandidateFilters, "page" | "perPage">;
 
+export type CatalogPage = {
+  items: CandidateCardData[];
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+};
+
 /**
- * Katalog sahifasi. Saralangan to'liq ro'yxat 5 daqiqa keshlanadi
- * (`public-cache.ts`), sahifa esa keshdan tashqarida qirqiladi.
+ * KATALOG — SERVER TOMONIDA SAHIFALASH.
+ *
+ * Avval to'liq ro'yxat bitta so'rovda olinardi, PostgREST esa uni jimgina
+ * 1000 qatorda qirqardi: 3215 nomzoddan 2215 tasi katalogda umuman yo'q edi.
+ * Endi:
+ *   - "alifbo", "eng-yangi", "eng-kop-oqilgan" — bazada `range()` + `count`,
+ *     ya'ni sahifaga bitta kichik so'rov;
+ *   - "reyting" (standart) — tartib yengil qatorlardan quriladi va
+ *     keshlanadi (`catalog-order.ts`), sahifaga faqat 12 ta karta so'raladi.
+ * Har sahifa natijasi 5 daqiqa keshlanadi (`public-cache.ts`).
  */
-export async function getCandidates(filters: CandidateFilters = {}) {
+export async function getCandidates(filters: CandidateFilters = {}): Promise<CatalogPage> {
   const query: CatalogQuery = {
     q: filters.q,
     regionSlug: filters.regionSlug,
@@ -125,88 +143,204 @@ export async function getCandidates(filters: CandidateFilters = {}) {
     birthYear: filters.birthYear,
     sort: filters.sort,
   };
-  const all = await getCachedCatalog(query);
-  return paginate(all, filters.page, filters.perPage ?? 12);
+  const page = Math.max(1, filters.page ?? 1);
+  const perPage = filters.perPage ?? 12;
+  return isRankingSort(query.sort)
+    ? loadRankingPage(query, page, perPage)
+    : getCachedCatalogPage(query, page, perPage);
 }
 
-const getCachedCatalog = unstable_cache(
-  (filters: CatalogQuery) => loadCatalog(filters),
-  ["public-candidate-catalog"],
+const getCachedCatalogPage = unstable_cache(
+  (query: CatalogQuery, page: number, perPage: number) => loadCatalogPage(query, page, perPage),
+  ["public-candidate-catalog-page"],
+  { revalidate: PUBLIC_LIST_REVALIDATE_SECONDS },
+);
+
+/** "Reyting" tartibi — filtr to'plami bo'yicha, sahifa raqamisiz. */
+const getCachedRankingOrder = unstable_cache(
+  (query: CatalogQuery) => loadRankingOrder(query),
+  ["public-candidate-catalog-ranking-order"],
   { revalidate: PUBLIC_LIST_REVALIDATE_SECONDS },
 );
 
 /**
- * Katalogning to'liq, saralangan ro'yxati.
- *
- * Cookie'siz anon mijoz bilan o'qiydi: ro'yxat faqat chop etilgan
- * nomzodlardan iborat va tashrifchiga bog'liq emas. Reyting `strict`
- * rejimda olinadi — xato bo'lsa ro'yxat KESHGA TUSHMAYDI (aks holda
- * 5 daqiqa davomida hamma kartada "0 ball" turardi).
+ * Joriy umumiy reyting — barcha filtr to'plamlari uchun bitta yozuv.
+ * `[candidate_id, total_score, position, previous_position]`.
  */
-async function loadCatalog(filters: CatalogQuery): Promise<CandidateCardData[]> {
-  const supabase = createPublicClient();
+type OverallTuple = [string, number, number | null, number | null];
+const getCachedOverallScores = unstable_cache(
+  async (): Promise<OverallTuple[]> =>
+    (await getAllOverallRankingRows()).map((row) => [
+      row.candidate_id,
+      Number(row.total_score ?? 0),
+      row.position ?? null,
+      row.previous_position ?? null,
+    ]),
+  ["public-overall-rankings"],
+  { revalidate: PUBLIC_LIST_REVALIDATE_SECONDS },
+);
 
-  let query = supabase
+/**
+ * Sahifa kartalari — kalit SAHIFA RAQAMI EMAS, ID lar ro'yxati. Shunda bir
+ * tartib versiyasi ichida qo'shni sahifalar doim bir-biriga mos keladi
+ * (takror yoki tushib qolgan nomzod yo'q).
+ */
+const getCachedCardsByIds = unstable_cache(
+  (ids: string[]) => loadCardsByIds(ids),
+  ["public-candidate-cards-by-ids"],
+  { revalidate: PUBLIC_LIST_REVALIDATE_SECONDS },
+);
+
+function isRankingSort(sort: CatalogQuery["sort"]) {
+  return sort === "reyting" || !sort;
+}
+
+type PublicClient = ReturnType<typeof createPublicClient>;
+type CatalogFilterIds = { regionId: string | null; categoryId: string | null };
+
+/**
+ * Hudud/yo'nalish slug'ini ID ga aylantiradi. Avvalgidek: slug topilmasa
+ * o'sha filtr QO'LLANMAYDI (ro'yxat bo'sh bo'lib qolmaydi).
+ */
+async function resolveCatalogFilterIds(supabase: PublicClient, query: CatalogQuery): Promise<CatalogFilterIds> {
+  const [region, category] = await Promise.all([
+    query.regionSlug
+      ? supabase.from("regions").select("id").eq("slug", query.regionSlug).maybeSingle()
+      : Promise.resolve({ data: null }),
+    query.directionSlug
+      ? supabase.from("categories").select("id").eq("slug", query.directionSlug).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  return {
+    regionId: (region.data?.id as string | undefined) ?? null,
+    categoryId: (category.data?.id as string | undefined) ?? null,
+  };
+}
+
+/** Avvalgi `getCandidates` dagi filtrlar — o'zgarishsiz. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyCatalogFilters<Q extends { eq: any; is: any; ilike: any; gte: any; lte: any }>(
+  builder: Q,
+  query: CatalogQuery,
+  ids: CatalogFilterIds,
+): Q {
+  let q = builder.eq("status", "published").is("deleted_at", null);
+  if (query.q) {
+    const text = query.q.replace(/[%_,()]/g, " ").trim();
+    if (text) q = q.ilike("full_name", `%${text}%`);
+  }
+  if (query.birthYear) {
+    q = q.gte("birth_date", `${query.birthYear}-01-01`).lte("birth_date", `${query.birthYear}-12-31`);
+  }
+  if (ids.regionId) q = q.eq("region_id", ids.regionId);
+  if (ids.categoryId) q = q.eq("category_id", ids.categoryId);
+  return q;
+}
+
+/**
+ * Bitta katalog sahifasi. Cookie'siz anon mijoz: ro'yxat faqat chop etilgan
+ * nomzodlardan iborat va tashrifchiga bog'liq emas. Reyting `strict`
+ * rejimda — xato bo'lsa sahifa KESHGA TUSHMAYDI.
+ */
+async function loadCatalogPage(query: CatalogQuery, page: number, perPage: number): Promise<CatalogPage> {
+  const supabase = createPublicClient();
+  const { from, to } = pageRange(page, perPage);
+  const ids = await resolveCatalogFilterIds(supabase, query);
+  let builder = applyCatalogFilters(
+    supabase.from("candidates").select(CANDIDATE_CARD_SELECT, { count: "exact" }),
+    query,
+    ids,
+  );
+  /*
+   * "eng-kop-oqilgan" — HOZIRCHA "eng-yangi" TARTIBIDA, ya'ni bugun
+   * production'da qanday ishlayotgan bo'lsa shunday (ikkala sahifa bir xil
+   * edi). Avvalgi kod ko'rishlarni `.in()` bilan 1000 ID uchun so'rardi va
+   * natija bo'sh qaytardi. To'g'ri saralash uchun bazada nomzod bo'yicha
+   * ko'rishlar sonini beradigan funksiya kerak — bu sxema o'zgarishi,
+   * egasining roziligisiz qilinmaydi.
+   */
+  builder =
+    query.sort === "alifbo"
+      ? builder.order("full_name", { ascending: true }).order("id")
+      : builder.order("created_at", { ascending: false }).order("id");
+
+  const { data, error, count } = await builder.range(from, to);
+  if (error) {
+    // Oxirgi sahifadan keyingi sahifa: PostgREST 416 (PGRST103) qaytaradi.
+    // Avvalgidek bo'sh sahifa + to'g'ri sahifalar soni.
+    if (error.code === "PGRST103") {
+      const head = await applyCatalogFilters(
+        supabase.from("candidates").select("id", { count: "exact", head: true }),
+        query,
+        ids,
+      );
+      if (head.error) throw head.error;
+      const total = head.count ?? 0;
+      return { items: [], total, page, perPage, totalPages: totalPagesFor(total, perPage) };
+    }
+    throw error;
+  }
+
+  const total = count ?? 0;
+  const items = await toCandidateCards(data ?? [], { strict: true });
+  return { items, total, page, perPage, totalPages: totalPagesFor(total, perPage) };
+}
+
+/**
+ * "Reyting" saralashidagi sahifa. Tartib ham, kartadagi ball ham BIR XIL
+ * keshlangan reyting nusxasidan — sahifadagi tartib va ko'rsatilgan ball
+ * hech qachon bir-biriga zid bo'lmaydi.
+ */
+async function loadRankingPage(query: CatalogQuery, page: number, perPage: number): Promise<CatalogPage> {
+  const { from, to } = pageRange(page, perPage);
+  const [order, rankings] = await Promise.all([getCachedRankingOrder(query), getCachedOverallScores()]);
+  const byId = new Map(rankings.map((tuple) => [tuple[0], tuple]));
+  const cards = await getCachedCardsByIds(order.slice(from, to + 1));
+  const items = cards.map((card) => {
+    const ranking = byId.get(card.id);
+    return ranking
+      ? { ...card, total_score: ranking[1], position: ranking[2], previous_position: ranking[3] }
+      : card;
+  });
+  return { items, total: order.length, page, perPage, totalPages: totalPagesFor(order.length, perPage) };
+}
+
+/** "Reyting" tartibidagi barcha mos nomzodlarning ID ro'yxati. */
+async function loadRankingOrder(query: CatalogQuery): Promise<string[]> {
+  const supabase = createPublicClient();
+  const ids = await resolveCatalogFilterIds(supabase, query);
+  const [rows, rankings] = await Promise.all([
+    fetchAllRows<CatalogOrderRow>((from, to) =>
+      applyCatalogFilters(supabase.from("candidates").select("id, full_name", { count: "exact" }), query, ids)
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(from, to),
+    ),
+    getCachedOverallScores(),
+  ]);
+  return orderByRanking(rows, new Map(rankings.map(([id, score]) => [id, score])));
+}
+
+/**
+ * Berilgan ID lar uchun kartalar — aynan shu tartibda. Ball bu yerda
+ * qo'yilmaydi: uni chaqiruvchi tartib bilan bir xil reyting nusxasidan
+ * qo'yadi (`loadRankingPage`).
+ */
+async function loadCardsByIds(ids: readonly string[]): Promise<CandidateCardData[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await createPublicClient()
     .from("candidates")
     .select(CANDIDATE_CARD_SELECT)
+    .in("id", ids as string[])
     .eq("status", "published")
     .is("deleted_at", null);
-
-  if (filters.q) {
-    const q = filters.q.replace(/[%_,()]/g, " ").trim();
-    if (q) query = query.ilike("full_name", `%${q}%`);
-  }
-  if (filters.birthYear) {
-    query = query
-      .gte("birth_date", `${filters.birthYear}-01-01`)
-      .lte("birth_date", `${filters.birthYear}-12-31`);
-  }
-  if (filters.regionSlug) {
-    const { data: region } = await supabase
-      .from("regions")
-      .select("id")
-      .eq("slug", filters.regionSlug)
-      .maybeSingle();
-    if (region) query = query.eq("region_id", region.id);
-  }
-  if (filters.directionSlug) {
-    const { data: category } = await supabase
-      .from("categories")
-      .select("id")
-      .eq("slug", filters.directionSlug)
-      .maybeSingle();
-    if (category) query = query.eq("category_id", category.id);
-  }
-
-  switch (filters.sort) {
-    case "eng-yangi":
-      query = query.order("created_at", { ascending: false });
-      break;
-    case "alifbo":
-      query = query.order("full_name", { ascending: true });
-      break;
-    default:
-      query = query.order("created_at", { ascending: false });
-  }
-
-  const { data, error } = await query.range(0, 4999);
   if (error) throw error;
-
-  const items = await toCandidateCards(data ?? [], { strict: true });
-  if (filters.sort === "reyting" || !filters.sort) {
-    items.sort((a, b) => b.total_score - a.total_score || a.full_name.localeCompare(b.full_name, "uz"));
-  } else if (filters.sort === "eng-kop-oqilgan" && items.length > 0) {
-    const admin = createAdminClient();
-    const ids = items.map((item) => item.id);
-    const { data: views } = await admin.from("profile_views").select("candidate_id").in("candidate_id", ids);
-    const counts = new Map<string, number>();
-    for (const view of views ?? []) {
-      counts.set(view.candidate_id, (counts.get(view.candidate_id) ?? 0) + 1);
-    }
-    items.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0));
-  }
-
-  return items;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const byId = new Map((data ?? []).map((row: any) => [row.id as string, row]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((row) => row !== undefined)
+    .map(normalizeCandidateRow);
 }
 
 export async function getFeaturedCandidates(limit = 6) {

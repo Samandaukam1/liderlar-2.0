@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { paginate, PUBLIC_LIST_REVALIDATE_SECONDS } from "../src/lib/data/public-cache.ts";
+import { PUBLIC_LIST_REVALIDATE_SECONDS } from "../src/lib/data/public-cache.ts";
 
 /*
  * OMMAVIY SAYTNING BAZAGA YUKI.
@@ -22,41 +22,6 @@ function sourceFiles(dir: string): string[] {
     return /\.(ts|tsx)$/.test(name) ? [path] : [];
   });
 }
-
-/* ------------------------------------------------------------------ *
- * SAHIFALASH — keshlangan ro'yxatdan qirqish
- * ------------------------------------------------------------------ */
-
-test("sahifalash avvalgi hisob bilan bir xil", () => {
-  const all = Array.from({ length: 30 }, (_, i) => i + 1);
-
-  assert.deepEqual(paginate(all, 1, 12), {
-    items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-    total: 30,
-    page: 1,
-    perPage: 12,
-    totalPages: 3,
-  });
-  assert.deepEqual(paginate(all, 3, 12).items, [25, 26, 27, 28, 29, 30]);
-});
-
-test("sahifa ko'rsatilmasa yoki 1 dan kichik bo'lsa — birinchi sahifa", () => {
-  const all = [1, 2, 3];
-  assert.equal(paginate(all, undefined, 2).page, 1);
-  assert.equal(paginate(all, 0, 2).page, 1);
-  assert.equal(paginate(all, -5, 2).page, 1);
-  assert.deepEqual(paginate(all, 0, 2).items, [1, 2]);
-});
-
-test("bo'sh ro'yxatda ham kamida bitta sahifa", () => {
-  assert.deepEqual(paginate([], 4, 12), {
-    items: [],
-    total: 0,
-    page: 4,
-    perPage: 12,
-    totalPages: 1,
-  });
-});
 
 test("kesh muddati qisqa: soatlik reyting hisobidan ancha kam", () => {
   assert.ok(PUBLIC_LIST_REVALIDATE_SECONDS > 0);
@@ -79,16 +44,26 @@ test("nomzod kartasi ranking_scores ni ichma-ich so'ramaydi", () => {
   assert.deepEqual(offenders, []);
 });
 
-test("katalog ro'yxati keshlanadi va sahifa raqami kesh kalitiga kirmaydi", () => {
+test("katalog sahifasi keshlanadi, reyting tartibi esa sahifa raqamisiz", () => {
   const source = read("src/lib/data/candidates.ts");
-  assert.match(source, /unstable_cache\(\s*\(filters: CatalogQuery\) => loadCatalog\(filters\)/);
+  assert.match(source, /getCachedCatalogPage = unstable_cache\(/);
+  assert.match(source, /getCachedRankingOrder = unstable_cache\(\s*\(query: CatalogQuery\) => loadRankingOrder\(query\)/);
   assert.match(source, /type CatalogQuery = Omit<CandidateFilters, "page" \| "perPage">/);
-  assert.match(source, /return paginate\(all, filters\.page/);
-  // Keshlanadigan joyda cookie o'qiydigan mijoz bo'lmasligi kerak.
-  const loader = source.slice(source.indexOf("async function loadCatalog"));
-  const body = loader.slice(0, loader.indexOf("\n}\n"));
-  assert.match(body, /createPublicClient\(\)/);
-  assert.doesNotMatch(body, /createServerSupabase\(/);
+  // Reyting sahifasidagi kartalar sahifa raqami emas, ID ro'yxati bo'yicha keshlanadi.
+  assert.match(source, /getCachedCardsByIds = unstable_cache\(\s*\(ids: string\[\]\) => loadCardsByIds\(ids\)/);
+  // Keshlanadigan joylarda cookie o'qiydigan mijoz bo'lmasligi kerak.
+  for (const fn of ["async function loadCatalogPage", "async function loadRankingOrder", "async function loadCardsByIds"]) {
+    const body = source.slice(source.indexOf(fn), source.indexOf("\n}\n", source.indexOf(fn)));
+    assert.match(body, /createPublicClient\(\)/, fn);
+    assert.doesNotMatch(body, /createServerSupabase\(/, fn);
+  }
+});
+
+test("katalog to'liq ro'yxatni bitta so'rovda olmaydi (1000 qator chegarasi)", () => {
+  const source = read("src/lib/data/candidates.ts");
+  assert.doesNotMatch(source, /\.range\(0, 4999\)/);
+  assert.match(source, /builder\.range\(from, to\)/);
+  assert.match(source, /fetchAllRows<CatalogOrderRow>\(/);
 });
 
 test("reyting xatosi katalog keshiga yozilmaydi", () => {
