@@ -52,6 +52,16 @@ function normalizeMetadata(value: unknown): PublicAdabiyotXItemMetadata {
   }
   const category = stringOrNull(value.category);
   if (category) metadata.category = category;
+  if (
+    typeof value.quizScore === "number" &&
+    Number.isFinite(value.quizScore) &&
+    value.quizScore >= 0 &&
+    value.quizScore <= 100
+  ) {
+    metadata.quizScore = value.quizScore;
+    metadata.quizMax =
+      typeof value.quizMax === "number" && Number.isFinite(value.quizMax) && value.quizMax > 0 ? value.quizMax : 10;
+  }
 
   return metadata;
 }

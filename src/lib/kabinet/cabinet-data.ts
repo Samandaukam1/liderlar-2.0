@@ -60,6 +60,43 @@ function vipCard(
   return { ...base, status: "active", daysLeft: Math.max(0, Math.ceil((until - now.getTime()) / DAY_MS)) };
 }
 
+export interface CabinetAdabiyotX {
+  linked: boolean;
+  fullName: string | null;
+  username: string | null;
+  linkedAt: string | null;
+  readCount: number;
+  /** Testlardan yig'ilgan ballar (har to'g'ri javob = 1). */
+  points: number;
+}
+
+/**
+ * AdabiyotX bog'lanishi — jadvallar hali migratsiya qilinmagan bo'lsa ham
+ * kabinet ochilaveradi ("bog'lanmagan" ko'rinadi).
+ */
+async function loadAdabiyotX(userId: string): Promise<CabinetAdabiyotX> {
+  const admin = createAdminClient();
+  const none: CabinetAdabiyotX = { linked: false, fullName: null, username: null, linkedAt: null, readCount: 0, points: 0 };
+  const [{ data: link, error: linkError }, { data: reads }] = await Promise.all([
+    admin
+      .from("adabiyotx_account_links")
+      .select("adabiyotx_full_name, adabiyotx_username, linked_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    admin.from("adabiyotx_book_reads").select("score").eq("user_id", userId),
+  ]);
+  if (linkError || !link) return none;
+  const scores = (reads ?? []) as { score: number }[];
+  return {
+    linked: true,
+    fullName: (link.adabiyotx_full_name as string | null) ?? null,
+    username: (link.adabiyotx_username as string | null) ?? null,
+    linkedAt: (link.linked_at as string | null) ?? null,
+    readCount: scores.length,
+    points: scores.reduce((sum, row) => sum + Number(row.score ?? 0), 0),
+  };
+}
+
 export async function loadCabinet(userId: string) {
   const admin = createAdminClient();
   const now = new Date();
@@ -74,6 +111,7 @@ export async function loadCabinet(userId: string) {
     { data: telegram },
     mehr,
     mehrFlags,
+    adabiyotx,
   ] = await Promise.all([
     admin.from("profiles").select("full_name, username").eq("id", userId).maybeSingle(),
     admin
@@ -108,6 +146,7 @@ export async function loadCabinet(userId: string) {
       .maybeSingle(),
     loadMemberMehrData(userId),
     getMehrFlags(),
+    loadAdabiyotX(userId),
   ]);
 
   const fullName = (profile?.full_name as string | null) ?? null;
@@ -178,6 +217,7 @@ export async function loadCabinet(userId: string) {
       : (null as AnnualFeeStatus | null),
     challenge,
     telegram: telegram ? { linked: true, username: (telegram.telegram_username as string | null) ?? null } : { linked: false, username: null },
+    adabiyotx,
     notifications: notifications ?? [],
     monthlyUpdates: (updatesRes.data ?? []) as { id: string; status: string; submitted_at: string | null; created_at: string }[],
     mehr,

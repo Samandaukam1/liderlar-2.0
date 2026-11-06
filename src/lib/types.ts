@@ -93,6 +93,9 @@ export interface PublicAdabiyotXItemMetadata {
   isFree?: boolean;
   rating?: number;
   category?: string;
+  /** AdabiyotX kitob testi natijasi (o'qilgan kitoblar): to'g'ri javoblar / savollar. */
+  quizScore?: number;
+  quizMax?: number;
 }
 
 export interface PublicCandidateAdabiyotXItem {

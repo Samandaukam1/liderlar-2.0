@@ -16,6 +16,7 @@ import { PromoCodePanel } from "@/components/kabinet/promo-code-panel";
 import { CabinetHero } from "@/components/kabinet/cabinet-hero";
 import { AnnualFeeCard } from "@/components/kabinet/annual-fee-card";
 import { ChallengeCard, TelegramCard, VipCard } from "@/components/kabinet/status-cards";
+import { AdabiyotXCard } from "@/components/kabinet/adabiyotx-card";
 
 export const metadata: Metadata = {
   title: "Shaxsiy kabinet",
@@ -131,8 +132,10 @@ export default async function KabinetPage() {
 
       <div className="grid gap-5 md:grid-cols-2">
         <TelegramCard linked={data.telegram.linked} username={data.telegram.username} botUrl={botUrl} />
-        {candidate && <MonthlyLinksPanel rows={data.monthlyLinks} />}
+        <AdabiyotXCard data={data.adabiyotx} />
       </div>
+
+      {candidate && <MonthlyLinksPanel rows={data.monthlyLinks} />}
 
       <MehrPanel data={data.mehr} canCreateActivity={data.mehrFlags.activityCreationEnabled} botUrl={botUrl} />
 

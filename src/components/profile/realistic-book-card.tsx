@@ -22,7 +22,7 @@ function BookBody({
 }) {
   const [coverFailed, setCoverFailed] = useState(false);
   const coverUrl = isSafeHttpUrl(book.coverUrl) ? book.coverUrl : null;
-  const { isFree, rating, category } = book.metadata;
+  const { isFree, rating, category, quizScore, quizMax } = book.metadata;
   const book3dRef = useRef<HTMLDivElement>(null);
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -94,11 +94,18 @@ function BookBody({
               )}
             </div>
 
-            {(typeof rating === "number" || category) && (
+            {(typeof rating === "number" || category || typeof quizScore === "number") && (
               <div className="absolute inset-x-0 bottom-0 z-[3] flex flex-wrap items-end justify-between gap-1 bg-gradient-to-t from-navy-dark/75 to-transparent p-2 pl-3.5 pt-6">
                 {category ? (
                   <span className="max-w-[7rem] truncate text-[0.55rem] font-bold uppercase tracking-[0.14em] text-white/85">
                     {category}
+                  </span>
+                ) : typeof quizScore === "number" ? (
+                  <span
+                    className="rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.12em] text-white"
+                    title="AdabiyotX kitob testi natijasi"
+                  >
+                    Test {quizScore}/{quizMax ?? 10}
                   </span>
                 ) : (
                   <span />
