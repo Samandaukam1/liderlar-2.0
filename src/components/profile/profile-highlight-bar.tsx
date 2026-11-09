@@ -6,8 +6,8 @@ import Image from "next/image";
 import { useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import {
-  eligibleAds,
   imageFrameHeight,
+  isLive,
   nextCursor,
   nextXState,
   pickIndex,
@@ -33,6 +33,11 @@ import {
  * `<a target=_blank>` — popup bloklovchi uni to'sa olmaydi. Escape darhol
  * yopadi (klaviatura uchun chiqish yo'li).
  *
+ * YOPISH FAQAT SHU SAHIFA KO'RISHIDA (egasining talabi, 2026-11-09):
+ * tashrifchi sahifani tark etib qaytsa, bar yana chiqadi va X yana avval
+ * havolani ochadi. Shuning uchun yopilgan/qurollangan holat brauzer
+ * xotirasiga yozilmaydi — faqat komponent holatida turadi.
+ *
  * Serverda HECH NARSA chizilmaydi: qaysi reklama ko'rsatilishi brauzer
  * xotirasiga (navbat, yopilganlar) bog'liq.
  */
@@ -41,8 +46,6 @@ const noopSubscribe = () => () => {};
 
 const KEYS = {
   cursor: "liderlar:phb:cursor",
-  closed: (id: string) => `liderlar:phb:closed:${id}`,
-  armed: (id: string) => `liderlar:phb:armed:${id}`,
 };
 
 type Store = "local" | "session";
@@ -150,20 +153,14 @@ function HighlightBar({
 
     const reveal = () => {
       if (cancelled) return;
-      const now = Date.now();
-      const closedAt: Record<string, number> = {};
-      for (const ad of ads) {
-        const value = Number(readKey("local", KEYS.closed(ad.id)));
-        if (Number.isFinite(value) && value > 0) closedAt[ad.id] = value;
-      }
-      const list = eligibleAds(ads, closedAt, settings.dismissHours, now);
+      const list = ads.filter((ad) => isLive(ad, Date.now()));
       if (list.length === 0) return;
       const stored = readKey("local", KEYS.cursor);
       // Birinchi tashrifda tasodifiy boshlanadi — hamma bitta reklamadan boshlamasin.
       const cursor = stored !== null && Number.isFinite(Number(stored)) ? Number(stored) : Math.floor(Math.random() * list.length);
       const index = pickIndex(settings.rotation, cursor, list.length, Math.random());
       writeKey("local", KEYS.cursor, String(nextCursor(cursor, list.length)));
-      setXState(readKey("session", KEYS.armed(list[index].id)) === "1" ? "armed" : "idle");
+      setXState("idle");
       setView({ list, index });
     };
 
@@ -293,7 +290,6 @@ function HighlightBar({
     if (!current) return;
     track(current.id, "click");
     if (!current.closeOpensLink) return;
-    writeKey("session", KEYS.armed(current.id), "1");
     setXState("armed");
     setHint(true);
     if (hintTimer.current) window.clearTimeout(hintTimer.current);
@@ -302,8 +298,6 @@ function HighlightBar({
 
   const close = React.useCallback(() => {
     if (!current) return;
-    writeKey("local", KEYS.closed(current.id), String(Date.now()));
-    writeKey("session", KEYS.armed(current.id), null);
     setHint(false);
     setExiting(true);
     // animationend kelmasa ham (masalan, fon oynasida) bar albatta yopiladi.
