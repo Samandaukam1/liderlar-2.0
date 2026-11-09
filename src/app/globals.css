@@ -621,6 +621,538 @@ body {
   pointer-events: none;
 }
 
+/* ------------------------------------------------------------------ BIOGRAFIK SAHIFA BARI (phb-)
+ * Header ostidan tushadigan "muz shisha" panel. Klass nomlari neytral:
+ * reklama bloklovchilar "ad/banner/promo" so'zli elementlarni yashiradi.
+ * z-index 35 — header (40) va uning menyulari doim ustida qoladi.
+ */
+.phb-host {
+  position: fixed;
+  z-index: 35;
+  top: var(--phb-top, 72px);
+  left: 0.75rem;
+  right: 0.75rem;
+  pointer-events: none;
+}
+.phb-host[data-header-hidden="true"],
+.phb-host[data-headerless="true"] {
+  top: calc(3.75rem + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 1024px) {
+  .phb-host {
+    left: auto;
+    right: max(1.5rem, calc((100vw - 90rem) / 2 + 1.5rem));
+    width: min(40rem, calc(100vw - 3rem));
+    top: var(--phb-top, 84px);
+  }
+  .phb-host[data-header-hidden="true"],
+  .phb-host[data-headerless="true"] {
+    top: 0.75rem;
+  }
+}
+
+.phb-slot {
+  position: relative;
+  pointer-events: auto;
+  transition:
+    transform 520ms var(--ease-brand),
+    opacity 200ms ease;
+}
+.phb-host[data-parked="true"] .phb-slot {
+  transform: translate3d(0, calc(-100% - var(--phb-top, 84px) - 16px), 0);
+  transition-duration: 420ms;
+  pointer-events: none;
+}
+.phb-host[data-parked="true"] .phb-slot,
+.phb-host[data-parked="true"] .phb-slot *,
+.phb-host[data-parked="true"] .phb-slot *::before {
+  animation-play-state: paused !important;
+}
+/* Header menyusi ochilganda bar orqaga chekinadi. */
+body:has([data-site-header] [aria-expanded="true"]) .phb-slot {
+  opacity: 0.35;
+}
+
+.phb-panel {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: stretch;
+  min-height: 3.75rem;
+  border-radius: 1.375rem;
+  font-family: var(--font-sans);
+  color: var(--phb-fg);
+  background: var(--phb-bg);
+  -webkit-backdrop-filter: var(--phb-blur);
+  backdrop-filter: var(--phb-blur);
+  border: 1px solid var(--phb-border);
+  box-shadow: var(--phb-shadow);
+  animation: var(--phb-enter-anim);
+}
+@media (min-width: 1024px) {
+  .phb-panel {
+    min-height: 4rem;
+  }
+}
+
+/* --- Mavzular --- */
+.phb-panel,
+.phb-panel[data-theme="glass-light"] {
+  --phb-bg: linear-gradient(150deg, rgb(251 254 255 / 0.86) 0%, rgb(238 249 253 / 0.64) 100%);
+  --phb-blur: blur(22px) saturate(160%);
+  --phb-border: rgb(12 151 192 / 0.22);
+  --phb-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(255 255 255 / 0.35),
+    0 18px 55px rgb(7 88 126 / 0.18), 0 2px 6px -2px rgb(7 88 126 / 0.18);
+  --phb-fg: #0b3555;
+  --phb-eyebrow: #4c697c;
+  --phb-cta-bg: linear-gradient(135deg, #078fbd, #13bce4);
+  --phb-cta-fg: #ffffff;
+  --phb-x-bg: rgb(255 255 255 / 0.72);
+  --phb-x-fg: #0b3555;
+  --phb-sweep: rgb(255 255 255 / 0.65);
+}
+.phb-panel[data-theme="glass-dark"] {
+  --phb-bg: linear-gradient(150deg, rgb(6 39 65 / 0.9) 0%, rgb(11 53 85 / 0.78) 100%);
+  --phb-blur: blur(22px) saturate(140%);
+  --phb-border: rgb(168 236 248 / 0.22);
+  --phb-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 18px 55px rgb(2 20 35 / 0.45);
+  --phb-fg: #ffffff;
+  --phb-eyebrow: rgb(255 255 255 / 0.6);
+  --phb-cta-bg: #13bce4;
+  --phb-cta-fg: #062741;
+  --phb-x-bg: rgb(255 255 255 / 0.14);
+  --phb-x-fg: #ffffff;
+  --phb-sweep: rgb(168 236 248 / 0.35);
+}
+.phb-panel[data-theme="brand-gradient"] {
+  --phb-bg: linear-gradient(120deg, rgb(11 53 85 / 0.95), rgb(7 143 189 / 0.93) 45%, rgb(19 188 228 / 0.92));
+  --phb-blur: blur(14px);
+  --phb-border: rgb(255 255 255 / 0.22);
+  --phb-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 18px 50px rgb(7 88 126 / 0.4);
+  --phb-fg: #ffffff;
+  --phb-eyebrow: rgb(255 255 255 / 0.72);
+  --phb-cta-bg: #ffffff;
+  --phb-cta-fg: #0b3555;
+  --phb-x-bg: rgb(255 255 255 / 0.18);
+  --phb-x-fg: #ffffff;
+  --phb-sweep: rgb(255 255 255 / 0.4);
+}
+.phb-panel[data-theme="custom"] {
+  --phb-bg: color-mix(in srgb, var(--phb-c-bg, #0b3555) 92%, transparent);
+  --phb-blur: blur(18px) saturate(140%);
+  --phb-border: color-mix(in srgb, var(--phb-c-fg, #ffffff) 18%, transparent);
+  --phb-shadow: 0 18px 50px rgb(2 20 35 / 0.3);
+  --phb-fg: var(--phb-c-fg, #ffffff);
+  --phb-eyebrow: color-mix(in srgb, var(--phb-c-fg, #ffffff) 65%, transparent);
+  --phb-cta-bg: var(--phb-c-accent, #13bce4);
+  --phb-cta-fg: var(--phb-c-accent-fg, #062741);
+  --phb-x-bg: color-mix(in srgb, var(--phb-c-fg, #ffffff) 16%, transparent);
+  --phb-x-fg: var(--phb-c-fg, #ffffff);
+  --phb-sweep: rgb(255 255 255 / 0.35);
+}
+.phb-panel[data-kind="image"] {
+  min-height: 0;
+  --phb-bg: #0b3555;
+  --phb-blur: none;
+  --phb-border: rgb(255 255 255 / 0.25);
+  --phb-shadow: 0 18px 50px rgb(7 88 126 / 0.35);
+}
+
+/* --- Ichki tuzilma --- */
+.phb-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 3.25rem 0.625rem 0.75rem;
+  border-radius: inherit;
+  color: inherit;
+  text-decoration: none;
+  transition: padding-right 240ms var(--ease-brand);
+}
+.phb-body:focus-visible {
+  outline: 2px solid #13bce4;
+  outline-offset: 3px;
+}
+@media (min-width: 1024px) {
+  .phb-body {
+    gap: 0.75rem;
+    padding: 0.75rem 3.5rem 0.75rem 0.875rem;
+  }
+}
+.phb-panel[data-armed="true"] .phb-body:not(.phb-body--image) {
+  padding-right: 6.75rem;
+}
+/* "Yopish" holatida havola allaqachon ochilgan — telefonda tugma matnga joy beradi. */
+@media (max-width: 1023px) {
+  .phb-panel[data-armed="true"] .phb-cta {
+    display: none;
+  }
+}
+.phb-body--image {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #0b3555;
+}
+.phb-logo {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgb(11 53 85 / 0.08);
+}
+@media (min-width: 1024px) {
+  .phb-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+.phb-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.phb-eyebrow {
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--phb-eyebrow);
+}
+.phb-headline {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+@media (min-width: 1024px) {
+  .phb-headline {
+    font-size: 0.92rem;
+  }
+}
+.phb-headline[data-marquee="true"] {
+  display: block;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.phb-marquee-track {
+  display: inline-flex;
+  gap: 3rem;
+  animation: phb-marquee 16s linear 1.5s infinite;
+}
+.phb-panel:hover .phb-marquee-track {
+  animation-play-state: paused;
+}
+.phb-cta {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  background: var(--phb-cta-bg);
+  color: var(--phb-cta-fg);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgb(7 88 126 / 0.22);
+}
+@media (min-width: 1024px) {
+  .phb-cta {
+    height: 2.25rem;
+    padding: 0 0.875rem;
+    font-size: 0.78rem;
+  }
+}
+
+.phb-x {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: 2rem;
+  min-width: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  background: var(--phb-x-bg);
+  color: var(--phb-x-fg);
+  font-size: 0.72rem;
+  font-weight: 600;
+  transform: translateY(-50%);
+  transition:
+    background-color 200ms ease,
+    box-shadow 240ms var(--ease-brand);
+}
+.phb-x:hover {
+  filter: brightness(1.06);
+}
+.phb-x:focus-visible {
+  outline: 2px solid #13bce4;
+  outline-offset: 2px;
+}
+.phb-x[data-armed="true"] {
+  padding: 0 0.75rem;
+  background: #0b3555;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px #13bce4;
+}
+.phb-panel[data-kind="image"] .phb-x {
+  top: -0.5rem;
+  right: -0.5rem;
+  transform: none;
+  background: rgb(11 53 85 / 0.8);
+  color: #ffffff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 16px rgb(2 20 35 / 0.35);
+}
+.phb-panel[data-kind="image"] .phb-x[data-armed="true"] {
+  box-shadow: 0 0 0 2px #13bce4, 0 6px 16px rgb(2 20 35 / 0.35);
+}
+.phb-hint {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  background: rgb(6 39 65 / 0.9);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgb(2 20 35 / 0.3);
+  pointer-events: none;
+  animation: phb-hint 2.8s var(--ease-brand) both;
+}
+
+/* --- E'tibor tortish --- */
+.phb-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.phb-sweep::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 38%;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--phb-sweep), transparent);
+  transform: translateX(-160%) skewX(-18deg);
+}
+.phb-panel[data-attention="shimmer"] .phb-sweep::before {
+  opacity: 1;
+  animation: phb-sweep 6s cubic-bezier(0.4, 0, 0.2, 1) 1.4s 8;
+}
+.phb-panel[data-attention="pulse"] .phb-cta {
+  animation: phb-pulse 2.6s ease-in-out 1.2s 12;
+}
+.phb-panel[data-armed="true"] .phb-sweep::before,
+.phb-panel[data-armed="true"] .phb-cta,
+.phb-panel[data-armed="true"] .phb-marquee-track {
+  animation: none;
+}
+
+/* --- Kirish va chiqish --- */
+.phb-panel[data-enter="drop"] {
+  --phb-enter-anim: phb-drop 620ms var(--ease-brand) both;
+}
+.phb-panel[data-enter="drop-bounce"] {
+  --phb-enter-anim: phb-settle 720ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.phb-panel[data-enter="fade-down"] {
+  --phb-enter-anim: phb-glass-drop 520ms var(--ease-brand) both;
+}
+.phb-panel[data-enter="unfold"] {
+  --phb-enter-anim: phb-unveil 560ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.phb-panel[data-attention="float"]:not([data-armed="true"]) {
+  animation: var(--phb-enter-anim), phb-float 4.2s ease-in-out 1.6s 8;
+}
+.phb-panel[data-phase="exit"] {
+  animation: phb-exit 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+.phb-body[data-swap="true"] > * {
+  animation: phb-swap-in 320ms var(--ease-brand) both;
+}
+
+@keyframes phb-drop {
+  0% {
+    transform: translate3d(0, calc(-100% - var(--phb-top, 84px) - 8px), 0);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes phb-settle {
+  0% {
+    transform: translate3d(0, calc(-100% - var(--phb-top, 84px) - 8px), 0);
+    opacity: 0;
+  }
+  70% {
+    transform: translate3d(0, 5px, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes phb-glass-drop {
+  0% {
+    transform: translate3d(0, -28px, 0) scale(0.97);
+    opacity: 0;
+    filter: blur(14px);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+    filter: none;
+  }
+}
+@keyframes phb-unveil {
+  0% {
+    clip-path: inset(0 0 100% 0 round 1.375rem);
+    transform: translate3d(0, -10px, 0);
+    opacity: 0.6;
+  }
+  100% {
+    clip-path: inset(-5rem round 1.375rem);
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes phb-float {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+@keyframes phb-exit {
+  to {
+    transform: translate3d(0, -14px, 0) scale(0.98);
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+@keyframes phb-sweep {
+  0% {
+    transform: translateX(-160%) skewX(-18deg);
+  }
+  22%,
+  100% {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+@keyframes phb-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(19 188 228 / 0.5), 0 6px 18px rgb(7 88 126 / 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgb(19 188 228 / 0), 0 6px 18px rgb(7 88 126 / 0.22);
+  }
+}
+@keyframes phb-marquee {
+  to {
+    transform: translateX(calc(-50% - 1.5rem));
+  }
+}
+@keyframes phb-swap-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes phb-hint {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  10%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- Zaif qurilmalar va maxsus sozlamalar --- */
+@media (max-width: 640px) {
+  .phb-panel,
+  .phb-panel[data-theme="glass-light"],
+  .phb-panel[data-theme="glass-dark"] {
+    --phb-blur: blur(14px) saturate(150%);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .phb-panel,
+  .phb-panel[data-theme="glass-light"] {
+    --phb-bg: rgb(251 254 255 / 0.97);
+  }
+  .phb-panel[data-theme="glass-dark"] {
+    --phb-bg: rgb(6 39 65 / 0.97);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .phb-panel,
+  .phb-panel[data-theme="glass-light"] {
+    --phb-bg: rgb(251 254 255 / 0.98);
+    --phb-blur: none;
+  }
+  .phb-panel[data-theme="glass-dark"] {
+    --phb-bg: rgb(6 39 65 / 0.98);
+    --phb-blur: none;
+  }
+}
+@media (forced-colors: active) {
+  .phb-panel {
+    border: 1px solid CanvasText;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -649,8 +1181,14 @@ body {
   .ai-particle,
   .cv-btn-pulse::before,
   .cv-btn-pulse::after,
-  .cv-btn-shine::before {
+  .cv-btn-shine::before,
+  .phb-sweep::before {
     display: none;
+  }
+
+  /* Oqib o'tuvchi matn birinchi nusxada to'xtaydi. */
+  .phb-marquee-track {
+    animation: none !important;
   }
 }
 

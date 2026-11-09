@@ -32,6 +32,8 @@ import { RankingMiniCard } from "@/components/profile/ranking-mini-card";
 import { ProfileMemberArticles } from "@/components/profile/profile-member-articles";
 import { ProfilePromoCode } from "@/components/profile/profile-promo-code";
 import { HiddenSiteHeader } from "@/components/profile/hidden-site-header";
+import { ProfileHighlightBar } from "@/components/profile/profile-highlight-bar";
+import { getProfileHighlight } from "@/lib/data/profile-highlight";
 import { getPublicReferralCode } from "@/lib/referral/public-code";
 import { CandidateAdabiyotXSection } from "@/components/profile/candidate-adabiyotx-section";
 import { CandidateBooksRow } from "@/components/profile/candidate-books-row";
@@ -105,6 +107,12 @@ export default async function LeaderProfilePage({
    * qilingan dizayn o'zgarmaydi.
    */
   const { preview, header } = await searchParams;
+  /*
+   * BIOGRAFIK SAHIFA BARI — global, admin boshqaradi (o'z keshi, 2 daqiqa).
+   * Ko'rib chiqishda (`?preview=`) chiqmaydi: egasi dizaynni toza ko'rsin.
+   * Mavzu tanlovi bilan parallel boshlanadi; hech qachon yiqilmaydi.
+   */
+  const highlightPromise = preview ? Promise.resolve(null) : getProfileHighlight();
   const selection = await loadThemeSelection(candidate.id).catch(() => null);
   const themeKey = preview
     ? resolveTheme(preview)
@@ -120,6 +128,11 @@ export default async function LeaderProfilePage({
    * `?preview=` havolalari ko'rishlar hisobiga (reyting, challenge) tushmaydi.
    */
   const isPreview = Boolean(preview);
+  const highlight = await highlightPromise;
+  const highlightBar =
+    highlight && highlight.ads.length > 0 ? (
+      <ProfileHighlightBar ads={highlight.ads} settings={highlight.settings} headerHidden={hideHeader} />
+    ) : null;
 
   if (hasThemeComponent(themeKey)) {
     /*
@@ -149,6 +162,7 @@ export default async function LeaderProfilePage({
         */}
         {!isPreview && <ThemeViewTracker candidateSlug={candidate.slug} />}
         {hideHeader && <HiddenSiteHeader />}
+        {highlightBar}
         <ThemeRenderer
           themeKey={themeKey}
           profile={candidate}
@@ -317,6 +331,7 @@ export default async function LeaderProfilePage({
     <div>
       {!isPreview && <ProfileViewTracker candidateSlug={candidate.slug} />}
       {hideHeader && <HiddenSiteHeader />}
+      {highlightBar}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 
