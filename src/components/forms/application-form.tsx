@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
 import {
   AGE_RANGES,
   GENDER_OPTIONS,
   applicationSchema,
+  normalizePhone,
   type ApplicationFormValues,
 } from "@/lib/validation/application";
 import { Input, Checkbox, Select } from "@/components/ui/input";
@@ -53,7 +54,13 @@ export function ApplicationForm({
 }) {
   const { push } = useToast();
   const [submitted, setSubmitted] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState<{
+    phone: string;
+    message: string;
+    retryAfterSeconds: number | null;
+  } | null>(null);
   const {
+    control,
     register,
     handleSubmit,
     setValue,
@@ -64,10 +71,22 @@ export function ApplicationForm({
     defaultValues: { promoCode: prefilledCode },
   });
 
+  const phone = useWatch({ control, name: "phone", defaultValue: "" });
+  const activeCooldown = cooldown?.phone === normalizePhone(phone) ? cooldown : null;
+
+  React.useEffect(() => {
+    if (!cooldown?.retryAfterSeconds) return;
+
+    const timer = window.setTimeout(() => setCooldown(null), cooldown.retryAfterSeconds * 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
+
   const fullName = register("fullName");
   const promoCode = register("promoCode");
 
   async function onSubmit(values: ApplicationFormValues) {
+    if (cooldown?.phone === values.phone && cooldown.retryAfterSeconds) return;
+
     try {
       const response = await fetch("/api/application/submit", {
         method: "POST",
@@ -77,6 +96,13 @@ export function ApplicationForm({
       const result = (await response.json()) as { ok?: boolean; error?: string };
       if (response.ok && result.ok) {
         setSubmitted(true);
+      } else if (response.status === 429 && result.error) {
+        const retryAfter = Number(response.headers.get("Retry-After"));
+        setCooldown({
+          phone: values.phone,
+          message: result.error,
+          retryAfterSeconds: Number.isInteger(retryAfter) && retryAfter > 0 ? retryAfter : null,
+        });
       } else {
         push({ title: "Xatolik", description: result.error ?? "Qayta urinib ko'ring.", variant: "error" });
       }
@@ -127,7 +153,13 @@ export function ApplicationForm({
           <label className="mb-1.5 block text-sm font-medium text-navy" htmlFor="phone">
             Telefon raqam *
           </label>
-          <Input id="phone" {...register("phone")} type="tel" autoComplete="tel" placeholder="+998 90 123 45 67" />
+          <Input
+            id="phone"
+            {...register("phone")}
+            type="tel"
+            autoComplete="tel"
+            placeholder="+998 90 123 45 67"
+          />
           <p className="mt-1 text-xs text-ink-soft">Iltimos, ishlaydigan telefon raqam qoldiring.</p>
           <FieldError message={errors.phone?.message} />
         </div>
@@ -258,9 +290,29 @@ export function ApplicationForm({
       </label>
       <FieldError message={errors.consent?.message} />
 
-      <Button type="submit" size="lg" disabled={isSubmitting} className="w-full sm:w-auto">
-        {isSubmitting ? "Yuborilmoqda..." : "Arizani yuborish"}
-      </Button>
+      <div>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting || Boolean(activeCooldown?.retryAfterSeconds)}
+          className="w-full sm:w-auto"
+        >
+          {isSubmitting ? "Yuborilmoqda..." : "Arizani yuborish"}
+        </Button>
+        <div role="status">
+          {activeCooldown && (
+            <div className="mt-3 flex items-start gap-3 rounded-xl border border-brand-soft bg-ice p-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper text-liderlar-blue">
+                <Clock className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-navy">Eslatma!</p>
+                <p className="mt-1 text-sm text-ink-soft">{activeCooldown.message}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </form>
   );
 }

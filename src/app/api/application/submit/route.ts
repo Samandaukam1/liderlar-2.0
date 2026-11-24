@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { getApplicationCooldown } from "@/lib/application/cooldown";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { applicationSchema } from "@/lib/validation/application";
 import {
@@ -52,6 +53,12 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error || !created) {
+    const cooldown = getApplicationCooldown(error);
+    if (cooldown) {
+      const headers = cooldown.retryAfter ? { "Retry-After": String(cooldown.retryAfter) } : undefined;
+      return Response.json({ error: cooldown.error }, { status: 429, headers });
+    }
+
     console.error("Application submit error:", error);
     return Response.json({ error: "Arizani saqlashda xatolik yuz berdi." }, { status: 500 });
   }

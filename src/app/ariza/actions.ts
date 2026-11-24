@@ -1,5 +1,6 @@
 "use server";
 
+import { getApplicationCooldown } from "@/lib/application/cooldown";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { applicationSchema } from "@/lib/validation/application";
 import {
@@ -57,6 +58,9 @@ export async function submitApplication(input: unknown): Promise<SubmitResult> {
     .single();
 
   if (error || !created) {
+    const cooldown = getApplicationCooldown(error);
+    if (cooldown) return { ok: false, error: cooldown.error };
+
     console.error("Application submit error:", error);
     return { ok: false, error: "Arizani yuborishda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring." };
   }
