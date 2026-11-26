@@ -58,7 +58,7 @@ const DRAWER_GROUPS: { title: string; links: DrawerLink[] }[] = [
     title: "Media",
     links: [
       { href: "/podcastlar", label: "Podcastlar", icon: Mic2 },
-      { href: "/jurnal", label: "Liderlar Online", icon: BookOpenText },
+      { href: "/liderlar-online", label: "Liderlar Online", icon: BookOpenText },
       { href: "/iqtiboslar", label: "Iqtiboslar", icon: Quote },
       { href: "/ai", label: "Jaxongir AI", icon: Sparkles },
     ],
