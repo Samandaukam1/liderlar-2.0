@@ -25,16 +25,11 @@ import { cn } from "@/lib/utils";
 import { Drawer } from "@/components/ui/drawer";
 import { LinkButton } from "@/components/ui/button";
 
-/*
- * Pastki panelda joy cheklangan — to'rttadan ortiq element
- * matnlarni siqib, o'qib bo'lmas holga keltiradi. MEHR
- * podkast o'rniga emas, uning yoniga qo'yildi va Podcast
- * yon menyuda qoladi.
- */
+// Pastki panelda to'rtta havola va Ko'proq tugmasi uchun joy bor.
 const ITEMS = [
   { href: "/", label: "Bosh", icon: Home },
   { href: "/liderlar", label: "Liderlar", icon: Users },
-  { href: "/mehr365", label: "MEHR", icon: HeartHandshake },
+  { href: "/liderlar-online", label: "Liderlar Online", icon: BookOpenText },
   { href: "/reyting", label: "Reyting", icon: Trophy },
 ];
 
@@ -58,9 +53,9 @@ const DRAWER_GROUPS: { title: string; links: DrawerLink[] }[] = [
     title: "Media",
     links: [
       { href: "/podcastlar", label: "Podcastlar", icon: Mic2 },
-      { href: "/liderlar-online", label: "Liderlar Online", icon: BookOpenText },
       { href: "/iqtiboslar", label: "Iqtiboslar", icon: Quote },
       { href: "/ai", label: "Jaxongir AI", icon: Sparkles },
+      { href: "/mehr365", label: "MEHR 365+", icon: HeartHandshake },
     ],
   },
   {
